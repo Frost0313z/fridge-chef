@@ -1,0 +1,14 @@
+# 환경변수 (API 키)
+.env
+
+# Vercel
+.vercel/
+
+# Python
+__pycache__/
+*.pyc
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
