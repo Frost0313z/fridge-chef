@@ -30,12 +30,15 @@
       <p>재료함을 최대한 활용해서 며칠치 식단을 짜고, 부족한 재료만 장보기 리스트로 뽑아드려요.</p>
     </section>
 
-    <section class="mealplan-pantry-summary">
-      <h2>🥕 지금 재료함</h2>
-      <div id="mealplan-pantry-chips" class="pantry-chips"></div>
-      <p id="mealplan-pantry-empty" class="pantry-empty">
-        재료함이 비어있어요. <a href="recipe.html">레시피 추천 페이지</a>에서 먼저 등록해두면 식단 계획에 활용돼요.
-      </p>
+    <section class="pantry">
+      <h2>🥕 내 재료함</h2>
+      <p class="pantry-hint">레시피 추천 페이지와 같은 재료함이에요. 여기서 추가·삭제하면 그쪽에도 그대로 반영돼요.</p>
+      <div class="pantry-input-row">
+        <input type="text" id="pantry-input" placeholder="재료 이름 입력 후 Enter (쉼표로 여러 개, 예: 계란, 대파, 두부)" />
+        <button type="button" id="pantry-add-btn">추가</button>
+      </div>
+      <div id="pantry-chips" class="pantry-chips"></div>
+      <p id="pantry-empty" class="pantry-empty">아직 등록된 재료가 없어요. 위에 입력해서 추가해보세요.</p>
     </section>
 
     <section class="recipe-form-section">
@@ -94,6 +97,7 @@
   </footer>
 
   <script src="js/main.js"></script>
+  <script src="js/shared.js"></script>
   <script src="js/mealplan.js"></script>
 </body>
 </html>

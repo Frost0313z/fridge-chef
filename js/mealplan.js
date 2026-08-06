@@ -1,9 +1,9 @@
-const MP_PANTRY_KEY = "fridge-chef-pantry";
 const MEALPLAN_KEY = "fridge-chef-mealplan";
+const MEALPLAN_DAYS_KEY = "fridge-chef-mealplan-days";
 const MP_REQUEST_TIMEOUT_MS = 25000;
 
 document.addEventListener("DOMContentLoaded", () => {
-  renderPantrySummary();
+  initPantry();
 
   const form = document.getElementById("mealplan-form");
   if (!form) return;
@@ -16,6 +16,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const loadingEl = document.getElementById("mealplan-loading");
   const errorEl = document.getElementById("mealplan-error");
   const resultEl = document.getElementById("mealplan-result");
+
+  restorePreferences();
+
+  daysEl.addEventListener("change", () => localStorage.setItem(MEALPLAN_DAYS_KEY, daysEl.value));
+  headcountEl.addEventListener("change", () => savePrefs({ headcount: headcountEl.value }));
+  situationEl.addEventListener("change", () => savePrefs({ situation: situationEl.value }));
+
+  function restorePreferences() {
+    const prefs = loadPrefs();
+    if (prefs.headcount) headcountEl.value = prefs.headcount;
+    if (prefs.situation) situationEl.value = prefs.situation;
+    const savedDays = localStorage.getItem(MEALPLAN_DAYS_KEY);
+    if (savedDays) daysEl.value = savedDays;
+  }
 
   const saved = loadSavedPlan();
   if (saved) {
@@ -79,6 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   clearBtn.addEventListener("click", () => {
+    if (!confirm("저장된 식단 계획을 삭제할까요?")) return;
     localStorage.removeItem(MEALPLAN_KEY);
     resultEl.innerHTML = "";
     document.getElementById("shopping-list-section").hidden = true;
@@ -101,27 +116,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-function renderPantrySummary() {
-  const chipsEl = document.getElementById("mealplan-pantry-chips");
-  const emptyEl = document.getElementById("mealplan-pantry-empty");
-  if (!chipsEl) return;
-
-  const pantry = loadPantry();
-  emptyEl.hidden = pantry.length > 0;
-  chipsEl.innerHTML = pantry
-    .map((item) => `<span class="pantry-chip pantry-chip-readonly">${mpEscapeHtml(item)}</span>`)
-    .join("");
-}
-
-function loadPantry() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(MP_PANTRY_KEY) || "[]");
-    return Array.isArray(saved) ? saved : [];
-  } catch {
-    return [];
-  }
-}
-
 function loadSavedPlan() {
   try {
     const saved = JSON.parse(localStorage.getItem(MEALPLAN_KEY) || "null");
@@ -143,9 +137,9 @@ function renderPlan(plan) {
 function mealplanDayHtml(d) {
   return `
     <article class="mealplan-day-card">
-      <h3>${mpEscapeHtml(d.day || "")}</h3>
-      <p class="mealplan-menu">${mpEscapeHtml(d.menu || "")}</p>
-      <ul>${(d.ingredients || []).map((i) => `<li>${mpEscapeHtml(i)}</li>`).join("")}</ul>
+      <h3>${escapeHtml(d.day || "")}</h3>
+      <p class="mealplan-menu">${escapeHtml(d.menu || "")}</p>
+      <ul>${(d.ingredients || []).map((i) => `<li>${escapeHtml(i)}</li>`).join("")}</ul>
     </article>
   `;
 }
@@ -164,7 +158,7 @@ function renderShoppingList(plan, pantry) {
       .map(
         (item) => `
       <li class="shopping-item">
-        <span>${mpEscapeHtml(item)}</span>
+        <span>${escapeHtml(item)}</span>
         <a href="https://www.coupang.com/np/search?q=${encodeURIComponent(item)}" target="_blank" rel="noopener noreferrer">쿠팡에서 검색 →</a>
       </li>
     `
@@ -191,10 +185,4 @@ function computeShoppingList(plan, pantry) {
   });
 
   return list;
-}
-
-function mpEscapeHtml(str) {
-  const div = document.createElement("div");
-  div.textContent = String(str);
-  return div.innerHTML;
 }

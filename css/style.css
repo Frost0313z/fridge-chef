@@ -459,26 +459,6 @@ a {
 /* ==========================================================================
    주간 식단 계획
    ========================================================================== */
-.mealplan-pantry-summary {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 0 20px 24px;
-}
-
-.mealplan-pantry-summary h2 {
-  font-size: 1.05rem;
-  margin: 0 0 10px;
-}
-
-.pantry-chip-readonly {
-  padding: 6px 14px;
-}
-
-.mealplan-pantry-summary .pantry-empty a {
-  color: var(--color-primary-dark);
-  text-decoration: underline;
-}
-
 .mealplan-clear-btn {
   margin-top: 10px;
   border: none;

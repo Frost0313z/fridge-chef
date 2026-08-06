@@ -1,6 +1,6 @@
-const PANTRY_KEY = "fridge-chef-pantry";
 const HISTORY_KEY = "fridge-chef-history";
 const HISTORY_LIMIT = 5;
+const RECIPE_TIMELIMIT_KEY = "fridge-chef-recipe-timelimit";
 
 document.addEventListener("DOMContentLoaded", () => {
   initPantry();
@@ -19,6 +19,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const resultEl = document.getElementById("result");
 
   const REQUEST_TIMEOUT_MS = 20000;
+
+  restorePreferences();
+
+  headcountEl.addEventListener("change", () => savePrefs({ headcount: headcountEl.value }));
+  situationEl.addEventListener("change", () => savePrefs({ situation: situationEl.value }));
+  timeLimitEl.addEventListener("change", () => localStorage.setItem(RECIPE_TIMELIMIT_KEY, timeLimitEl.value));
+
+  function restorePreferences() {
+    const prefs = loadPrefs();
+    if (prefs.headcount) headcountEl.value = prefs.headcount;
+    if (prefs.situation) situationEl.value = prefs.situation;
+    const savedTimeLimit = localStorage.getItem(RECIPE_TIMELIMIT_KEY);
+    if (savedTimeLimit) timeLimitEl.value = savedTimeLimit;
+  }
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -112,88 +126,6 @@ function recipeCardHtml(r) {
   `;
 }
 
-function escapeHtml(str) {
-  const div = document.createElement("div");
-  div.textContent = String(str);
-  return div.innerHTML;
-}
-
-function loadPantry() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(PANTRY_KEY) || "[]");
-    return Array.isArray(saved) ? saved : [];
-  } catch {
-    return [];
-  }
-}
-
-function savePantry(items) {
-  localStorage.setItem(PANTRY_KEY, JSON.stringify(items));
-}
-
-function initPantry() {
-  const input = document.getElementById("pantry-input");
-  const addBtn = document.getElementById("pantry-add-btn");
-  const chipsEl = document.getElementById("pantry-chips");
-  const emptyEl = document.getElementById("pantry-empty");
-  if (!input || !chipsEl) return;
-
-  let pantry = loadPantry();
-
-  function render() {
-    emptyEl.hidden = pantry.length > 0;
-    chipsEl.innerHTML = pantry
-      .map(
-        (item, index) => `
-      <span class="pantry-chip">
-        ${escapeHtmlLocal(item)}
-        <button type="button" class="pantry-chip-remove" data-index="${index}" aria-label="${escapeHtmlLocal(item)} 삭제">×</button>
-      </span>
-    `
-      )
-      .join("");
-  }
-
-  function addItem() {
-    const value = input.value.trim();
-    if (!value) return;
-    if (pantry.includes(value)) {
-      input.value = "";
-      return;
-    }
-    pantry.push(value);
-    savePantry(pantry);
-    input.value = "";
-    render();
-    input.focus();
-  }
-
-  addBtn.addEventListener("click", addItem);
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      addItem();
-    }
-  });
-
-  chipsEl.addEventListener("click", (e) => {
-    const btn = e.target.closest(".pantry-chip-remove");
-    if (!btn) return;
-    const index = Number(btn.dataset.index);
-    pantry.splice(index, 1);
-    savePantry(pantry);
-    render();
-  });
-
-  render();
-}
-
-function escapeHtmlLocal(str) {
-  const div = document.createElement("div");
-  div.textContent = String(str);
-  return div.innerHTML;
-}
-
 function loadHistory() {
   try {
     const saved = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
@@ -229,8 +161,8 @@ function renderHistory(history) {
     .map(
       (r, index) => `
     <button type="button" class="history-item" data-index="${index}">
-      <span class="history-item-name">${escapeHtmlLocal(r.name)}</span>
-      <span class="history-item-time">⏱ ${escapeHtmlLocal(r.time || "")}</span>
+      <span class="history-item-name">${escapeHtml(r.name)}</span>
+      <span class="history-item-time">⏱ ${escapeHtml(r.time || "")}</span>
     </button>
   `
     )
@@ -257,6 +189,8 @@ function initHistory() {
   });
 
   clearBtn.addEventListener("click", () => {
+    if (!history.length) return;
+    if (!confirm("최근 추천 이력을 전체 삭제할까요?")) return;
     history = [];
     saveHistory(history);
     renderHistory(history);

@@ -32,9 +32,9 @@
 
     <section class="pantry">
       <h2>🥕 내 재료함</h2>
-      <p class="pantry-hint">자주 쓰는 재료를 등록해두면 이 브라우저에 저장되어, 다음에 다시 입력할 필요가 없어요.</p>
+      <p class="pantry-hint">자주 쓰는 재료를 등록해두면 이 브라우저에 저장되어, 다음에 다시 입력할 필요가 없어요. 쉼표로 구분하면 여러 개를 한 번에 추가할 수 있어요.</p>
       <div class="pantry-input-row">
-        <input type="text" id="pantry-input" placeholder="재료 이름 입력 후 Enter (예: 계란)" />
+        <input type="text" id="pantry-input" placeholder="재료 이름 입력 후 Enter (쉼표로 여러 개, 예: 계란, 대파, 두부)" />
         <button type="button" id="pantry-add-btn">추가</button>
       </div>
       <div id="pantry-chips" class="pantry-chips"></div>
@@ -107,6 +107,7 @@
   </footer>
 
   <script src="js/main.js"></script>
+  <script src="js/shared.js"></script>
   <script src="js/recipe.js"></script>
 </body>
 </html>
