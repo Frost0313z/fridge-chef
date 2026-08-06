@@ -1,7 +1,10 @@
 const PANTRY_KEY = "fridge-chef-pantry";
+const HISTORY_KEY = "fridge-chef-history";
+const HISTORY_LIMIT = 5;
 
 document.addEventListener("DOMContentLoaded", () => {
   initPantry();
+  initHistory();
 
   const form = document.getElementById("recipe-form");
   if (!form) return;
@@ -9,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const ingredientsEl = document.getElementById("ingredients");
   const headcountEl = document.getElementById("headcount");
   const timeLimitEl = document.getElementById("timeLimit");
+  const situationEl = document.getElementById("situation");
   const submitBtn = document.getElementById("submit-btn");
   const loadingEl = document.getElementById("loading");
   const errorEl = document.getElementById("error");
@@ -43,6 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
           ingredients,
           headcount: headcountEl.value,
           timeLimit: timeLimitEl.value,
+          situation: situationEl.value,
         }),
         signal: controller.signal,
       });
@@ -89,28 +94,29 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    resultEl.innerHTML = recipes
-      .map(
-        (r) => `
-      <article class="recipe-card">
-        <h3>${escapeHtml(r.name)}</h3>
-        <p class="recipe-time">⏱ ${escapeHtml(r.time || "")}</p>
-        <h4>재료</h4>
-        <ul>${(r.ingredients || []).map((i) => `<li>${escapeHtml(i)}</li>`).join("")}</ul>
-        <h4>조리 순서</h4>
-        <ol>${(r.steps || []).map((s) => `<li>${escapeHtml(s)}</li>`).join("")}</ol>
-      </article>
-    `
-      )
-      .join("");
-  }
-
-  function escapeHtml(str) {
-    const div = document.createElement("div");
-    div.textContent = String(str);
-    return div.innerHTML;
+    resultEl.innerHTML = recipes.map(recipeCardHtml).join("");
+    addToHistory(recipes);
   }
 });
+
+function recipeCardHtml(r) {
+  return `
+    <article class="recipe-card">
+      <h3>${escapeHtml(r.name)}</h3>
+      <p class="recipe-time">⏱ ${escapeHtml(r.time || "")}</p>
+      <h4>재료</h4>
+      <ul>${(r.ingredients || []).map((i) => `<li>${escapeHtml(i)}</li>`).join("")}</ul>
+      <h4>조리 순서</h4>
+      <ol>${(r.steps || []).map((s) => `<li>${escapeHtml(s)}</li>`).join("")}</ol>
+    </article>
+  `;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = String(str);
+  return div.innerHTML;
+}
 
 function loadPantry() {
   try {
@@ -186,4 +192,73 @@ function escapeHtmlLocal(str) {
   const div = document.createElement("div");
   div.textContent = String(str);
   return div.innerHTML;
+}
+
+function loadHistory() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+    return Array.isArray(saved) ? saved : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(items) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(items));
+}
+
+function addToHistory(recipes) {
+  let history = loadHistory();
+  recipes.forEach((r) => {
+    if (!r || !r.name) return;
+    history = history.filter((h) => h.name !== r.name);
+    history.unshift(r);
+  });
+  history = history.slice(0, HISTORY_LIMIT);
+  saveHistory(history);
+  renderHistory(history);
+}
+
+function renderHistory(history) {
+  const listEl = document.getElementById("history-list");
+  const emptyEl = document.getElementById("history-empty");
+  if (!listEl) return;
+
+  emptyEl.hidden = history.length > 0;
+  listEl.innerHTML = history
+    .map(
+      (r, index) => `
+    <button type="button" class="history-item" data-index="${index}">
+      <span class="history-item-name">${escapeHtmlLocal(r.name)}</span>
+      <span class="history-item-time">⏱ ${escapeHtmlLocal(r.time || "")}</span>
+    </button>
+  `
+    )
+    .join("");
+}
+
+function initHistory() {
+  const listEl = document.getElementById("history-list");
+  const clearBtn = document.getElementById("history-clear-btn");
+  const resultEl = document.getElementById("result");
+  if (!listEl) return;
+
+  let history = loadHistory();
+  renderHistory(history);
+
+  listEl.addEventListener("click", (e) => {
+    const btn = e.target.closest(".history-item");
+    if (!btn) return;
+    const index = Number(btn.dataset.index);
+    const recipe = history[index];
+    if (!recipe || !resultEl) return;
+    resultEl.innerHTML = recipeCardHtml(recipe);
+    resultEl.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  clearBtn.addEventListener("click", () => {
+    history = [];
+    saveHistory(history);
+    renderHistory(history);
+  });
 }

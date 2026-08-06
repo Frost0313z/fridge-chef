@@ -2,7 +2,7 @@
 POST /api/recommend
 입력한 재료로 AI가 만들 수 있는 요리를 추천하는 Vercel Serverless Function.
 
-요청 바디: {"ingredients": str, "headcount": str, "timeLimit": str}
+요청 바디: {"ingredients": str, "headcount": str, "timeLimit": str, "situation": str}
 응답(200): {"recipes": [{"name": str, "time": str, "ingredients": [str], "steps": [str]}]}
 응답(4xx/5xx): {"error": str, "message": str}  # message는 화면에 그대로 표시할 한국어 안내문
 """
@@ -31,13 +31,24 @@ SYSTEM_PROMPT = """당신은 냉장고에 있는 재료로 만들 수 있는 한
 }"""
 
 
-def build_user_prompt(ingredients, headcount, time_limit):
-    return (
-        f"보유 재료: {ingredients}\n"
-        f"인원수: {headcount}\n"
-        f"희망 조리 시간: {time_limit}\n"
-        "위 조건에 맞는 요리를 추천해줘."
-    )
+SITUATION_HINTS = {
+    "자취생 간단요리": "혼자 사는 자취생 상황이야. 설거지가 적고 조리가 간단한 요리 위주로 추천해줘.",
+    "가족 식사": "여러 식구가 함께 먹을 가족 식사 상황이야. 자극적이지 않고 다양한 연령대가 무난하게 먹을 수 있는 요리로 추천해줘.",
+    "다이어트/건강식": "다이어트나 건강 관리를 하는 상황이야. 기름지거나 자극적인 조리법은 피하고 칼로리가 낮은 요리로 추천해줘.",
+}
+
+
+def build_user_prompt(ingredients, headcount, time_limit, situation):
+    lines = [
+        f"보유 재료: {ingredients}",
+        f"인원수: {headcount}",
+        f"희망 조리 시간: {time_limit}",
+    ]
+    hint = SITUATION_HINTS.get(situation)
+    if hint:
+        lines.append(f"상황: {hint}")
+    lines.append("위 조건에 맞는 요리를 추천해줘.")
+    return "\n".join(lines)
 
 
 class handler(BaseHTTPRequestHandler):
@@ -57,6 +68,7 @@ class handler(BaseHTTPRequestHandler):
 
         headcount = (payload.get("headcount") or "1인분").strip()
         time_limit = (payload.get("timeLimit") or "상관없음").strip()
+        situation = (payload.get("situation") or "기본").strip()
 
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
@@ -70,7 +82,7 @@ class handler(BaseHTTPRequestHandler):
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": build_user_prompt(ingredients, headcount, time_limit)},
+                    {"role": "user", "content": build_user_prompt(ingredients, headcount, time_limit, situation)},
                 ],
                 response_format={"type": "json_object"},
                 temperature=0.7,

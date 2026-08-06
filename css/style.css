@@ -457,6 +457,80 @@ a {
 }
 
 /* ==========================================================================
+   최근 추천 이력
+   ========================================================================== */
+.history {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 8px 20px 60px;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.history-header h2 {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.history-clear-btn {
+  font: inherit;
+  font-size: 0.85rem;
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.history-clear-btn:hover {
+  color: var(--color-danger);
+}
+
+.history-empty {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.history-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.history-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  font: inherit;
+  padding: 10px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.history-item:hover {
+  border-color: var(--color-primary);
+}
+
+.history-item-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.history-item-time {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* ==========================================================================
    레시피 추천 폼
    ========================================================================== */
 #recipe-form {

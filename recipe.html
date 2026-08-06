@@ -67,6 +67,15 @@
               <option value="30분 이내">30분 이내</option>
             </select>
           </div>
+          <div class="form-field">
+            <label for="situation">오늘 상황</label>
+            <select id="situation" name="situation">
+              <option value="기본">기본</option>
+              <option value="자취생 간단요리">자취생 간단요리</option>
+              <option value="가족 식사">가족 식사</option>
+              <option value="다이어트/건강식">다이어트/건강식</option>
+            </select>
+          </div>
         </div>
 
         <button type="submit" id="submit-btn" class="cta-button">AI에게 추천받기</button>
@@ -76,6 +85,15 @@
       <p id="error" class="error-message" role="alert" hidden></p>
 
       <div id="result" class="result-grid"></div>
+    </section>
+
+    <section class="history">
+      <div class="history-header">
+        <h2>🕘 최근 추천 받은 요리</h2>
+        <button type="button" id="history-clear-btn" class="history-clear-btn">전체 지우기</button>
+      </div>
+      <p id="history-empty" class="history-empty">아직 추천받은 요리가 없어요.</p>
+      <div id="history-list" class="history-list"></div>
     </section>
   </main>
 
