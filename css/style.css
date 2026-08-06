@@ -388,7 +388,13 @@ a {
   outline-offset: 1px;
 }
 
+.pantry-input-row input {
+  min-width: 0;
+}
+
 .pantry-input-row button {
+  flex-shrink: 0;
+  white-space: nowrap;
   font: inherit;
   font-weight: 600;
   padding: 10px 18px;
