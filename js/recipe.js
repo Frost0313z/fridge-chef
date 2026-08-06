@@ -1,4 +1,8 @@
+const PANTRY_KEY = "fridge-chef-pantry";
+
 document.addEventListener("DOMContentLoaded", () => {
+  initPantry();
+
   const form = document.getElementById("recipe-form");
   if (!form) return;
 
@@ -17,9 +21,12 @@ document.addEventListener("DOMContentLoaded", () => {
     hideError();
     resultEl.innerHTML = "";
 
-    const ingredients = ingredientsEl.value.trim();
+    const pantryIngredients = loadPantry().join(", ");
+    const extraIngredients = ingredientsEl.value.trim();
+    const ingredients = [pantryIngredients, extraIngredients].filter(Boolean).join(", ");
+
     if (!ingredients) {
-      showError("재료를 1개 이상 입력해주세요.");
+      showError("재료함에 재료를 등록하거나, 오늘 있는 재료를 1개 이상 입력해주세요.");
       ingredientsEl.focus();
       return;
     }
@@ -104,3 +111,79 @@ document.addEventListener("DOMContentLoaded", () => {
     return div.innerHTML;
   }
 });
+
+function loadPantry() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PANTRY_KEY) || "[]");
+    return Array.isArray(saved) ? saved : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePantry(items) {
+  localStorage.setItem(PANTRY_KEY, JSON.stringify(items));
+}
+
+function initPantry() {
+  const input = document.getElementById("pantry-input");
+  const addBtn = document.getElementById("pantry-add-btn");
+  const chipsEl = document.getElementById("pantry-chips");
+  const emptyEl = document.getElementById("pantry-empty");
+  if (!input || !chipsEl) return;
+
+  let pantry = loadPantry();
+
+  function render() {
+    emptyEl.hidden = pantry.length > 0;
+    chipsEl.innerHTML = pantry
+      .map(
+        (item, index) => `
+      <span class="pantry-chip">
+        ${escapeHtmlLocal(item)}
+        <button type="button" class="pantry-chip-remove" data-index="${index}" aria-label="${escapeHtmlLocal(item)} 삭제">×</button>
+      </span>
+    `
+      )
+      .join("");
+  }
+
+  function addItem() {
+    const value = input.value.trim();
+    if (!value) return;
+    if (pantry.includes(value)) {
+      input.value = "";
+      return;
+    }
+    pantry.push(value);
+    savePantry(pantry);
+    input.value = "";
+    render();
+    input.focus();
+  }
+
+  addBtn.addEventListener("click", addItem);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addItem();
+    }
+  });
+
+  chipsEl.addEventListener("click", (e) => {
+    const btn = e.target.closest(".pantry-chip-remove");
+    if (!btn) return;
+    const index = Number(btn.dataset.index);
+    pantry.splice(index, 1);
+    savePantry(pantry);
+    render();
+  });
+
+  render();
+}
+
+function escapeHtmlLocal(str) {
+  const div = document.createElement("div");
+  div.textContent = String(str);
+  return div.innerHTML;
+}

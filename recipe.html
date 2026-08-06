@@ -26,18 +26,28 @@
   <main class="page">
     <section class="page-intro">
       <h1>냉장고에 뭐가 있나요?</h1>
-      <p>있는 재료를 쉼표로 구분해서 입력해주세요. 정확한 계량은 몰라도 괜찮아요.</p>
+      <p>자주 쓰는 재료는 재료함에 등록해두고, 오늘만 있는 재료는 아래에 따로 적어주세요.</p>
+    </section>
+
+    <section class="pantry">
+      <h2>🥕 내 재료함</h2>
+      <p class="pantry-hint">자주 쓰는 재료를 등록해두면 이 브라우저에 저장되어, 다음에 다시 입력할 필요가 없어요.</p>
+      <div class="pantry-input-row">
+        <input type="text" id="pantry-input" placeholder="재료 이름 입력 후 Enter (예: 계란)" />
+        <button type="button" id="pantry-add-btn">추가</button>
+      </div>
+      <div id="pantry-chips" class="pantry-chips"></div>
+      <p id="pantry-empty" class="pantry-empty">아직 등록된 재료가 없어요. 위에 입력해서 추가해보세요.</p>
     </section>
 
     <section class="recipe-form-section">
       <form id="recipe-form" novalidate>
-        <label for="ingredients">보유 재료 <span class="required">*</span></label>
+        <label for="ingredients">오늘 추가로 있는 재료 <span class="optional">(선택)</span></label>
         <textarea
           id="ingredients"
           name="ingredients"
-          rows="3"
-          placeholder="예: 계란 2개, 대파 조금, 두부 반모"
-          required
+          rows="2"
+          placeholder="내 재료함에 없는 재료가 있다면 여기에 추가로 적어주세요. 예: 대파 조금, 두부 반모"
         ></textarea>
 
         <div class="form-row">

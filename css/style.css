@@ -349,6 +349,108 @@ a {
 }
 
 /* ==========================================================================
+   내 재료함
+   ========================================================================== */
+.pantry {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 20px 28px;
+}
+
+.pantry h2 {
+  font-size: 1.1rem;
+  margin: 0 0 6px;
+}
+
+.pantry-hint {
+  margin: 0 0 14px;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.pantry-input-row {
+  display: flex;
+  gap: 10px;
+}
+
+.pantry-input-row input {
+  flex: 1;
+  font: inherit;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.pantry-input-row input:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.pantry-input-row button {
+  font: inherit;
+  font-weight: 600;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 10px;
+  background: var(--color-primary);
+  color: #fff;
+  cursor: pointer;
+}
+
+.pantry-input-row button:hover {
+  background: var(--color-primary-dark);
+}
+
+.pantry-chips {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pantry-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 6px 8px 6px 14px;
+  font-size: 0.9rem;
+}
+
+.pantry-chip-remove {
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.pantry-chip-remove:hover {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.pantry-empty {
+  margin-top: 14px;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.optional {
+  color: var(--color-text-muted);
+  font-weight: 400;
+  font-size: 0.85em;
+}
+
+/* ==========================================================================
    레시피 추천 폼
    ========================================================================== */
 #recipe-form {
