@@ -190,6 +190,111 @@ a {
 }
 
 /* ==========================================================================
+   내부 페이지 공통 (소개 / 레시피 추천)
+   ========================================================================== */
+.page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 56px 20px 80px;
+}
+
+.page-intro h1 {
+  font-size: clamp(1.4rem, 3.5vw, 2rem);
+  margin: 0 0 14px;
+}
+
+.page-intro p {
+  color: var(--color-text-muted);
+}
+
+.page section + section {
+  margin-top: 48px;
+}
+
+.page h2 {
+  font-size: 1.2rem;
+  margin: 0 0 18px;
+}
+
+/* 이용 방법 */
+.steps-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.steps-list li {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.step-num {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.steps-list h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+
+.steps-list p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+/* 기술 스택 */
+.tech-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tech-list li {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+}
+
+/* FAQ */
+.faq details {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+
+.faq summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.faq details p {
+  margin: 10px 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+/* ==========================================================================
    반응형
    ========================================================================== */
 @media (max-width: 900px) {
