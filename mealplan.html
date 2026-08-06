@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>주간 식단 계획 · 냉털 셰프</title>
+  <meta name="description" content="재료함을 활용해 일주일 저녁 식단을 계획하고, 부족한 재료만 장보기 리스트로 확인하세요." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="nav-wrap">
+      <a href="index.html" class="brand">🧊 냉털 셰프</a>
+      <button id="theme-toggle" class="theme-toggle" aria-label="다크 모드로 전환">🌙</button>
+      <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="메뉴 열기">
+        <span></span><span></span><span></span>
+      </button>
+      <nav id="nav-menu" class="nav-menu">
+        <a href="index.html">홈</a>
+        <a href="recipe.html">레시피 추천</a>
+        <a href="mealplan.html" class="active">주간 식단</a>
+        <a href="about.html">소개</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="page-intro">
+      <h1>이번 주 저녁, 미리 정해둘까요?</h1>
+      <p>재료함을 최대한 활용해서 며칠치 식단을 짜고, 부족한 재료만 장보기 리스트로 뽑아드려요.</p>
+    </section>
+
+    <section class="mealplan-pantry-summary">
+      <h2>🥕 지금 재료함</h2>
+      <div id="mealplan-pantry-chips" class="pantry-chips"></div>
+      <p id="mealplan-pantry-empty" class="pantry-empty">
+        재료함이 비어있어요. <a href="recipe.html">레시피 추천 페이지</a>에서 먼저 등록해두면 식단 계획에 활용돼요.
+      </p>
+    </section>
+
+    <section class="recipe-form-section">
+      <form id="mealplan-form" novalidate>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="days">계획할 일수</label>
+            <select id="days" name="days">
+              <option value="3">3일</option>
+              <option value="5" selected>5일</option>
+              <option value="7">7일</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="mp-headcount">인원수</label>
+            <select id="mp-headcount" name="headcount">
+              <option value="1인분">1인분</option>
+              <option value="2인분">2인분</option>
+              <option value="3~4인분">3~4인분</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="mp-situation">상황</label>
+            <select id="mp-situation" name="situation">
+              <option value="기본">기본</option>
+              <option value="자취생 간단요리">자취생 간단요리</option>
+              <option value="가족 식사">가족 식사</option>
+              <option value="다이어트/건강식">다이어트/건강식</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" id="mealplan-submit-btn" class="cta-button">AI로 식단 만들기</button>
+        <button type="button" id="mealplan-clear-btn" class="mealplan-clear-btn" hidden>계획 지우기</button>
+      </form>
+
+      <p id="mealplan-loading" class="loading" hidden>🗓️ 일주일치 식단을 짜고 있어요...</p>
+      <p id="mealplan-error" class="error-message" role="alert" hidden></p>
+
+      <div id="mealplan-result"></div>
+
+      <section id="shopping-list-section" class="shopping-list-section" hidden>
+        <h2>🛒 장보기 리스트</h2>
+        <p class="shopping-list-hint">재료함에 없는 재료만 모았어요. 자동으로 담기지는 않고, 클릭하면 쿠팡 검색 결과가 새 탭에서 열려요.</p>
+        <ul id="shopping-list" class="shopping-list"></ul>
+      </section>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>🧊 냉털 셰프 · Codyssey 대전 "AI 웹 개발" 미션 결과물</p>
+    <div class="footer-credit">
+      <a href="https://www.linkedin.com/in/%EC%8A%B9%ED%98%84-%EB%91%90-b6a319270/" target="_blank" rel="noopener noreferrer">💼 두승현</a>
+      <a href="mailto:msong5000@naver.com">✉️ msong5000@naver.com</a>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script src="js/mealplan.js"></script>
+</body>
+</html>

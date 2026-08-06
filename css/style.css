@@ -457,6 +457,131 @@ a {
 }
 
 /* ==========================================================================
+   주간 식단 계획
+   ========================================================================== */
+.mealplan-pantry-summary {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 20px 24px;
+}
+
+.mealplan-pantry-summary h2 {
+  font-size: 1.05rem;
+  margin: 0 0 10px;
+}
+
+.pantry-chip-readonly {
+  padding: 6px 14px;
+}
+
+.mealplan-pantry-summary .pantry-empty a {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+}
+
+.mealplan-clear-btn {
+  margin-top: 10px;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.mealplan-clear-btn:not([hidden]) {
+  display: block;
+}
+
+.mealplan-clear-btn:hover {
+  color: var(--color-danger);
+}
+
+.mealplan-days {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.mealplan-day-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 18px;
+}
+
+.mealplan-day-card h3 {
+  margin: 0 0 4px;
+  font-size: 0.85rem;
+  color: var(--color-primary-dark);
+  font-weight: 700;
+}
+
+.mealplan-menu {
+  margin: 0 0 10px;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.mealplan-day-card ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+}
+
+.shopping-list-section {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--color-border);
+}
+
+.shopping-list-section h2 {
+  font-size: 1.1rem;
+  margin: 0 0 6px;
+}
+
+.shopping-list-hint {
+  margin: 0 0 14px;
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+}
+
+.shopping-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shopping-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+
+.shopping-item a {
+  flex-shrink: 0;
+  color: var(--color-primary-dark);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.shopping-item-none {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+/* ==========================================================================
    최근 추천 이력
    ========================================================================== */
 .history {
