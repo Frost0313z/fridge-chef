@@ -247,9 +247,25 @@ a {
    내부 페이지 공통 (소개 / 레시피 추천)
    ========================================================================== */
 .page {
-  max-width: 720px;
+  max-width: var(--max-width);
   margin: 0 auto;
   padding: 56px 20px 80px;
+}
+
+/* 헤더(1080px)와 좌우 정렬을 맞추기 위해 .page 전체는 넓게 두되,
+   글줄이 너무 길어지면 읽기 어려운 요소(문단/폼/입력줄 등)만 별도로 좁힌다.
+   margin:auto로 다시 가운데 정렬하지 않는 것이 핵심 — 그러면 .page의 왼쪽 끝과 어긋난다. */
+.page-intro,
+#recipe-form,
+#mealplan-form,
+.pantry-input-row,
+.error-message,
+.loading,
+.shopping-list,
+.steps,
+.tech-stack,
+.faq {
+  max-width: 680px;
 }
 
 .page-intro h1 {
@@ -352,9 +368,7 @@ a {
    내 재료함
    ========================================================================== */
 .pantry {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 0 20px 28px;
+  padding: 0 0 28px;
 }
 
 .pantry h2 {
@@ -565,9 +579,7 @@ a {
    최근 추천 이력
    ========================================================================== */
 .history {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 8px 20px 60px;
+  padding: 8px 0 60px;
 }
 
 .history-header {
@@ -638,13 +650,15 @@ a {
 /* ==========================================================================
    레시피 추천 폼
    ========================================================================== */
-#recipe-form {
+#recipe-form,
+#mealplan-form {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-#recipe-form label {
+#recipe-form label,
+#mealplan-form label {
   font-weight: 600;
   font-size: 0.95rem;
 }
@@ -654,7 +668,8 @@ a {
 }
 
 #recipe-form textarea,
-#recipe-form select {
+#recipe-form select,
+#mealplan-form select {
   width: 100%;
   font: inherit;
   padding: 12px 14px;
@@ -666,7 +681,8 @@ a {
 }
 
 #recipe-form textarea:focus,
-#recipe-form select:focus {
+#recipe-form select:focus,
+#mealplan-form select:focus {
   outline: 2px solid var(--color-primary);
   outline-offset: 1px;
 }
@@ -683,7 +699,8 @@ a {
   gap: 6px;
 }
 
-#recipe-form .cta-button {
+#recipe-form .cta-button,
+#mealplan-form .cta-button {
   border: none;
   font: inherit;
   cursor: pointer;
@@ -691,7 +708,8 @@ a {
   align-self: flex-start;
 }
 
-#recipe-form .cta-button:disabled {
+#recipe-form .cta-button:disabled,
+#mealplan-form .cta-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
