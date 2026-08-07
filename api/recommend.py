@@ -38,6 +38,42 @@ SITUATION_HINTS = {
 }
 
 
+MAX_RECIPES = 3
+
+
+def to_str_list(value):
+    """AI가 배열 대신 문자열/숫자를 줘도 프론트의 .map()이 터지지 않도록 문자열 배열로 강제한다."""
+    if isinstance(value, str):
+        return [value.strip()] if value.strip() else []
+    if not isinstance(value, list):
+        return []
+    return [str(v).strip() for v in value if str(v).strip()]
+
+
+def sanitize_recipes(raw):
+    """response_format으로 JSON은 보장되지만 '스키마'까지 보장되지는 않는다.
+    이름 없는 항목은 버리고, 나머지 필드는 프론트가 기대하는 타입으로 맞춰서 내보낸다."""
+    if not isinstance(raw, list):
+        return []
+
+    recipes = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("name") or "").strip()
+        if not name:
+            continue
+        recipes.append(
+            {
+                "name": name,
+                "time": str(item.get("time") or "").strip(),
+                "ingredients": to_str_list(item.get("ingredients")),
+                "steps": to_str_list(item.get("steps")),
+            }
+        )
+    return recipes[:MAX_RECIPES]
+
+
 def build_user_prompt(ingredients, headcount, time_limit, situation):
     lines = [
         f"보유 재료: {ingredients}",
@@ -101,15 +137,13 @@ class handler(BaseHTTPRequestHandler):
             self._send_json(502, {"error": "bad_ai_response", "message": "AI 응답을 해석하지 못했어요. 다시 시도해주세요."})
             return
 
-        recipes = data.get("recipes") if isinstance(data, dict) else None
-        if not recipes:
-            self._send_json(200, {"recipes": []})
-            return
-
-        self._send_json(200, {"recipes": recipes})
+        raw_recipes = data.get("recipes") if isinstance(data, dict) else None
+        self._send_json(200, {"recipes": sanitize_recipes(raw_recipes)})
 
     def _send_json(self, status, body):
+        payload = json.dumps(body, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
-        self.wfile.write(json.dumps(body, ensure_ascii=False).encode("utf-8"))
+        self.wfile.write(payload)

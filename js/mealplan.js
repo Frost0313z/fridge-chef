@@ -16,6 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const loadingEl = document.getElementById("mealplan-loading");
   const errorEl = document.getElementById("mealplan-error");
   const resultEl = document.getElementById("mealplan-result");
+  const status = createFormStatus({ loadingEl, errorEl, submitBtn });
 
   restorePreferences();
 
@@ -40,56 +41,40 @@ document.addEventListener("DOMContentLoaded", () => {
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    hideError();
+    status.hideError();
     resultEl.innerHTML = "";
     document.getElementById("shopping-list-section").hidden = true;
 
     const pantry = loadPantry();
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), MP_REQUEST_TIMEOUT_MS);
-    setLoading(true);
 
-    try {
-      const response = await fetch("/api/mealplan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          days: Number(daysEl.value),
-          headcount: headcountEl.value,
-          situation: situationEl.value,
-          pantry,
-        }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
+    status.setLoading(true);
+    const result = await postJson(
+      "/api/mealplan",
+      {
+        days: Number(daysEl.value),
+        headcount: headcountEl.value,
+        situation: situationEl.value,
+        pantry,
+      },
+      MP_REQUEST_TIMEOUT_MS
+    );
+    status.setLoading(false);
 
-      const data = await response.json().catch(() => null);
-
-      if (!response.ok) {
-        showError((data && data.message) || "오류가 발생했어요. 잠시 후 다시 시도해주세요.");
-        return;
-      }
-
-      const plan = (data && data.plan) || [];
-      if (!plan.length) {
-        showError("식단을 만들지 못했어요. 잠시 후 다시 시도해보세요.");
-        return;
-      }
-
-      renderPlan(plan);
-      renderShoppingList(plan, pantry);
-      saveSavedPlan(plan);
-      clearBtn.hidden = false;
-    } catch (err) {
-      clearTimeout(timeoutId);
-      if (err.name === "AbortError") {
-        showError("응답이 지연되고 있어요. 잠시 후 다시 시도해주세요.");
-      } else {
-        showError("네트워크 연결을 확인하고 다시 시도해주세요.");
-      }
-    } finally {
-      setLoading(false);
+    if (!result.ok) {
+      status.showError(result.message);
+      return;
     }
+
+    const plan = result.data.plan || [];
+    if (!plan.length) {
+      status.showError("식단을 만들지 못했어요. 잠시 후 다시 시도해보세요.");
+      return;
+    }
+
+    renderPlan(plan);
+    renderShoppingList(plan, pantry);
+    saveSavedPlan(plan);
+    clearBtn.hidden = false;
   });
 
   clearBtn.addEventListener("click", () => {
@@ -100,33 +85,15 @@ document.addEventListener("DOMContentLoaded", () => {
     clearBtn.hidden = true;
   });
 
-  function setLoading(isLoading) {
-    loadingEl.hidden = !isLoading;
-    submitBtn.disabled = isLoading;
-  }
-
-  function showError(message) {
-    errorEl.textContent = message;
-    errorEl.hidden = false;
-  }
-
-  function hideError() {
-    errorEl.hidden = true;
-    errorEl.textContent = "";
-  }
 });
 
 function loadSavedPlan() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(MEALPLAN_KEY) || "null");
-    return saved && Array.isArray(saved.plan) ? saved : null;
-  } catch {
-    return null;
-  }
+  const saved = loadJson(MEALPLAN_KEY, null);
+  return saved && Array.isArray(saved.plan) ? saved : null;
 }
 
 function saveSavedPlan(plan) {
-  localStorage.setItem(MEALPLAN_KEY, JSON.stringify({ plan, savedAt: new Date().toISOString() }));
+  saveJson(MEALPLAN_KEY, { plan, savedAt: new Date().toISOString() });
 }
 
 function renderPlan(plan) {
@@ -158,8 +125,8 @@ function renderShoppingList(plan, pantry) {
       .map(
         (item) => `
       <li class="shopping-item">
-        <span>${escapeHtml(item)}</span>
-        <a href="https://www.coupang.com/np/search?q=${encodeURIComponent(item)}" target="_blank" rel="noopener noreferrer">쿠팡에서 검색 →</a>
+        <span>${escapeHtml(item.label)}</span>
+        <a href="https://www.coupang.com/np/search?q=${encodeURIComponent(item.query)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(item.query)} 쿠팡에서 검색">쿠팡에서 검색 →</a>
       </li>
     `
       )
@@ -169,18 +136,48 @@ function renderShoppingList(plan, pantry) {
   sectionEl.hidden = false;
 }
 
+/* AI는 "계란 2개", "두부(반모)", "대파 1/2대"처럼 수량을 붙여서 답하는데
+   재료함에는 보통 "계란", "두부"처럼 이름만 등록돼 있다. 비교 전에 수량·단위·괄호를 걷어낸다. */
+const QUANTITY_PATTERN =
+  /\d+(\.\d+)?(\/\d+)?\s*(g|kg|ml|l|개|알|장|줄|대|모|쪽|톨|컵|큰술|작은술|스푼|봉지|봉|팩|캔|공기|인분|주먹)?/g;
+
+function normalizeIngredient(name) {
+  return String(name)
+    .replace(/\([^)]*\)/g, " ")
+    .replace(QUANTITY_PATTERN, " ")
+    .replace(/\s+/g, "")
+    .trim();
+}
+
+/* 이전 구현은 `식단재료.includes(재료함항목)` 한 방향이라, 재료함에 "파"가 있으면
+   "파프리카"·"파스타"까지 보유로 간주해 장보기 리스트에서 빠지는 문제가 있었다.
+   양방향으로 비교하되, 짧은 쪽이 1글자면 우연한 겹침이므로 포함 매칭을 인정하지 않는다.
+   그 경우 리스트에 남아 "이미 있는 걸 또 사는" 쪽으로 틀리는데, 이는 "필요한 걸 안 사는" 쪽보다 안전하다. */
+function isCovered(target, pantryNames) {
+  if (!target) return false;
+  return pantryNames.some((p) => {
+    if (!p) return false;
+    if (p === target) return true;
+    const shorter = p.length <= target.length ? p : target;
+    return shorter.length >= 2 && (target.includes(p) || p.includes(target));
+  });
+}
+
 function computeShoppingList(plan, pantry) {
+  const pantryNames = pantry.map(normalizeIngredient).filter(Boolean);
   const seen = new Set();
   const list = [];
 
   plan.forEach((d) => {
     (d.ingredients || []).forEach((ing) => {
-      const key = String(ing).trim();
+      const label = String(ing).trim();
+      const key = normalizeIngredient(label);
       if (!key || seen.has(key)) return;
       seen.add(key);
 
-      const covered = pantry.some((p) => p && key.includes(p));
-      if (!covered) list.push(key);
+      /* 화면에는 수량이 붙은 원문("계란 2개")을 그대로 보여주되,
+         쿠팡 검색은 수량을 뺀 이름("계란")으로 넘겨야 결과가 제대로 나온다. */
+      if (!isCovered(key, pantryNames)) list.push({ label, query: key });
     });
   });
 

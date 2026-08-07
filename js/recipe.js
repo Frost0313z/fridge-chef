@@ -19,6 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const resultEl = document.getElementById("result");
 
   const REQUEST_TIMEOUT_MS = 20000;
+  const status = createFormStatus({ loadingEl, errorEl, submitBtn });
 
   restorePreferences();
 
@@ -36,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    hideError();
+    status.hideError();
     resultEl.innerHTML = "";
 
     const pantryIngredients = loadPantry().join(", ");
@@ -44,67 +45,35 @@ document.addEventListener("DOMContentLoaded", () => {
     const ingredients = [pantryIngredients, extraIngredients].filter(Boolean).join(", ");
 
     if (!ingredients) {
-      showError("재료함에 재료를 등록하거나, 오늘 있는 재료를 1개 이상 입력해주세요.");
+      status.showError("재료함에 재료를 등록하거나, 오늘 있는 재료를 1개 이상 입력해주세요.");
       ingredientsEl.focus();
       return;
     }
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-    setLoading(true);
+    status.setLoading(true);
+    const result = await postJson(
+      "/api/recommend",
+      {
+        ingredients,
+        headcount: headcountEl.value,
+        timeLimit: timeLimitEl.value,
+        situation: situationEl.value,
+      },
+      REQUEST_TIMEOUT_MS
+    );
+    status.setLoading(false);
 
-    try {
-      const response = await fetch("/api/recommend", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ingredients,
-          headcount: headcountEl.value,
-          timeLimit: timeLimitEl.value,
-          situation: situationEl.value,
-        }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      const data = await response.json().catch(() => null);
-
-      if (!response.ok) {
-        showError((data && data.message) || "오류가 발생했어요. 잠시 후 다시 시도해주세요.");
-        return;
-      }
-
-      renderRecipes((data && data.recipes) || []);
-    } catch (err) {
-      clearTimeout(timeoutId);
-      if (err.name === "AbortError") {
-        showError("응답이 지연되고 있어요. 잠시 후 다시 시도해주세요.");
-      } else {
-        showError("네트워크 연결을 확인하고 다시 시도해주세요.");
-      }
-    } finally {
-      setLoading(false);
+    if (!result.ok) {
+      status.showError(result.message);
+      return;
     }
+
+    renderRecipes(result.data.recipes || []);
   });
-
-  function setLoading(isLoading) {
-    loadingEl.hidden = !isLoading;
-    submitBtn.disabled = isLoading;
-  }
-
-  function showError(message) {
-    errorEl.textContent = message;
-    errorEl.hidden = false;
-  }
-
-  function hideError() {
-    errorEl.hidden = true;
-    errorEl.textContent = "";
-  }
 
   function renderRecipes(recipes) {
     if (!recipes.length) {
-      showError("추천 결과를 만들지 못했어요. 재료를 다르게 입력해보세요.");
+      status.showError("추천 결과를 만들지 못했어요. 재료를 다르게 입력해보세요.");
       return;
     }
 
@@ -126,38 +95,39 @@ function recipeCardHtml(r) {
   `;
 }
 
+/* 이력 목록은 화면(버튼의 data-index)과 인덱스가 정확히 일치해야 클릭이 올바른 요리를 연다.
+   초기 로드/새 추천/전체 삭제가 모두 이 하나의 배열을 갱신하도록 모듈 스코프에 둔다.
+   (initHistory 안의 지역 변수로 두면 새 추천 후 화면만 바뀌고 배열은 옛 순서로 남아 클릭이 어긋난다) */
+let historyItems = [];
+
 function loadHistory() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
-    return Array.isArray(saved) ? saved : [];
-  } catch {
-    return [];
-  }
+  const saved = loadJson(HISTORY_KEY, []);
+  return Array.isArray(saved) ? saved : [];
 }
 
-function saveHistory(items) {
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(items));
+function setHistory(items) {
+  historyItems = items.slice(0, HISTORY_LIMIT);
+  saveJson(HISTORY_KEY, historyItems);
+  renderHistory();
 }
 
 function addToHistory(recipes) {
-  let history = loadHistory();
+  let next = historyItems;
   recipes.forEach((r) => {
     if (!r || !r.name) return;
-    history = history.filter((h) => h.name !== r.name);
-    history.unshift(r);
+    next = next.filter((h) => h.name !== r.name);
+    next.unshift(r);
   });
-  history = history.slice(0, HISTORY_LIMIT);
-  saveHistory(history);
-  renderHistory(history);
+  setHistory(next);
 }
 
-function renderHistory(history) {
+function renderHistory() {
   const listEl = document.getElementById("history-list");
   const emptyEl = document.getElementById("history-empty");
   if (!listEl) return;
 
-  emptyEl.hidden = history.length > 0;
-  listEl.innerHTML = history
+  emptyEl.hidden = historyItems.length > 0;
+  listEl.innerHTML = historyItems
     .map(
       (r, index) => `
     <button type="button" class="history-item" data-index="${index}">
@@ -175,24 +145,21 @@ function initHistory() {
   const resultEl = document.getElementById("result");
   if (!listEl) return;
 
-  let history = loadHistory();
-  renderHistory(history);
+  historyItems = loadHistory();
+  renderHistory();
 
   listEl.addEventListener("click", (e) => {
     const btn = e.target.closest(".history-item");
     if (!btn) return;
-    const index = Number(btn.dataset.index);
-    const recipe = history[index];
+    const recipe = historyItems[Number(btn.dataset.index)];
     if (!recipe || !resultEl) return;
     resultEl.innerHTML = recipeCardHtml(recipe);
     resultEl.scrollIntoView({ behavior: "smooth", block: "start" });
   });
 
   clearBtn.addEventListener("click", () => {
-    if (!history.length) return;
+    if (!historyItems.length) return;
     if (!confirm("최근 추천 이력을 전체 삭제할까요?")) return;
-    history = [];
-    saveHistory(history);
-    renderHistory(history);
+    setHistory([]);
   });
 }

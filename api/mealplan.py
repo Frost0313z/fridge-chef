@@ -32,6 +32,41 @@ SITUATION_HINTS = {
 }
 
 
+MAX_DAYS = 7
+
+
+def to_str_list(value):
+    """AI가 배열 대신 문자열/숫자를 줘도 프론트의 .map()이 터지지 않도록 문자열 배열로 강제한다."""
+    if isinstance(value, str):
+        return [value.strip()] if value.strip() else []
+    if not isinstance(value, list):
+        return []
+    return [str(v).strip() for v in value if str(v).strip()]
+
+
+def sanitize_plan(raw):
+    """response_format으로 JSON은 보장되지만 '스키마'까지 보장되지는 않는다.
+    메뉴 없는 항목은 버리고, 나머지 필드는 프론트가 기대하는 타입으로 맞춰서 내보낸다."""
+    if not isinstance(raw, list):
+        return []
+
+    plan = []
+    for index, item in enumerate(raw, start=1):
+        if not isinstance(item, dict):
+            continue
+        menu = str(item.get("menu") or "").strip()
+        if not menu:
+            continue
+        plan.append(
+            {
+                "day": str(item.get("day") or f"{index}일차").strip(),
+                "menu": menu,
+                "ingredients": to_str_list(item.get("ingredients")),
+            }
+        )
+    return plan[:MAX_DAYS]
+
+
 def build_user_prompt(days, headcount, situation, pantry):
     lines = [
         f"계획할 일수: {days}일치 저녁",
@@ -100,15 +135,13 @@ class handler(BaseHTTPRequestHandler):
             self._send_json(502, {"error": "bad_ai_response", "message": "AI 응답을 해석하지 못했어요. 다시 시도해주세요."})
             return
 
-        plan = data.get("plan") if isinstance(data, dict) else None
-        if not plan:
-            self._send_json(200, {"plan": []})
-            return
-
-        self._send_json(200, {"plan": plan})
+        raw_plan = data.get("plan") if isinstance(data, dict) else None
+        self._send_json(200, {"plan": sanitize_plan(raw_plan)})
 
     def _send_json(self, status, body):
+        payload = json.dumps(body, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
-        self.wfile.write(json.dumps(body, ensure_ascii=False).encode("utf-8"))
+        self.wfile.write(payload)
