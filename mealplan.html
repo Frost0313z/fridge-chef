@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
+  <a href="#main" class="skip-link">본문 바로가기</a>
   <header class="site-header">
     <div class="nav-wrap">
       <a href="index.html" class="brand">🧊 냉털 셰프</a>
@@ -24,7 +25,7 @@
     </div>
   </header>
 
-  <main class="page">
+  <main id="main" class="page">
     <section class="page-intro">
       <h1>이번 주 저녁, 미리 정해둘까요?</h1>
       <p>재료함을 최대한 활용해서 며칠치 식단을 짜고, 부족한 재료만 장보기 리스트로 뽑아드려요.</p>
@@ -75,10 +76,10 @@
         <button type="button" id="mealplan-clear-btn" class="mealplan-clear-btn" hidden>계획 지우기</button>
       </form>
 
-      <p id="mealplan-loading" class="loading" hidden>🗓️ 일주일치 식단을 짜고 있어요...</p>
+      <p id="mealplan-loading" class="loading" role="status" aria-live="polite" hidden>🗓️ 일주일치 식단을 짜고 있어요...</p>
       <p id="mealplan-error" class="error-message" role="alert" hidden></p>
 
-      <div id="mealplan-result"></div>
+      <div id="mealplan-result" aria-live="polite"></div>
 
       <section id="shopping-list-section" class="shopping-list-section" hidden>
         <h2>🛒 장보기 리스트</h2>

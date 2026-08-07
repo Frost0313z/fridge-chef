@@ -11,16 +11,31 @@ document.addEventListener("DOMContentLoaded", () => {
   const menu = document.getElementById("nav-menu");
 
   if (toggle && menu) {
+    const closeMenu = () => {
+      if (!menu.classList.contains("open")) return;
+      menu.classList.remove("open");
+      toggle.setAttribute("aria-expanded", "false");
+    };
+
     toggle.addEventListener("click", () => {
       const isOpen = menu.classList.toggle("open");
       toggle.setAttribute("aria-expanded", String(isOpen));
     });
 
-    menu.querySelectorAll("a").forEach((link) => {
-      link.addEventListener("click", () => {
-        menu.classList.remove("open");
-        toggle.setAttribute("aria-expanded", "false");
-      });
+    menu.querySelectorAll("a").forEach((link) => link.addEventListener("click", closeMenu));
+
+    /* 모바일에서 메뉴를 연 뒤 닫는 방법이 햄버거 버튼 재클릭뿐이었다.
+       Esc 키와 바깥 영역 클릭으로도 닫히게 해서 갇힌 느낌을 없앤다. */
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      const wasOpen = menu.classList.contains("open");
+      closeMenu();
+      if (wasOpen) toggle.focus();
+    });
+
+    document.addEventListener("click", (e) => {
+      if (menu.contains(e.target) || toggle.contains(e.target)) return;
+      closeMenu();
     });
   }
 
