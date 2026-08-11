@@ -274,6 +274,16 @@ function initPantry() {
     }
   });
 
+  /* 첫 방문자는 빈 입력란 앞에서 "뭘 적어야 하지"로 멈춘다.
+     placeholder를 읽고 자기 냉장고를 떠올려 타이핑하는 대신, 눌러서 바로 넣게 한다. */
+  if (emptyEl) {
+    emptyEl.addEventListener("click", (e) => {
+      const btn = e.target.closest(".pantry-example");
+      if (!btn) return;
+      addItems(btn.dataset.name);
+    });
+  }
+
   chipsEl.addEventListener("click", (e) => {
     const btn = e.target.closest(".pantry-chip-remove");
     if (!btn) return;

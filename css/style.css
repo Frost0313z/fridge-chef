@@ -592,6 +592,39 @@ a {
   font-size: 0.9rem;
 }
 
+.pantry-empty p {
+  margin: 0;
+}
+
+.pantry-example-label {
+  margin-top: 16px !important;
+  font-size: 0.85rem;
+}
+
+.pantry-examples {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* 첫 방문자를 빈 입력란 앞에 세워두지 않기 위한 원클릭 예시. */
+.pantry-example {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-primary-dark);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+  cursor: pointer;
+}
+
+.pantry-example:hover {
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
 .optional {
   color: var(--color-text-muted);
   font-weight: 400;

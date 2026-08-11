@@ -100,6 +100,7 @@ document.addEventListener("DOMContentLoaded", () => {
        다시 계산하는 것과 같은 규칙으로, 항상 "지금의 재료함" 기준이 되게 한다. */
     const pantryNames = pantryNamesFor(loadPantry());
     resultEl.innerHTML = recipes.map((r) => recipeCardHtml(r, pantryNames)).join("");
+    document.getElementById("result-empty").hidden = true;
     addToHistory(recipes);
 
     /* 이력 클릭으로 과거 요리를 열었을 때는 노출하지 않는다 - 그 요리에 대한 재추천이 아니다. */
@@ -194,6 +195,7 @@ function initHistory() {
     const recipe = historyItems[Number(btn.dataset.index)];
     if (!recipe || !resultEl) return;
     resultEl.innerHTML = recipeCardHtml(recipe, pantryNamesFor(loadPantry()));
+    document.getElementById("result-empty").hidden = true;
 
     /* 과거 요리를 다시 연 것이므로 "다른 요리 추천받기"는 맥락에 맞지 않는다. */
     const rerecommendBtn = document.getElementById("rerecommend-btn");
