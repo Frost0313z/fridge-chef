@@ -10,6 +10,13 @@ const SHOPPING_HINT_NO_PANTRY =
   "냉장고가 비어 있어서 식단에 필요한 재료를 모두 담았어요. 이미 가진 재료를 냉장고에 넣으면 다음부터는 부족한 것만 보여드려요.";
 const SHOPPING_HINT_SUFFIX = "자동으로 담기지는 않고, 클릭하면 쿠팡 검색 결과가 새 탭에서 열려요.";
 
+/* q만 붙인 최소 형태(`?q=계란`)로는 검색어가 반영되지 않고 빈 검색으로 열린다.
+   쿠팡 검색 페이지가 채널 파라미터까지 있어야 초기 검색 상태를 세팅하기 때문에,
+   쿠팡이 스스로 만드는 URL과 같은 형태로 맞춘다. */
+function coupangSearchUrl(keyword) {
+  return `https://www.coupang.com/np/search?q=${encodeURIComponent(keyword)}&channel=user&component=`;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const listEl = document.getElementById("shopping-list");
   if (!listEl) return;
@@ -74,7 +81,7 @@ function renderShoppingList(plan, pantry) {
     <li class="shopping-item">
       <span>${escapeHtml(item.label)}</span>
       <span class="shopping-item-actions">
-        <a href="https://www.coupang.com/np/search?q=${encodeURIComponent(item.query)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(item.query)} 쿠팡에서 검색">쿠팡에서 검색 →</a>
+        <a href="${escapeHtml(coupangSearchUrl(item.query))}" target="_blank" rel="noopener" aria-label="${escapeHtml(item.query)} 쿠팡에서 검색">쿠팡에서 검색 →</a>
         <button type="button" class="shopping-bought-btn" data-name="${escapeHtml(item.query)}" aria-label="${escapeHtml(item.label)} 샀어요 - 냉장고에 넣기">샀어요</button>
       </span>
     </li>
