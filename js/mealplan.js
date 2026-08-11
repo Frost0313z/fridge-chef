@@ -151,35 +151,10 @@ function renderShoppingList(plan, pantry) {
   sectionEl.hidden = false;
 }
 
-/* AI는 "계란 2개", "두부(반모)", "대파 1/2대"처럼 수량을 붙여서 답하는데
-   재료함에는 보통 "계란", "두부"처럼 이름만 등록돼 있다. 비교 전에 수량·단위·괄호를 걷어낸다. */
-const QUANTITY_PATTERN =
-  /\d+(\.\d+)?(\/\d+)?\s*(g|kg|ml|l|개|알|장|줄|대|모|쪽|톨|컵|큰술|작은술|스푼|봉지|봉|팩|캔|공기|인분|주먹)?/g;
-
-function normalizeIngredient(name) {
-  return String(name)
-    .replace(/\([^)]*\)/g, " ")
-    .replace(QUANTITY_PATTERN, " ")
-    .replace(/\s+/g, "")
-    .trim();
-}
-
-/* 이전 구현은 `식단재료.includes(재료함항목)` 한 방향이라, 재료함에 "파"가 있으면
-   "파프리카"·"파스타"까지 보유로 간주해 장보기 리스트에서 빠지는 문제가 있었다.
-   양방향으로 비교하되, 짧은 쪽이 1글자면 우연한 겹침이므로 포함 매칭을 인정하지 않는다.
-   그 경우 리스트에 남아 "이미 있는 걸 또 사는" 쪽으로 틀리는데, 이는 "필요한 걸 안 사는" 쪽보다 안전하다. */
-function isCovered(target, pantryNames) {
-  if (!target) return false;
-  return pantryNames.some((p) => {
-    if (!p) return false;
-    if (p === target) return true;
-    const shorter = p.length <= target.length ? p : target;
-    return shorter.length >= 2 && (target.includes(p) || p.includes(target));
-  });
-}
-
+/* normalizeIngredient / isCovered / pantryNamesFor는 레시피 추천 카드의 보유 표시도 같은 규칙을
+   써야 해서 js/shared.js로 옮겼다. 아래 computeShoppingList는 주간 식단 전용이라 여기 남긴다. */
 function computeShoppingList(plan, pantry) {
-  const pantryNames = pantry.map(normalizeIngredient).filter(Boolean);
+  const pantryNames = pantryNamesFor(pantry);
   const seen = new Set();
   const list = [];
 

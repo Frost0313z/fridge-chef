@@ -45,6 +45,48 @@ function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, (ch) => HTML_ESCAPES[ch]);
 }
 
+/* AI는 "계란 2개", "두부(반모)", "대파 1/2대"처럼 수량을 붙여서 답하는데
+   재료함에는 보통 "계란", "두부"처럼 이름만 등록돼 있다. 비교 전에 수량·단위·괄호를 걷어낸다.
+   (주간 식단의 장보기 리스트와 레시피 추천 카드의 보유 표시가 같은 규칙을 써야 하므로 여기 둔다) */
+const QUANTITY_PATTERN =
+  /\d+(\.\d+)?(\/\d+)?\s*(g|kg|ml|l|개|알|장|줄|대|모|쪽|톨|컵|큰술|작은술|스푼|봉지|봉|팩|캔|공기|인분|주먹)?/g;
+
+function normalizeIngredient(name) {
+  return String(name)
+    .replace(/\([^)]*\)/g, " ")
+    .replace(QUANTITY_PATTERN, " ")
+    .replace(/\s+/g, "")
+    .trim();
+}
+
+/* 한 방향 비교(`식단재료.includes(재료함항목)`)는 재료함에 "파"가 있으면
+   "파프리카"·"파스타"까지 보유로 간주해버린다. 양방향으로 비교하되,
+   짧은 쪽이 1글자면 우연한 겹침이므로 포함 매칭을 인정하지 않는다.
+   그 경우 "이미 있는 걸 또 사는" 쪽으로 틀리는데, 이는 "필요한 걸 안 사는" 쪽보다 안전하다. */
+function isCovered(target, pantryNames) {
+  if (!target) return false;
+  return pantryNames.some((p) => {
+    if (!p) return false;
+    if (p === target) return true;
+    const shorter = p.length <= target.length ? p : target;
+    return shorter.length >= 2 && (target.includes(p) || p.includes(target));
+  });
+}
+
+/* 재료함 목록을 비교용으로 한 번에 정규화한다. 화면을 그릴 때마다 다시 부르므로
+   "지금의 재료함" 기준이 항상 반영된다. */
+function pantryNamesFor(pantry) {
+  return pantry.map(normalizeIngredient).filter(Boolean);
+}
+
+/* scrollIntoView에 behavior:'smooth'를 하드코딩하면 모션을 줄이도록 설정한 사용자에게도
+   부드러운 스크롤이 걸린다. CSS의 prefers-reduced-motion 처리와 동작을 맞춘다. */
+function scrollToEl(el) {
+  if (!el) return;
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+}
+
 /* 두 AI 페이지가 하던 fetch + AbortController + 오류 분기가 완전히 같은 코드였다.
    호출 쪽은 성공/실패와 "화면에 그대로 띄울 한국어 문구"만 받아가면 되도록 여기서 모두 처리한다. */
 async function postJson(url, body, timeoutMs) {

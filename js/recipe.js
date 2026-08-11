@@ -154,7 +154,7 @@ function initHistory() {
     const recipe = historyItems[Number(btn.dataset.index)];
     if (!recipe || !resultEl) return;
     resultEl.innerHTML = recipeCardHtml(recipe);
-    resultEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    scrollToEl(resultEl);
   });
 
   clearBtn.addEventListener("click", () => {
