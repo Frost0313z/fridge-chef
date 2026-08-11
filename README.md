@@ -221,6 +221,12 @@ msong7618@gmail.com
 `git log --oneline --graph --all`
 
 ```
+* 6e89617 docs: 책임 단위 재편을 기획서/README/원칙 문서에 반영
+* b29628b fix: 네비 항목이 5개로 늘면서 모바일 메뉴 마지막 항목이 잘리던 문제
+* 08f6aa3 feat: 각 화면의 빈 상태와 다음 행동 안내 정비
+* 614a78e refactor: 장보기를 별도 페이지로 분리하고 산 재료를 냉장고에 넣는 고리를 닫는다
+* 37653cf refactor: 재료함을 냉장고 페이지로 분리하고 나머지 페이지에는 조회 바를 둔다
+* aae0eee docs: 개발환경 증빙 git log 갱신
 * c8b44ef docs: 페이지 통합을 기획서/README/원칙 문서에 반영
 * 6b99c2e refactor: 소개 페이지를 홈으로 통합하고 중복 설명 블록을 하나로 합침
 * 5c2ce50 docs: 개발환경 증빙 git log 갱신
