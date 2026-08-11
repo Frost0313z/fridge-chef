@@ -20,7 +20,6 @@
         <a href="index.html" class="active">홈</a>
         <a href="recipe.html">레시피 추천</a>
         <a href="mealplan.html">주간 식단</a>
-        <a href="about.html">소개</a>
       </nav>
     </div>
   </header>
@@ -36,24 +35,59 @@
         <a href="recipe.html" class="cta-button">재료 입력하고 추천받기 →</a>
         <a href="mealplan.html" class="cta-button cta-button-secondary">이번 주 식단 짜기</a>
       </div>
+      <p class="hero-note">"냉털"은 냉장고 털기의 줄임말이에요.</p>
     </section>
 
-    <section class="features">
-      <article class="feature-card">
-        <div class="feature-icon">🥕</div>
-        <h2>재료만 입력하세요</h2>
-        <p>냉장고에 있는 재료를 쉼표로 구분해서 입력하기만 하면 됩니다. 정확한 계량은 필요 없어요.</p>
-      </article>
-      <article class="feature-card">
-        <div class="feature-icon">🤖</div>
-        <h2>레시피까지 한 번에</h2>
-        <p>입력한 재료로 만들 수 있는 요리를 AI가 골라서, 필요한 재료와 조리 순서까지 함께 보여드려요.</p>
-      </article>
-      <article class="feature-card">
-        <div class="feature-icon">🛒</div>
-        <h2>이번 주 장보기까지</h2>
-        <p>며칠치 저녁 식단을 미리 짜고, 재료함에 없는 재료만 골라 장보기 리스트로 만들어드려요.</p>
-      </article>
+    <section class="home-section">
+      <h2>이렇게 쓰면 돼요</h2>
+      <div class="features">
+        <article class="feature-card">
+          <span class="step-num">1</span>
+          <h3>재료를 적어요</h3>
+          <p>쉼표로 구분해서 적기만 하면 됩니다. 정확한 계량은 필요 없어요. 자주 쓰는 재료는 재료함에 등록해두면 다음부터 다시 적지 않아도 됩니다.</p>
+        </article>
+        <article class="feature-card">
+          <span class="step-num">2</span>
+          <h3>AI가 요리를 골라줘요</h3>
+          <p>요리 이름부터 필요한 재료와 조리 순서까지 보여드려요. 재료함에 없는 재료는 "사야 해요"로 표시되니 뭘 더 사야 하는지 바로 알 수 있어요.</p>
+        </article>
+        <article class="feature-card">
+          <span class="step-num">3</span>
+          <h3>바로 요리를 시작해요</h3>
+          <p>더 자세한 레시피가 필요하면 카드의 링크로 만개의레시피 검색 결과를 열 수 있어요. 마음에 안 들면 "다른 요리 추천받기"를 누르면 됩니다.</p>
+        </article>
+      </div>
+
+      <p class="home-next">
+        이번 주 저녁을 통째로 미리 정하고 싶다면
+        <a href="mealplan.html">주간 식단 계획</a>도 있어요. 재료함에 없는 재료만 골라 장보기 리스트로 만들어드려요.
+      </p>
+    </section>
+
+    <section class="home-section">
+      <h2>자주 묻는 질문</h2>
+      <div class="faq">
+        <details>
+          <summary>재료를 정확한 계량으로 입력해야 하나요?</summary>
+          <p>아니요. "계란 2개, 대파 조금"처럼 대략적으로만 입력해도 됩니다.</p>
+        </details>
+        <details>
+          <summary>추천 결과가 이상하거나 안 나오면 어떻게 하나요?</summary>
+          <p>재료를 조금 더 구체적으로 입력하거나, 잠시 후 다시 시도해보세요. AI 서버가 혼잡하거나 응답이 지연되는 경우 안내 메시지가 표시됩니다. 이전에 추천받은 요리가 있다면 "최근 추천 받은 요리"에서 다시 확인할 수 있습니다.</p>
+        </details>
+        <details>
+          <summary>제 재료 정보가 저장되나요?</summary>
+          <p>"내 재료함"에 등록한 재료는 편의를 위해 이 브라우저의 로컬 저장소(localStorage)에만 저장됩니다. 서버로 전송되거나 다른 사람에게 공개되지 않으며, 언제든 × 버튼으로 삭제할 수 있습니다. 그 외 그날그날 추가로 입력한 재료는 추천을 생성하는 데만 쓰이고 따로 저장되지 않습니다.</p>
+        </details>
+        <details>
+          <summary>주간 식단의 장보기 리스트, 쿠팡 장바구니에 자동으로 담기나요?</summary>
+          <p>아니요. 리스트의 "쿠팡에서 검색" 링크를 누르면 해당 재료의 쿠팡 검색 결과 페이지가 새 탭으로 열릴 뿐, 장바구니에 자동으로 담거나 결제를 진행하지 않습니다. 실제 담기·구매는 직접 확인하고 진행해주세요.</p>
+        </details>
+        <details>
+          <summary>어떤 기술로 만들었나요?</summary>
+          <p>프론트엔드는 프레임워크 없이 HTML / CSS / JavaScript로, 백엔드는 Vercel Serverless Functions(Python)로 만들었습니다. 요리 추천에는 OpenAI API를 쓰고, 배포는 Vercel로 합니다. 자세한 구조는 <a href="https://github.com/Frost0313z/fridge-chef" target="_blank" rel="noopener noreferrer">GitHub 저장소</a>에서 볼 수 있어요.</p>
+        </details>
+      </div>
     </section>
   </main>
 

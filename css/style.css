@@ -246,13 +246,40 @@ a {
   color: var(--color-primary-dark);
 }
 
+.hero-note {
+  margin: 18px 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+}
+
 /* ==========================================================================
-   기능 카드
+   홈 본문 (이용 방법 / FAQ)
    ========================================================================== */
-.features {
+.home-section {
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: 0 20px 80px;
+  padding: 0 20px 64px;
+}
+
+.home-section > h2 {
+  font-size: 1.2rem;
+  margin: 0 0 20px;
+}
+
+.home-next {
+  max-width: 680px;
+  margin: 24px 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+.home-next a {
+  color: var(--color-primary-dark);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.features {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
@@ -265,12 +292,13 @@ a {
   padding: 28px 22px;
 }
 
-.feature-icon {
-  font-size: 1.8rem;
+/* 이전에는 이모지 아이콘이었다. 순서가 있는 3단계이므로 번호가 더 정확하고,
+   화면 전체의 이모지 개수도 줄어든다. */
+.feature-card .step-num {
   margin-bottom: 12px;
 }
 
-.feature-card h2 {
+.feature-card h3 {
   font-size: 1.05rem;
   margin: 0 0 8px;
 }
@@ -331,8 +359,6 @@ a {
 .error-message,
 .loading,
 .shopping-list,
-.steps,
-.tech-stack,
 .faq {
   max-width: 680px;
 }
@@ -355,22 +381,7 @@ a {
   margin: 0 0 18px;
 }
 
-/* 이용 방법 */
-.steps-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.steps-list li {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-}
-
+/* 이용 방법 단계 번호 (홈의 기능 카드에서 사용) */
 .step-num {
   flex: none;
   width: 32px;
@@ -382,35 +393,6 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.steps-list h3 {
-  margin: 0 0 4px;
-  font-size: 1rem;
-}
-
-.steps-list p {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: 0.95rem;
-}
-
-/* 기술 스택 */
-.tech-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.tech-list li {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  padding: 12px 16px;
-  font-size: 0.95rem;
 }
 
 /* FAQ */
@@ -755,10 +737,6 @@ a {
 #mealplan-form label {
   font-weight: 600;
   font-size: 0.95rem;
-}
-
-.required {
-  color: var(--color-danger);
 }
 
 #recipe-form textarea,
