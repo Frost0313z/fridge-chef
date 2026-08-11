@@ -910,6 +910,19 @@ a {
   margin-top: 4px;
 }
 
+/* 상세 레시피로 넘어가는 링크. 장보기 리스트의 쿠팡 링크와 같은 시각 언어를 쓴다. */
+.recipe-search-link {
+  display: inline-block;
+  margin-top: 14px;
+  color: var(--color-primary-dark);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.recipe-search-link:hover {
+  text-decoration: underline;
+}
+
 /* 재료함에 있는 재료는 눈에 덜 띄게, 사야 하는 재료는 기본 색 그대로 두어
    "무엇을 더 사야 하는가"가 먼저 읽히게 한다. 새 이모지는 쓰지 않는다. */
 .recipe-card .ing-has {

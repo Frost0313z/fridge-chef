@@ -131,6 +131,7 @@ function recipeCardHtml(r, pantryNames = []) {
       <ul>${(r.ingredients || []).map((i) => ingredientLiHtml(i, pantryNames)).join("")}</ul>
       <h4>조리 순서</h4>
       <ol>${(r.steps || []).map((s) => `<li>${escapeHtml(s)}</li>`).join("")}</ol>
+      ${recipeSearchLinkHtml(r.name, r.searchKeyword)}
     </article>
   `;
 }

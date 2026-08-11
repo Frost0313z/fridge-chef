@@ -79,6 +79,23 @@ function pantryNamesFor(pantry) {
   return pantry.map(normalizeIngredient).filter(Boolean);
 }
 
+/* AI가 주는 조리 순서는 3~5줄이라 실제로 요리하기엔 얕고, 카드에서 흐름이 끝난다.
+   사진·계량·후기가 있는 레시피 사이트로 넘겨 그 공백을 메운다.
+   장보기 리스트의 쿠팡 링크와 같은 규칙 — 검색 결과까지만 보내고 그 이상은 하지 않는다.
+
+   검색어로 요리 이름을 그대로 쓰면 안 된다. 만개의레시피는 긴 검색어를 단어별로 느슨하게
+   매칭해서, "냉장고털이 두부 계란 덮밥"으로 검색하면 결과가 0건이 아니라 3만 건의
+   무관한 레시피가 나온다. 그래서 AI에게 짧은 검색용 이름(searchKeyword)을 따로 받고,
+   없으면(옛 저장 데이터 포함) 요리 이름으로 대체한다. */
+function recipeSearchLinkHtml(name, searchKeyword) {
+  const query = (searchKeyword || name || "").trim();
+  if (!query) return "";
+
+  const url = `https://www.10000recipe.com/recipe/list.html?q=${encodeURIComponent(query)}`;
+  return `<a class="recipe-search-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer"
+    aria-label="${escapeHtml(query)} 레시피를 만개의레시피에서 찾아보기">만개의레시피에서 찾아보기 →</a>`;
+}
+
 /* scrollIntoView에 behavior:'smooth'를 하드코딩하면 모션을 줄이도록 설정한 사용자에게도
    부드러운 스크롤이 걸린다. CSS의 prefers-reduced-motion 처리와 동작을 맞춘다. */
 function scrollToEl(el) {

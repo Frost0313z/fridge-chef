@@ -3,7 +3,7 @@ POST /api/mealplan
 재료함(보유 재료)을 최대한 활용해 여러 날짜의 저녁 식단을 계획하는 Vercel Serverless Function.
 
 요청 바디: {"days": int, "headcount": str, "situation": str, "pantry": [str]}
-응답(200): {"plan": [{"day": str, "menu": str, "ingredients": [str]}]}
+응답(200): {"plan": [{"day": str, "menu": str, "searchKeyword": str, "ingredients": [str]}]}
 응답(4xx/5xx): {"error": str, "message": str}
 """
 
@@ -18,10 +18,14 @@ SYSTEM_PROMPT = """당신은 자취생을 위한 일주일 저녁 식단을 계�
 가진 재료만으로 부족하면 새로 사야 할 재료를 자유롭게 추가해도 됩니다 (장보기 리스트를 만드는 것이 목적입니다).
 같은 요리가 계획 기간 내에 반복되지 않게 다양하게 구성하세요.
 
+searchKeyword는 레시피 사이트에서 검색할 때 쓰는 값입니다. 수식어를 빼고 널리 쓰이는 짧은 요리 이름만
+적으세요 (예: menu가 "냉장고털이 두부 계란 덮밥"이면 searchKeyword는 "두부덮밥"). 검색어가 길면
+엉뚱한 결과가 나오므로 되도록 두 단어를 넘기지 마세요.
+
 반드시 아래 JSON 형식으로만 응답하세요. 다른 설명 문장을 추가하지 마세요.
 {
   "plan": [
-    {"day": "1일차", "menu": "요리 이름", "ingredients": ["재료1", "재료2"]}
+    {"day": "1일차", "menu": "요리 이름", "searchKeyword": "검색용 짧은 요리 이름", "ingredients": ["재료1", "재료2"]}
   ]
 }"""
 
@@ -61,6 +65,8 @@ def sanitize_plan(raw):
             {
                 "day": str(item.get("day") or f"{index}일차").strip(),
                 "menu": menu,
+                # 비면 프론트가 menu로 대체한다. 옛 저장 데이터에도 이 필드가 없다.
+                "searchKeyword": str(item.get("searchKeyword") or "").strip(),
                 "ingredients": to_str_list(item.get("ingredients")),
             }
         )

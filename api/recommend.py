@@ -3,7 +3,7 @@ POST /api/recommend
 입력한 재료로 AI가 만들 수 있는 요리를 추천하는 Vercel Serverless Function.
 
 요청 바디: {"ingredients": str, "headcount": str, "timeLimit": str, "situation": str}
-응답(200): {"recipes": [{"name": str, "time": str, "ingredients": [str], "steps": [str]}]}
+응답(200): {"recipes": [{"name": str, "searchKeyword": str, "time": str, "ingredients": [str], "steps": [str]}]}
 응답(4xx/5xx): {"error": str, "message": str}  # message는 화면에 그대로 표시할 한국어 안내문
 """
 
@@ -18,11 +18,16 @@ SYSTEM_PROMPT = """당신은 냉장고에 있는 재료로 만들 수 있는 한
 소금, 후추, 식용유, 물처럼 대부분의 가정에 있는 기본 조미료는 목록에 없어도 사용할 수 있다고 가정합니다.
 사용자가 알려주지 않은 값비싸거나 특수한 재료를 임의로 추가하지 마세요.
 
+searchKeyword는 레시피 사이트에서 검색할 때 쓰는 값입니다. 수식어를 빼고 널리 쓰이는 짧은 요리 이름만
+적으세요 (예: name이 "냉장고털이 두부 계란 덮밥"이면 searchKeyword는 "두부덮밥"). 검색어가 길면
+엉뚱한 결과가 나오므로 되도록 두 단어를 넘기지 마세요.
+
 반드시 아래 JSON 형식으로만 응답하세요. 다른 설명 문장을 추가하지 마세요.
 {
   "recipes": [
     {
       "name": "요리 이름",
+      "searchKeyword": "검색용 짧은 요리 이름",
       "time": "예상 조리 시간 (예: 15분)",
       "ingredients": ["재료1", "재료2"],
       "steps": ["조리 순서 1", "조리 순서 2"]
@@ -66,6 +71,8 @@ def sanitize_recipes(raw):
         recipes.append(
             {
                 "name": name,
+                # 비면 프론트가 name으로 대체한다. 옛 이력 데이터에도 이 필드가 없다.
+                "searchKeyword": str(item.get("searchKeyword") or "").strip(),
                 "time": str(item.get("time") or "").strip(),
                 "ingredients": to_str_list(item.get("ingredients")),
                 "steps": to_str_list(item.get("steps")),

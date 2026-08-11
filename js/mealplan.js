@@ -115,6 +115,7 @@ function mealplanDayHtml(d) {
       <h3>${escapeHtml(d.day || "")}</h3>
       <p class="mealplan-menu">${escapeHtml(d.menu || "")}</p>
       <ul>${(d.ingredients || []).map((i) => `<li>${escapeHtml(i)}</li>`).join("")}</ul>
+      ${recipeSearchLinkHtml(d.menu, d.searchKeyword)}
     </article>
   `;
 }
