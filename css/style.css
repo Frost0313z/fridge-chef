@@ -786,6 +786,24 @@ a {
   gap: 14px;
 }
 
+/* 세대 구성과 무관한 축 하나만 남긴 선택지라, 드롭다운 대신 체크박스로 둔다.
+   기본 체크박스 모양을 그대로 써서 사용자가 이미 아는 방식대로 동작하게 한다. */
+.form-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.form-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
 .form-field {
   flex: 1;
   display: flex;

@@ -17,8 +17,8 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!form) return;
 
   const daysEl = document.getElementById("days");
-  const headcountEl = document.getElementById("mp-headcount");
-  const situationEl = document.getElementById("mp-situation");
+  const portionEl = document.getElementById("mp-portion");
+  const healthyEl = document.getElementById("mp-healthy");
   const submitBtn = document.getElementById("mealplan-submit-btn");
   const clearBtn = document.getElementById("mealplan-clear-btn");
   const loadingEl = document.getElementById("mealplan-loading");
@@ -29,13 +29,13 @@ document.addEventListener("DOMContentLoaded", () => {
   restorePreferences();
 
   daysEl.addEventListener("change", () => localStorage.setItem(MEALPLAN_DAYS_KEY, daysEl.value));
-  headcountEl.addEventListener("change", () => savePrefs({ headcount: headcountEl.value }));
-  situationEl.addEventListener("change", () => savePrefs({ situation: situationEl.value }));
+  portionEl.addEventListener("change", () => savePrefs({ portion: portionEl.value }));
+  healthyEl.addEventListener("change", () => savePrefs({ healthy: healthyEl.checked }));
 
   function restorePreferences() {
     const prefs = loadPrefs();
-    if (prefs.headcount) headcountEl.value = prefs.headcount;
-    if (prefs.situation) situationEl.value = prefs.situation;
+    if (prefs.portion) portionEl.value = prefs.portion;
+    healthyEl.checked = Boolean(prefs.healthy);
     const savedDays = localStorage.getItem(MEALPLAN_DAYS_KEY);
     if (savedDays) daysEl.value = savedDays;
   }
@@ -60,8 +60,8 @@ document.addEventListener("DOMContentLoaded", () => {
       "/api/mealplan",
       {
         days: Number(daysEl.value),
-        headcount: headcountEl.value,
-        situation: situationEl.value,
+        portion: portionEl.value,
+        healthy: healthyEl.checked,
         pantry,
       },
       MP_REQUEST_TIMEOUT_MS

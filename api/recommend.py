@@ -2,7 +2,7 @@
 POST /api/recommend
 입력한 재료로 AI가 만들 수 있는 요리를 추천하는 Vercel Serverless Function.
 
-요청 바디: {"ingredients": str, "headcount": str, "timeLimit": str, "situation": str}
+요청 바디: {"ingredients": str, "portion": str, "timeLimit": str, "healthy": bool}
 응답(200): {"recipes": [{"name": str, "searchKeyword": str, "time": str, "ingredients": [str], "steps": [str]}]}
 응답(4xx/5xx): {"error": str, "message": str}  # message는 화면에 그대로 표시할 한국어 안내문
 """
@@ -17,6 +17,9 @@ SYSTEM_PROMPT = """당신은 냉장고에 있는 재료로 만들 수 있는 한
 사용자가 알려준 재료를 최대한 활용하는 요리 1~3개를 추천하세요.
 소금, 후추, 식용유, 물처럼 대부분의 가정에 있는 기본 조미료는 목록에 없어도 사용할 수 있다고 가정합니다.
 사용자가 알려주지 않은 값비싸거나 특수한 재료를 임의로 추가하지 마세요.
+
+사용자는 혼자 사는 자취생입니다. 이건 선택 사항이 아니라 항상 참인 전제입니다.
+설거지가 적고 조리 과정이 간단한 요리를 우선하고, 특수한 조리도구가 필요한 요리는 피하세요.
 
 searchKeyword는 레시피 사이트에서 검색할 때 쓰는 값입니다. 수식어를 빼고 널리 쓰이는 짧은 요리 이름만
 적으세요 (예: name이 "냉장고털이 두부 계란 덮밥"이면 searchKeyword는 "두부덮밥"). 검색어가 길면
@@ -36,11 +39,10 @@ searchKeyword는 레시피 사이트에서 검색할 때 쓰는 값입니다. �
 }"""
 
 
-SITUATION_HINTS = {
-    "자취생 간단요리": "혼자 사는 자취생 상황이야. 설거지가 적고 조리가 간단한 요리 위주로 추천해줘.",
-    "가족 식사": "여러 식구가 함께 먹을 가족 식사 상황이야. 자극적이지 않고 다양한 연령대가 무난하게 먹을 수 있는 요리로 추천해줘.",
-    "다이어트/건강식": "다이어트나 건강 관리를 하는 상황이야. 기름지거나 자극적인 조리법은 피하고 칼로리가 낮은 요리로 추천해줘.",
-}
+# 이전에는 "자취생 간단요리 / 가족 식사 / 다이어트·건강식" 3지선다였다.
+# 타겟이 1인 가구 자취생으로 고정돼 있으므로 "가족 식사"는 모순이고 "자취생 간단요리"는
+# 선택지가 아니라 기본값이어야 한다(SYSTEM_PROMPT로 승격). 세대 구성과 무관한 축 하나만 남긴다.
+HEALTHY_HINT = "건강 관리를 신경 쓰는 중이야. 기름지거나 자극적인 조리법은 피하고 칼로리가 낮은 쪽으로 추천해줘."
 
 
 MAX_RECIPES = 3
@@ -81,15 +83,15 @@ def sanitize_recipes(raw):
     return recipes[:MAX_RECIPES]
 
 
-def build_user_prompt(ingredients, headcount, time_limit, situation):
+def build_user_prompt(ingredients, portion, time_limit, healthy):
     lines = [
         f"보유 재료: {ingredients}",
-        f"인원수: {headcount}",
+        # 혼자 먹는다는 전제이므로 "몇 인분"이 아니라 "몇 끼 분량"으로 전달한다.
+        f"만들 분량: 혼자 먹을 {portion} 분량 (남으면 다음 끼니에 먹음)",
         f"희망 조리 시간: {time_limit}",
     ]
-    hint = SITUATION_HINTS.get(situation)
-    if hint:
-        lines.append(f"상황: {hint}")
+    if healthy:
+        lines.append(HEALTHY_HINT)
     lines.append("위 조건에 맞는 요리를 추천해줘.")
     return "\n".join(lines)
 
@@ -109,9 +111,9 @@ class handler(BaseHTTPRequestHandler):
             self._send_json(400, {"error": "empty_input", "message": "재료를 1개 이상 입력해주세요."})
             return
 
-        headcount = (payload.get("headcount") or "1인분").strip()
+        portion = (payload.get("portion") or "한 끼").strip()
         time_limit = (payload.get("timeLimit") or "상관없음").strip()
-        situation = (payload.get("situation") or "기본").strip()
+        healthy = bool(payload.get("healthy"))
 
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
@@ -125,7 +127,7 @@ class handler(BaseHTTPRequestHandler):
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": build_user_prompt(ingredients, headcount, time_limit, situation)},
+                    {"role": "user", "content": build_user_prompt(ingredients, portion, time_limit, healthy)},
                 ],
                 response_format={"type": "json_object"},
                 temperature=0.7,

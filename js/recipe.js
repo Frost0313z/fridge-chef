@@ -10,9 +10,9 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!form) return;
 
   const ingredientsEl = document.getElementById("ingredients");
-  const headcountEl = document.getElementById("headcount");
+  const portionEl = document.getElementById("portion");
   const timeLimitEl = document.getElementById("timeLimit");
-  const situationEl = document.getElementById("situation");
+  const healthyEl = document.getElementById("healthy");
   const submitBtn = document.getElementById("submit-btn");
   const loadingEl = document.getElementById("loading");
   const errorEl = document.getElementById("error");
@@ -26,14 +26,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   restorePreferences();
 
-  headcountEl.addEventListener("change", () => savePrefs({ headcount: headcountEl.value }));
-  situationEl.addEventListener("change", () => savePrefs({ situation: situationEl.value }));
+  portionEl.addEventListener("change", () => savePrefs({ portion: portionEl.value }));
+  healthyEl.addEventListener("change", () => savePrefs({ healthy: healthyEl.checked }));
   timeLimitEl.addEventListener("change", () => localStorage.setItem(RECIPE_TIMELIMIT_KEY, timeLimitEl.value));
 
   function restorePreferences() {
     const prefs = loadPrefs();
-    if (prefs.headcount) headcountEl.value = prefs.headcount;
-    if (prefs.situation) situationEl.value = prefs.situation;
+    if (prefs.portion) portionEl.value = prefs.portion;
+    healthyEl.checked = Boolean(prefs.healthy);
     const savedTimeLimit = localStorage.getItem(RECIPE_TIMELIMIT_KEY);
     if (savedTimeLimit) timeLimitEl.value = savedTimeLimit;
   }
@@ -68,9 +68,9 @@ document.addEventListener("DOMContentLoaded", () => {
       "/api/recommend",
       {
         ingredients,
-        headcount: headcountEl.value,
+        portion: portionEl.value,
         timeLimit: timeLimitEl.value,
-        situation: situationEl.value,
+        healthy: healthyEl.checked,
       },
       REQUEST_TIMEOUT_MS
     );

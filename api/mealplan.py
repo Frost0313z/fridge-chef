@@ -2,7 +2,7 @@
 POST /api/mealplan
 재료함(보유 재료)을 최대한 활용해 여러 날짜의 저녁 식단을 계획하는 Vercel Serverless Function.
 
-요청 바디: {"days": int, "headcount": str, "situation": str, "pantry": [str]}
+요청 바디: {"days": int, "portion": str, "healthy": bool, "pantry": [str]}
 응답(200): {"plan": [{"day": str, "menu": str, "searchKeyword": str, "ingredients": [str]}]}
 응답(4xx/5xx): {"error": str, "message": str}
 """
@@ -18,6 +18,9 @@ SYSTEM_PROMPT = """당신은 자취생을 위한 일주일 저녁 식단을 계�
 가진 재료만으로 부족하면 새로 사야 할 재료를 자유롭게 추가해도 됩니다 (장보기 리스트를 만드는 것이 목적입니다).
 같은 요리가 계획 기간 내에 반복되지 않게 다양하게 구성하세요.
 
+사용자는 혼자 사는 자취생입니다. 이건 선택 사항이 아니라 항상 참인 전제입니다.
+설거지가 적고 조리 과정이 간단한 요리를 우선하고, 특수한 조리도구가 필요한 요리는 피하세요.
+
 searchKeyword는 레시피 사이트에서 검색할 때 쓰는 값입니다. 수식어를 빼고 널리 쓰이는 짧은 요리 이름만
 적으세요 (예: menu가 "냉장고털이 두부 계란 덮밥"이면 searchKeyword는 "두부덮밥"). 검색어가 길면
 엉뚱한 결과가 나오므로 되도록 두 단어를 넘기지 마세요.
@@ -29,11 +32,9 @@ searchKeyword는 레시피 사이트에서 검색할 때 쓰는 값입니다. �
   ]
 }"""
 
-SITUATION_HINTS = {
-    "자취생 간단요리": "혼자 사는 자취생 상황이야. 설거지가 적고 조리가 간단한 요리 위주로 계획해줘.",
-    "가족 식사": "여러 식구가 함께 먹을 가족 식사 상황이야. 자극적이지 않고 다양한 연령대가 무난하게 먹을 수 있는 요리로 계획해줘.",
-    "다이어트/건강식": "다이어트나 건강 관리를 하는 상황이야. 기름지거나 자극적인 조리법은 피하고 칼로리가 낮은 요리로 계획해줘.",
-}
+# 타겟이 1인 가구 자취생으로 고정돼 있어 "가족 식사"는 모순이고 "자취생 간단요리"는
+# 선택지가 아니라 기본값이다(SYSTEM_PROMPT로 승격). 세대 구성과 무관한 축 하나만 남긴다.
+HEALTHY_HINT = "건강 관리를 신경 쓰는 중이야. 기름지거나 자극적인 조리법은 피하고 칼로리가 낮은 쪽으로 계획해줘."
 
 
 MAX_DAYS = 7
@@ -73,16 +74,16 @@ def sanitize_plan(raw):
     return plan[:MAX_DAYS]
 
 
-def build_user_prompt(days, headcount, situation, pantry):
+def build_user_prompt(days, portion, healthy, pantry):
     lines = [
         f"계획할 일수: {days}일치 저녁",
-        f"인원수: {headcount}",
+        # 혼자 먹는다는 전제이므로 "몇 인분"이 아니라 "한 끼당 몇 끼 분량"으로 전달한다.
+        f"한 끼당 만들 분량: 혼자 먹을 {portion} 분량 (남으면 다음 끼니에 먹음)",
     ]
     if pantry:
         lines.append(f"이미 냉장고에 있는 재료: {', '.join(pantry)}")
-    hint = SITUATION_HINTS.get(situation)
-    if hint:
-        lines.append(f"상황: {hint}")
+    if healthy:
+        lines.append(HEALTHY_HINT)
     lines.append("위 조건에 맞는 저녁 식단을 계획해줘.")
     return "\n".join(lines)
 
@@ -103,8 +104,8 @@ class handler(BaseHTTPRequestHandler):
             days = 5
         days = max(1, min(days, 7))
 
-        headcount = (payload.get("headcount") or "1인분").strip()
-        situation = (payload.get("situation") or "기본").strip()
+        portion = (payload.get("portion") or "한 끼").strip()
+        healthy = bool(payload.get("healthy"))
         pantry = payload.get("pantry") or []
         if not isinstance(pantry, list):
             pantry = []
@@ -122,7 +123,7 @@ class handler(BaseHTTPRequestHandler):
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": build_user_prompt(days, headcount, situation, pantry)},
+                    {"role": "user", "content": build_user_prompt(days, portion, healthy, pantry)},
                 ],
                 response_format={"type": "json_object"},
                 temperature=0.8,
