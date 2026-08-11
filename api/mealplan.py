@@ -2,16 +2,12 @@
 POST /api/mealplan
 재료함(보유 재료)을 최대한 활용해 여러 날짜의 저녁 식단을 계획하는 Vercel Serverless Function.
 
-요청 바디: {"days": int, "portion": str, "healthy": bool, "pantry": [str]}
-응답(200): {"plan": [{"day": str, "menu": str, "searchKeyword": str, "ingredients": [str]}]}
-응답(4xx/5xx): {"error": str, "message": str}
+요청 페이로드: {"days": int, "portion": str, "healthy": bool, "pantry": [str]}
+반환(200): {"plan": [{"day": str, "menu": str, "searchKeyword": str, "ingredients": [str]}]}
+반환(4xx/5xx): {"error": str, "message": str}
 """
 
-from http.server import BaseHTTPRequestHandler
-import json
-import os
-
-from openai import OpenAI, APITimeoutError, APIStatusError, APIConnectionError
+from _common import call_openai, to_str_list
 
 SYSTEM_PROMPT = """당신은 자취생을 위한 일주일 저녁 식단을 계획해주는 도우미입니다.
 사용자가 이미 냉장고에 가진 재료를 최대한 활용해서, 날짜별로 서로 다른 요리를 계획하세요.
@@ -38,15 +34,6 @@ HEALTHY_HINT = "건강 관리를 신경 쓰는 중이야. 기름지거나 자극
 
 
 MAX_DAYS = 7
-
-
-def to_str_list(value):
-    """AI가 배열 대신 문자열/숫자를 줘도 프론트의 .map()이 터지지 않도록 문자열 배열로 강제한다."""
-    if isinstance(value, str):
-        return [value.strip()] if value.strip() else []
-    if not isinstance(value, list):
-        return []
-    return [str(v).strip() for v in value if str(v).strip()]
 
 
 def sanitize_plan(raw):
@@ -88,67 +75,29 @@ def build_user_prompt(days, portion, healthy, pantry):
     return "\n".join(lines)
 
 
-class handler(BaseHTTPRequestHandler):
-    def do_POST(self):
-        try:
-            length = int(self.headers.get("Content-Length", 0))
-            raw_body = self.rfile.read(length) if length else b"{}"
-            payload = json.loads(raw_body or b"{}")
-        except (ValueError, json.JSONDecodeError):
-            self._send_json(400, {"error": "invalid_request", "message": "요청 형식이 올바르지 않아요."})
-            return
+def handle(payload):
+    """(status, body) 를 돌려준다. HTTP 처리는 api/index.py가 한다."""
+    try:
+        days = int(payload.get("days") or 5)
+    except (TypeError, ValueError):
+        days = 5
+    days = max(1, min(days, 7))
 
-        try:
-            days = int(payload.get("days") or 5)
-        except (TypeError, ValueError):
-            days = 5
-        days = max(1, min(days, 7))
+    portion = (payload.get("portion") or "한 끼").strip()
+    healthy = bool(payload.get("healthy"))
+    pantry = payload.get("pantry") or []
+    if not isinstance(pantry, list):
+        pantry = []
+    pantry = [str(p).strip() for p in pantry if str(p).strip()][:30]
 
-        portion = (payload.get("portion") or "한 끼").strip()
-        healthy = bool(payload.get("healthy"))
-        pantry = payload.get("pantry") or []
-        if not isinstance(pantry, list):
-            pantry = []
-        pantry = [str(p).strip() for p in pantry if str(p).strip()][:30]
+    data, error = call_openai(
+        SYSTEM_PROMPT,
+        build_user_prompt(days, portion, healthy, pantry),
+        timeout=20.0,
+        temperature=0.8,
+    )
+    if error:
+        return error
 
-        api_key = os.environ.get("OPENAI_API_KEY")
-        if not api_key:
-            self._send_json(500, {"error": "server_misconfigured", "message": "서버에 API 키가 설정되어 있지 않아요."})
-            return
-
-        client = OpenAI(api_key=api_key, timeout=20.0)
-
-        try:
-            completion = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": build_user_prompt(days, portion, healthy, pantry)},
-                ],
-                response_format={"type": "json_object"},
-                temperature=0.8,
-            )
-            data = json.loads(completion.choices[0].message.content)
-        except APITimeoutError:
-            self._send_json(504, {"error": "timeout", "message": "AI 응답이 지연되고 있어요. 잠시 후 다시 시도해주세요."})
-            return
-        except APIConnectionError:
-            self._send_json(502, {"error": "connection_error", "message": "AI 서버에 연결하지 못했어요. 잠시 후 다시 시도해주세요."})
-            return
-        except APIStatusError:
-            self._send_json(502, {"error": "upstream_error", "message": "AI 서비스에 일시적인 문제가 발생했어요. 잠시 후 다시 시도해주세요."})
-            return
-        except (ValueError, json.JSONDecodeError, KeyError, IndexError):
-            self._send_json(502, {"error": "bad_ai_response", "message": "AI 응답을 해석하지 못했어요. 다시 시도해주세요."})
-            return
-
-        raw_plan = data.get("plan") if isinstance(data, dict) else None
-        self._send_json(200, {"plan": sanitize_plan(raw_plan)})
-
-    def _send_json(self, status, body):
-        payload = json.dumps(body, ensure_ascii=False).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(payload)))
-        self.end_headers()
-        self.wfile.write(payload)
+    raw_plan = data.get("plan") if isinstance(data, dict) else None
+    return 200, {"plan": sanitize_plan(raw_plan)}
