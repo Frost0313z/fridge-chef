@@ -214,6 +214,9 @@ msong7618@gmail.com
 `git log --oneline --graph --all`
 
 ```
+* c8b44ef docs: 페이지 통합을 기획서/README/원칙 문서에 반영
+* 6b99c2e refactor: 소개 페이지를 홈으로 통합하고 중복 설명 블록을 하나로 합침
+* 5c2ce50 docs: 개발환경 증빙 git log 갱신
 * 4f6f3f9 docs: 타겟 정합성 점검 결과를 기획서/README/원칙 문서에 반영
 * 5271cc9 refactor: 타겟과 맞지 않는 선택지 정리 (상황 3지선다 -> 건강 여부, 인원수 -> 만들 분량)
 * 78d188b docs: 개발환경 증빙 git log 갱신
