@@ -437,13 +437,35 @@ a {
 /* ==========================================================================
    내 재료함
    ========================================================================== */
+/* 재료함은 기본 접힘이다. 한 화면에 재료함·폼·결과·이력이 모두 펼쳐져 있으면
+   처음 온 사람은 주 행동(추천받기)이 무엇인지 알 수 없다. details를 쓰면
+   접힌 동안 내부가 Tab 순회에서도 빠져 키보드 사용자에게도 같은 효과가 난다. */
 .pantry {
   padding: 0 0 28px;
 }
 
-.pantry h2 {
+.pantry-summary {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  cursor: pointer;
+  padding: 6px 0;
+}
+
+.pantry-summary h2 {
+  display: inline;
   font-size: 1.1rem;
-  margin: 0 0 6px;
+  margin: 0;
+}
+
+.pantry-summary-info {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.pantry[open] .pantry-summary {
+  margin-bottom: 6px;
 }
 
 .pantry-hint {
@@ -468,6 +490,9 @@ a {
   color: var(--color-text);
 }
 
+/* 이 버튼이 제출 버튼과 같은 주황 채움이면 화면에서 무엇이 주 행동인지 알 수 없다.
+   보조 CTA와 같은 언어(surface 배경 + inset 윤곽선)로 낮춰, 주황 채움을 제출 버튼 하나로 남긴다.
+   radius는 옆 입력창과 맞춰 10px 유지. */
 .pantry-input-row button {
   flex-shrink: 0;
   white-space: nowrap;
@@ -476,13 +501,14 @@ a {
   padding: 10px 18px;
   border: none;
   border-radius: 10px;
-  background: var(--color-primary);
-  color: #fff;
+  background: var(--color-surface);
+  color: var(--color-primary-dark);
+  box-shadow: inset 0 0 0 1px var(--color-border);
   cursor: pointer;
 }
 
 .pantry-input-row button:hover {
-  background: var(--color-primary-dark);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
 }
 
 .pantry-chips {
@@ -820,8 +846,10 @@ a {
   margin-top: 18px;
 }
 
-.rerecommend-btn:not([hidden]) {
-  display: inline-block;
+/* .cta-button의 display:inline-block이 UA 스타일시트의 [hidden]{display:none}보다
+   우선순위가 높아, hidden 속성만으로는 숨겨지지 않는다. 명시적으로 덮어쓴다. */
+.rerecommend-btn[hidden] {
+  display: none;
 }
 
 /* 추천 결과 카드 */

@@ -31,8 +31,11 @@
       <p>재료함을 최대한 활용해서 며칠치 식단을 짜고, 부족한 재료만 장보기 리스트로 뽑아드려요.</p>
     </section>
 
-    <section class="pantry">
-      <h2>🥕 내 재료함</h2>
+    <details class="pantry">
+      <summary class="pantry-summary">
+        <h2>🥕 내 재료함</h2>
+        <span id="pantry-summary-info" class="pantry-summary-info"></span>
+      </summary>
       <p class="pantry-hint">레시피 추천 페이지와 같은 재료함이에요(여기서 추가·삭제하면 그쪽에도 그대로 반영돼요). 등록해둘수록 장보기 리스트에서 이미 가진 재료가 걸러져요.</p>
       <div class="pantry-input-row">
         <input type="text" id="pantry-input" placeholder="재료 이름 입력 후 Enter (쉼표로 여러 개, 예: 계란, 대파, 두부)" />
@@ -41,7 +44,7 @@
       <p id="pantry-status" class="pantry-status" role="status" aria-live="polite" hidden></p>
       <div id="pantry-chips" class="pantry-chips"></div>
       <p id="pantry-empty" class="pantry-empty">아직 등록된 재료가 없어요. 위에 입력해서 추가해보세요.</p>
-    </section>
+    </details>
 
     <section class="recipe-form-section">
       <form id="mealplan-form" novalidate>

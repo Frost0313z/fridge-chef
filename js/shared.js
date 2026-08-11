@@ -143,6 +143,7 @@ function initPantry() {
   const chipsEl = document.getElementById("pantry-chips");
   const emptyEl = document.getElementById("pantry-empty");
   const statusEl = document.getElementById("pantry-status");
+  const summaryEl = document.getElementById("pantry-summary-info");
   if (!input || !chipsEl) return;
 
   let pantry = loadPantry();
@@ -157,8 +158,22 @@ function initPantry() {
     statusEl.hidden = !message;
   }
 
+  /* 재료함은 접혀 있는 것이 기본이라, 열지 않고도 지금 뭐가 들었는지 알 수 있어야 한다.
+     앞의 두 개만 보여주고 나머지는 개수로 줄인다. */
+  function renderSummary() {
+    if (!summaryEl) return;
+    if (!pantry.length) {
+      summaryEl.textContent = "(비어 있음 · 등록해두면 다음부터 편해요)";
+      return;
+    }
+    const head = pantry.slice(0, 2).join(", ");
+    const rest = pantry.length - 2;
+    summaryEl.textContent = rest > 0 ? `(${head} 외 ${rest}개)` : `(${head})`;
+  }
+
   function render() {
     emptyEl.hidden = pantry.length > 0;
+    renderSummary();
     chipsEl.innerHTML = pantry
       .map(
         (item, index) => `
