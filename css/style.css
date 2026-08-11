@@ -518,6 +518,12 @@ a {
   color: var(--color-danger);
 }
 
+.pantry-status {
+  margin: 12px 0 0;
+  color: var(--color-primary-dark);
+  font-size: 0.9rem;
+}
+
 .pantry-empty {
   margin-top: 14px;
   color: var(--color-text-muted);

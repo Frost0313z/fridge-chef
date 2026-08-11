@@ -142,9 +142,20 @@ function initPantry() {
   const addBtn = document.getElementById("pantry-add-btn");
   const chipsEl = document.getElementById("pantry-chips");
   const emptyEl = document.getElementById("pantry-empty");
+  const statusEl = document.getElementById("pantry-status");
   if (!input || !chipsEl) return;
 
   let pantry = loadPantry();
+
+  /* 조작 결과를 문구로 알린다. 이전에는 중복이나 빈 입력일 때 아무것도 그리지 않고 끝나서,
+     사용자 입장에서는 버튼을 눌렀는데 화면이 그대로라 고장으로 보였다.
+     setTimeout으로 스스로 사라지게 하지 않는다 — 다음 조작 때 교체되는 편이
+     스크린리더에서도 놓치지 않고, 불필요한 움직임도 만들지 않는다. */
+  function setStatus(message) {
+    if (!statusEl) return;
+    statusEl.textContent = message || "";
+    statusEl.hidden = !message;
+  }
 
   function render() {
     emptyEl.hidden = pantry.length > 0;
@@ -165,19 +176,34 @@ function initPantry() {
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
-    if (!newItems.length) return;
 
-    let changed = false;
+    if (!newItems.length) {
+      setStatus("추가할 재료 이름을 입력해주세요.");
+      return;
+    }
+
+    const added = [];
+    const duplicated = [];
     newItems.forEach((item) => {
-      if (!pantry.includes(item)) {
+      if (pantry.includes(item)) {
+        duplicated.push(item);
+      } else {
         pantry.push(item);
-        changed = true;
+        added.push(item);
       }
     });
 
-    if (changed) {
+    if (added.length) {
       savePantry(pantry);
       render();
+    }
+
+    if (added.length && duplicated.length) {
+      setStatus(`${added.join(", ")}을(를) 추가했어요. ${duplicated.join(", ")}은(는) 이미 있어요.`);
+    } else if (added.length) {
+      setStatus(`${added.join(", ")}을(를) 재료함에 추가했어요.`);
+    } else {
+      setStatus(`${duplicated.join(", ")}은(는) 이미 재료함에 있어요.`);
     }
   }
 
@@ -200,9 +226,12 @@ function initPantry() {
     const btn = e.target.closest(".pantry-chip-remove");
     if (!btn) return;
     const index = Number(btn.dataset.index);
-    pantry.splice(index, 1);
+    const [removed] = pantry.splice(index, 1);
     savePantry(pantry);
     render();
+    /* 칩이 사라지는 것 자체가 반응이지만, 직전 "추가했어요" 문구가 남아 있으면
+       방금 한 일과 어긋나 보인다. 마지막 조작으로 갱신한다. */
+    setStatus(`${removed}을(를) 재료함에서 뺐어요.`);
   });
 
   render();
