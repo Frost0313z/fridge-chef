@@ -33,7 +33,7 @@
 
     <section class="pantry">
       <h2>🥕 내 재료함</h2>
-      <p class="pantry-hint">레시피 추천 페이지와 같은 재료함이에요. 여기서 추가·삭제하면 그쪽에도 그대로 반영돼요.</p>
+      <p class="pantry-hint">레시피 추천 페이지와 같은 재료함이에요(여기서 추가·삭제하면 그쪽에도 그대로 반영돼요). 등록해둘수록 장보기 리스트에서 이미 가진 재료가 걸러져요.</p>
       <div class="pantry-input-row">
         <input type="text" id="pantry-input" placeholder="재료 이름 입력 후 Enter (쉼표로 여러 개, 예: 계란, 대파, 두부)" />
         <button type="button" id="pantry-add-btn">추가</button>
@@ -83,7 +83,7 @@
 
       <section id="shopping-list-section" class="shopping-list-section" hidden>
         <h2>🛒 장보기 리스트</h2>
-        <p class="shopping-list-hint">재료함에 없는 재료만 모았어요. 자동으로 담기지는 않고, 클릭하면 쿠팡 검색 결과가 새 탭에서 열려요.</p>
+        <p id="shopping-list-hint" class="shopping-list-hint">재료함에 없는 재료만 모았어요. 자동으로 담기지는 않고, 클릭하면 쿠팡 검색 결과가 새 탭에서 열려요.</p>
         <ul id="shopping-list" class="shopping-list"></ul>
       </section>
     </section>

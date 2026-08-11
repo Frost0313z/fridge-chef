@@ -2,6 +2,14 @@ const MEALPLAN_KEY = "fridge-chef-mealplan";
 const MEALPLAN_DAYS_KEY = "fridge-chef-mealplan-days";
 const MP_REQUEST_TIMEOUT_MS = 25000;
 
+/* 재료함이 비어 있으면 걸러낼 대상이 없어 식단의 모든 재료가 리스트에 담긴다.
+   그 상태에서 "재료함에 없는 재료만 모았어요"라고 하면 걸러낸 적이 없는데 걸러낸 것처럼 들리고,
+   첫 사용자가 정확히 이 경로를 밟는다. 그래서 문구를 상황에 따라 나눈다. */
+const SHOPPING_HINT_FILTERED = "재료함에 없는 재료만 모았어요.";
+const SHOPPING_HINT_NO_PANTRY =
+  "재료함이 비어 있어서 식단에 필요한 재료를 모두 담았어요. 이미 가진 재료를 재료함에 등록하면 다음부터는 부족한 것만 보여드려요.";
+const SHOPPING_HINT_SUFFIX = "자동으로 담기지는 않고, 클릭하면 쿠팡 검색 결과가 새 탭에서 열려요.";
+
 document.addEventListener("DOMContentLoaded", () => {
   initPantry();
 
@@ -115,6 +123,13 @@ function renderShoppingList(plan, pantry) {
   const sectionEl = document.getElementById("shopping-list-section");
   const listEl = document.getElementById("shopping-list");
   if (!sectionEl || !listEl) return;
+
+  /* 제출 직후와 저장된 계획 복원, 두 경로가 모두 이 함수를 거치므로 여기서 한 번만 갱신하면 된다. */
+  const hintEl = document.getElementById("shopping-list-hint");
+  if (hintEl) {
+    const reason = pantry.length ? SHOPPING_HINT_FILTERED : SHOPPING_HINT_NO_PANTRY;
+    hintEl.textContent = `${reason} ${SHOPPING_HINT_SUFFIX}`;
+  }
 
   const shoppingList = computeShoppingList(plan, pantry);
 
