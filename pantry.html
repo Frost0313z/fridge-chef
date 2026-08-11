@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>내 냉장고 · 냉털 셰프</title>
+  <meta name="description" content="냉장고에 있는 재료를 등록해두면 레시피 추천·식단 계획·장보기에 자동으로 반영됩니다." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <a href="#main" class="skip-link">본문 바로가기</a>
+  <header class="site-header">
+    <div class="nav-wrap">
+      <a href="index.html" class="brand">🧊 냉털 셰프</a>
+      <button id="theme-toggle" class="theme-toggle" aria-label="다크 모드로 전환">🌙</button>
+      <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="메뉴 열기">
+        <span></span><span></span><span></span>
+      </button>
+      <nav id="nav-menu" class="nav-menu">
+        <a href="index.html">홈</a>
+        <a href="pantry.html" class="active">냉장고</a>
+        <a href="recipe.html">레시피 추천</a>
+        <a href="mealplan.html">식단 계획</a>
+        <a href="shopping.html">장보기</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="page">
+    <section class="page-intro">
+      <h1>내 냉장고</h1>
+      <p>여기에 등록한 재료는 이 브라우저에 저장되어, 레시피 추천·식단 계획·장보기에 자동으로 반영돼요.</p>
+    </section>
+
+    <section class="pantry-page">
+      <h2>🥕 재료 넣기</h2>
+      <p class="pantry-hint">쉼표로 구분하면 여러 개를 한 번에 넣을 수 있어요. 자주 쓰는 재료를 넣어두면 다음부터 다시 적지 않아도 됩니다.</p>
+      <div class="pantry-input-row">
+        <input type="text" id="pantry-input" placeholder="재료 이름 입력 후 Enter (쉼표로 여러 개, 예: 계란, 대파, 두부)" />
+        <button type="button" id="pantry-add-btn">넣기</button>
+      </div>
+      <p id="pantry-status" class="pantry-status" role="status" aria-live="polite" hidden></p>
+
+      <h2 class="pantry-list-title">지금 들어있는 재료</h2>
+      <div id="pantry-chips" class="pantry-chips"></div>
+      <p id="pantry-empty" class="pantry-empty">아직 등록된 재료가 없어요. 위에 입력해서 넣어보세요.</p>
+    </section>
+
+    <section class="page-next">
+      <p>재료를 다 넣었다면</p>
+      <div class="hero-actions">
+        <a href="recipe.html" class="cta-button">이 재료로 추천받기 →</a>
+        <a href="mealplan.html" class="cta-button cta-button-secondary">이번 주 식단 짜기</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>🧊 냉털 셰프 · Codyssey 대전 "AI 웹 개발" 미션 결과물</p>
+    <div class="footer-credit">
+      <a href="https://www.linkedin.com/in/%EC%8A%B9%ED%98%84-%EB%91%90-b6a319270/" target="_blank" rel="noopener noreferrer">💼 두승현</a>
+      <a href="mailto:msong5000@naver.com">✉️ msong5000@naver.com</a>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script src="js/shared.js"></script>
+</body>
+</html>

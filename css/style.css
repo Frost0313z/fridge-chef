@@ -189,6 +189,64 @@ a {
 }
 
 /* ==========================================================================
+   재료 현황 조회 바 (레시피 추천 / 식단 계획 / 장보기 공통)
+   ==========================================================================
+   세 화면 모두 "지금 냉장고에 뭐가 있는지"를 알아야 판단이 되므로 헤더 아래 상시 배치한다.
+   조회 전용이라 새 행동을 만들지 않고(C2), 편집은 냉장고 페이지 한 곳에 모여 있다.
+   사이드바가 아니라 전체 폭 바인 이유: 단일 컬럼을 유지해야 본문 왼쪽 끝이
+   헤더 로고와 계속 맞는다(A7). sticky도 쓰지 않는다 — 헤더까지 고정하면
+   모바일에서 화면을 과하게 먹는다. */
+.pantry-bar {
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.pantry-bar > summary {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 10px 20px;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.pantry-bar-title {
+  font-weight: 600;
+}
+
+.pantry-bar-summary {
+  color: var(--color-text-muted);
+}
+
+.pantry-bar-body {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 20px 16px;
+}
+
+.pantry-bar-empty,
+.pantry-bar-link {
+  margin: 10px 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+}
+
+.pantry-bar-empty a,
+.pantry-bar-link a {
+  color: var(--color-primary-dark);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+/* 조회 전용이므로 삭제 버튼 자리(오른쪽 여백)가 필요 없다. */
+.pantry-chip-readonly {
+  padding: 6px 14px;
+}
+
+/* ==========================================================================
    히어로
    ========================================================================== */
 .hero {
@@ -418,35 +476,29 @@ a {
 /* ==========================================================================
    내 재료함
    ========================================================================== */
-/* 재료함은 기본 접힘이다. 한 화면에 재료함·폼·결과·이력이 모두 펼쳐져 있으면
-   처음 온 사람은 주 행동(추천받기)이 무엇인지 알 수 없다. details를 쓰면
-   접힌 동안 내부가 Tab 순회에서도 빠져 키보드 사용자에게도 같은 효과가 난다. */
-.pantry {
-  padding: 0 0 28px;
-}
-
-.pantry-summary {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 8px;
-  cursor: pointer;
-  padding: 6px 0;
-}
-
-.pantry-summary h2 {
-  display: inline;
+/* 냉장고 페이지의 본체. 이 페이지의 주 행동이므로 접지 않고 펼쳐 둔다. */
+.pantry-page h2 {
   font-size: 1.1rem;
-  margin: 0;
+  margin: 0 0 6px;
 }
 
-.pantry-summary-info {
+.pantry-list-title {
+  margin-top: 32px !important;
+}
+
+.page-next {
+  margin-top: 48px;
+  padding-top: 28px;
+  border-top: 1px solid var(--color-border);
+}
+
+.page-next p {
+  margin: 0 0 14px;
   color: var(--color-text-muted);
-  font-size: 0.9rem;
 }
 
-.pantry[open] .pantry-summary {
-  margin-bottom: 6px;
+.page-next .hero-actions {
+  justify-content: flex-start;
 }
 
 .pantry-hint {

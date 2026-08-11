@@ -11,8 +11,6 @@ const SHOPPING_HINT_NO_PANTRY =
 const SHOPPING_HINT_SUFFIX = "자동으로 담기지는 않고, 클릭하면 쿠팡 검색 결과가 새 탭에서 열려요.";
 
 document.addEventListener("DOMContentLoaded", () => {
-  initPantry();
-
   const form = document.getElementById("mealplan-form");
   if (!form) return;
 

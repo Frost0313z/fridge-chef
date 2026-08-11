@@ -1,7 +1,10 @@
-/* recipe.html과 mealplan.html이 공용으로 쓰는 재료함/선호값 저장 로직. main.js 다음, 페이지 전용 스크립트보다 먼저 로드해야 함. */
+/* 기능 페이지들이 공용으로 쓰는 저장·통신·재료함 로직.
+   main.js 다음, 페이지 전용 스크립트보다 먼저 로드해야 함. */
 
 const PANTRY_KEY = "fridge-chef-pantry";
 const PREFS_KEY = "fridge-chef-prefs";
+/* 식단 계획이 쓰고 장보기가 읽으므로 두 페이지가 공유한다. */
+const MEALPLAN_KEY = "fridge-chef-mealplan";
 
 /* localStorage에는 사용자가 개발자 도구로 직접 고칠 수도 있고, 예전 버전이 남긴 값이 들어 있을 수도 있다.
    JSON.parse가 던지거나 형이 달라도 화면이 죽지 않도록 읽기는 항상 이 함수를 거친다. */
@@ -154,13 +157,44 @@ function createFormStatus({ loadingEl, errorEl, submitBtn }) {
   };
 }
 
+/* 접혀 있어도 지금 뭐가 들었는지 알 수 있어야 한다. 앞의 두 개만 보여주고 나머지는 개수로 줄인다.
+   냉장고 페이지의 재료함과 다른 페이지의 조회 바가 같은 문구를 써야 하므로 여기 둔다. */
+function pantrySummaryText(pantry) {
+  if (!pantry.length) return "(비어 있음 · 등록해두면 다음부터 편해요)";
+  const head = pantry.slice(0, 2).join(", ");
+  const rest = pantry.length - 2;
+  return rest > 0 ? `(${head} 외 ${rest}개)` : `(${head})`;
+}
+
+/* 레시피 추천·식단 계획·장보기는 모두 "지금 냉장고에 뭐가 있는지"를 알아야 판단이 된다.
+   한 줄 요약만으로는 "외 3개"가 뭔지 몰라 부족하므로, 펼치면 전체 목록이 보이는 조회 바를 둔다.
+   편집은 냉장고 페이지 한 곳에서만 — 여기서는 삭제 버튼을 그리지 않는다. */
+function renderPantryBar() {
+  const barEl = document.getElementById("pantry-bar");
+  if (!barEl) return;
+
+  const pantry = loadPantry();
+  const summaryEl = document.getElementById("pantry-bar-summary");
+  const bodyEl = document.getElementById("pantry-bar-body");
+
+  if (summaryEl) summaryEl.textContent = pantrySummaryText(pantry);
+  if (!bodyEl) return;
+
+  bodyEl.innerHTML = pantry.length
+    ? `<div class="pantry-chips">${pantry
+        .map((item) => `<span class="pantry-chip pantry-chip-readonly">${escapeHtml(item)}</span>`)
+        .join("")}</div>
+       <p class="pantry-bar-link"><a href="pantry.html">냉장고에서 수정 →</a></p>`
+    : `<p class="pantry-bar-empty">아직 등록된 재료가 없어요.
+         <a href="pantry.html">냉장고를 먼저 채워보세요 →</a></p>`;
+}
+
 function initPantry() {
   const input = document.getElementById("pantry-input");
   const addBtn = document.getElementById("pantry-add-btn");
   const chipsEl = document.getElementById("pantry-chips");
   const emptyEl = document.getElementById("pantry-empty");
   const statusEl = document.getElementById("pantry-status");
-  const summaryEl = document.getElementById("pantry-summary-info");
   if (!input || !chipsEl) return;
 
   let pantry = loadPantry();
@@ -175,22 +209,8 @@ function initPantry() {
     statusEl.hidden = !message;
   }
 
-  /* 재료함은 접혀 있는 것이 기본이라, 열지 않고도 지금 뭐가 들었는지 알 수 있어야 한다.
-     앞의 두 개만 보여주고 나머지는 개수로 줄인다. */
-  function renderSummary() {
-    if (!summaryEl) return;
-    if (!pantry.length) {
-      summaryEl.textContent = "(비어 있음 · 등록해두면 다음부터 편해요)";
-      return;
-    }
-    const head = pantry.slice(0, 2).join(", ");
-    const rest = pantry.length - 2;
-    summaryEl.textContent = rest > 0 ? `(${head} 외 ${rest}개)` : `(${head})`;
-  }
-
   function render() {
     emptyEl.hidden = pantry.length > 0;
-    renderSummary();
     chipsEl.innerHTML = pantry
       .map(
         (item, index) => `
@@ -268,3 +288,15 @@ function initPantry() {
 
   render();
 }
+
+function loadSavedPlan() {
+  const saved = loadJson(MEALPLAN_KEY, null);
+  return saved && Array.isArray(saved.plan) ? saved : null;
+}
+
+/* 페이지마다 초기화 호출을 적어두면 페이지가 늘 때 빠뜨리기 쉽다.
+   해당 요소가 있는 페이지에서만 알아서 동작하게 둔다. */
+document.addEventListener("DOMContentLoaded", () => {
+  initPantry(); // 냉장고 페이지 (요소가 없으면 즉시 반환)
+  renderPantryBar(); // 나머지 기능 페이지의 조회 바
+});

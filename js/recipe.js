@@ -3,7 +3,6 @@ const HISTORY_LIMIT = 5;
 const RECIPE_TIMELIMIT_KEY = "fridge-chef-recipe-timelimit";
 
 document.addEventListener("DOMContentLoaded", () => {
-  initPantry();
   initHistory();
 
   const form = document.getElementById("recipe-form");

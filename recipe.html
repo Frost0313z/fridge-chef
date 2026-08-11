@@ -18,32 +18,27 @@
       </button>
       <nav id="nav-menu" class="nav-menu">
         <a href="index.html">홈</a>
+        <a href="pantry.html">냉장고</a>
         <a href="recipe.html" class="active">레시피 추천</a>
-        <a href="mealplan.html">주간 식단</a>
+        <a href="mealplan.html">식단 계획</a>
+        <a href="shopping.html">장보기</a>
       </nav>
     </div>
   </header>
 
+  <details id="pantry-bar" class="pantry-bar">
+    <summary>
+      <span class="pantry-bar-title">🥕 냉장고</span>
+      <span id="pantry-bar-summary" class="pantry-bar-summary"></span>
+    </summary>
+    <div id="pantry-bar-body" class="pantry-bar-body"></div>
+  </details>
+
   <main id="main" class="page">
     <section class="page-intro">
-      <h1>냉장고에 뭐가 있나요?</h1>
-      <p>자주 쓰는 재료는 재료함에 등록해두고, 오늘만 있는 재료는 아래에 따로 적어주세요.</p>
+      <h1>오늘 뭐 해먹을까요?</h1>
+      <p>냉장고에 있는 재료는 자동으로 반영돼요. 오늘만 있는 재료가 있다면 아래에 따로 적어주세요.</p>
     </section>
-
-    <details class="pantry">
-      <summary class="pantry-summary">
-        <h2>🥕 내 재료함</h2>
-        <span id="pantry-summary-info" class="pantry-summary-info"></span>
-      </summary>
-      <p class="pantry-hint">자주 쓰는 재료를 등록해두면 이 브라우저에 저장되어, 다음에 다시 입력할 필요가 없어요. 쉼표로 구분하면 여러 개를 한 번에 추가할 수 있어요. 등록해둘수록 추천 재료 중 사야 할 것만 골라서 보여드려요.</p>
-      <div class="pantry-input-row">
-        <input type="text" id="pantry-input" placeholder="재료 이름 입력 후 Enter (쉼표로 여러 개, 예: 계란, 대파, 두부)" />
-        <button type="button" id="pantry-add-btn">추가</button>
-      </div>
-      <p id="pantry-status" class="pantry-status" role="status" aria-live="polite" hidden></p>
-      <div id="pantry-chips" class="pantry-chips"></div>
-      <p id="pantry-empty" class="pantry-empty">아직 등록된 재료가 없어요. 위에 입력해서 추가해보세요.</p>
-    </details>
 
     <section class="recipe-form-section">
       <form id="recipe-form" novalidate>
