@@ -11,6 +11,7 @@
   --color-border: #f0ddd0;
   --color-danger: #d64545;
   --color-danger-bg: #fdecec;
+  --color-danger-border: #f4c2c2;
   --radius: 14px;
   --max-width: 1080px;
   --header-height: 64px;
@@ -26,6 +27,7 @@
   --color-border: #3a2f28;
   --color-danger: #ff8080;
   --color-danger-bg: #3a2323;
+  --color-danger-border: #5c3535;
 }
 
 * {
@@ -502,6 +504,7 @@ a {
 }
 
 .pantry-chip-remove {
+  position: relative;
   border: none;
   background: none;
   color: var(--color-text-muted);
@@ -789,7 +792,7 @@ a {
   margin-top: 20px;
   background: var(--color-danger-bg);
   color: var(--color-danger);
-  border: 1px solid #f4c2c2;
+  border: 1px solid var(--color-danger-border);
   border-radius: 10px;
   padding: 12px 16px;
   font-size: 0.95rem;
@@ -896,5 +899,31 @@ a {
 
   .result-grid {
     grid-template-columns: 1fr;
+  }
+
+  /* 손가락으로 누르는 화면에서는 삭제 버튼이 20px여서 조준해야 눌렸다.
+     보이는 크기는 32px로만 키우고, 실제 히트 영역은 ::after 오버레이로 44px까지 넓힌다.
+     오버레이가 좌우로 6px씩 넘치므로 칩 사이 간격도 함께 벌려 인접 칩과 겹치지 않게 한다. */
+  .pantry-chips {
+    gap: 12px;
+  }
+
+  .pantry-chip-remove {
+    width: 32px;
+    height: 32px;
+  }
+
+  .pantry-chip-remove::after {
+    content: "";
+    position: absolute;
+    inset: -6px;
+  }
+
+  /* 모바일 폼 제출 버튼은 화면 폭을 채우는 것이 관례다.
+     기본값(align-self: flex-start)은 좁게 왼쪽에 붙어 엄지로 누르기 어렵다. */
+  #recipe-form .cta-button,
+  #mealplan-form .cta-button {
+    align-self: stretch;
+    text-align: center;
   }
 }
