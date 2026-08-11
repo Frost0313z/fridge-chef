@@ -78,7 +78,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     renderPlan(plan);
-    saveSavedPlan(plan);
+    saveSavedPlan(plan, result.data.shoppingList);
     setPlanVisible(true);
   });
 
@@ -91,8 +91,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
 });
 
-function saveSavedPlan(plan) {
-  saveJson(MEALPLAN_KEY, { plan, savedAt: new Date().toISOString() });
+/* 장보기 목록은 AI가 수량까지 따져 뽑아준 것이므로 계획과 함께 저장한다.
+   장보기 페이지가 이걸 그대로 읽는다. */
+function saveSavedPlan(plan, shoppingList) {
+  saveJson(MEALPLAN_KEY, {
+    plan,
+    shoppingList: Array.isArray(shoppingList) ? shoppingList : [],
+    savedAt: new Date().toISOString(),
+  });
 }
 
 function renderPlan(plan) {
