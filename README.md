@@ -216,6 +216,9 @@ msong7618@gmail.com
 `git log --oneline --graph --all`
 
 ```
+* 4f6f3f9 docs: 타겟 정합성 점검 결과를 기획서/README/원칙 문서에 반영
+* 5271cc9 refactor: 타겟과 맞지 않는 선택지 정리 (상황 3지선다 -> 건강 여부, 인원수 -> 만들 분량)
+* 78d188b docs: 개발환경 증빙 git log 갱신
 * 7aa0d76 docs: 개선 결과를 UI/UX 원칙 체크리스트와 README/기획서에 반영
 * 0850759 feat: 추천 요리를 만개의레시피에서 찾아보는 링크 추가
 * a6193ab feat: 결과 카드 페이드인 추가, 버튼 hover 미세 이동 제거
