@@ -1101,8 +1101,11 @@ a {
     transition: max-height 0.2s ease, visibility 0.2s ease;
   }
 
+  /* max-height는 transition을 걸기 위해 고정값이어야 하는데(auto로는 전환이 안 됨),
+     링크가 늘면 마지막 항목이 잘린다. 실제로 4개 -> 5개가 되면서 240px을 넘어
+     "장보기"가 34px 잘렸다. 항목이 더 늘어도 견디도록 여유를 둔다. */
   .nav-menu.open {
-    max-height: 240px;
+    max-height: 420px;
     visibility: visible;
   }
 
