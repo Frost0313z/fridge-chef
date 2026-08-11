@@ -86,8 +86,16 @@
 
       <p id="loading" class="loading" role="status" aria-live="polite" hidden>🍳 재료를 살펴보고 요리를 고민하고 있어요...</p>
       <p id="error" class="error-message" role="alert" hidden></p>
+      <p id="error-fallback" class="error-fallback" hidden>
+        지금 추천을 못 받아도 괜찮아요.
+        <button type="button" id="error-history-btn" class="link-button">최근 추천 받은 요리 보기</button>
+      </p>
 
       <div id="result" class="result-grid" aria-live="polite"></div>
+
+      <button type="button" id="rerecommend-btn" class="cta-button cta-button-secondary rerecommend-btn" hidden>
+        다른 요리 추천받기
+      </button>
     </section>
 
     <section class="history">

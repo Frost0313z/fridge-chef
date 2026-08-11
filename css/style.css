@@ -798,6 +798,32 @@ a {
   font-size: 0.95rem;
 }
 
+.error-fallback {
+  margin-top: 10px;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.link-button {
+  font: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.rerecommend-btn {
+  margin-top: 18px;
+}
+
+.rerecommend-btn:not([hidden]) {
+  display: inline-block;
+}
+
 /* 추천 결과 카드 */
 .result-grid {
   margin-top: 28px;

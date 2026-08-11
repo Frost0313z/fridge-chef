@@ -17,6 +17,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const loadingEl = document.getElementById("loading");
   const errorEl = document.getElementById("error");
   const resultEl = document.getElementById("result");
+  const fallbackEl = document.getElementById("error-fallback");
+  const fallbackBtn = document.getElementById("error-history-btn");
+  const rerecommendBtn = document.getElementById("rerecommend-btn");
 
   const REQUEST_TIMEOUT_MS = 20000;
   const status = createFormStatus({ loadingEl, errorEl, submitBtn });
@@ -35,9 +38,19 @@ document.addEventListener("DOMContentLoaded", () => {
     if (savedTimeLimit) timeLimitEl.value = savedTimeLimit;
   }
 
+  /* 오류 문구가 "잠시 후 다시 시도해주세요"로 끝나면 지금 저녁을 정해야 하는 사람에게는
+     막다른 길이다. 이력이 이미 브라우저에 있으므로 그쪽으로 갈 길을 열어준다. */
+  fallbackBtn.addEventListener("click", () => scrollToEl(document.querySelector(".history")));
+
+  /* 추천 3개가 다 안 당기는 건 정상이다. 폼까지 되돌아가지 않고 바로 다시 받게 한다.
+     requestSubmit()이면 아래 submit 핸들러를 그대로 탄다. */
+  rerecommendBtn.addEventListener("click", () => form.requestSubmit());
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     status.hideError();
+    fallbackEl.hidden = true;
+    rerecommendBtn.hidden = true;
     resultEl.innerHTML = "";
 
     const pantryIngredients = loadPantry().join(", ");
@@ -64,16 +77,23 @@ document.addEventListener("DOMContentLoaded", () => {
     status.setLoading(false);
 
     if (!result.ok) {
-      status.showError(result.message);
+      showErrorWithFallback(result.message);
       return;
     }
 
     renderRecipes(result.data.recipes || []);
   });
 
+  /* 빈 입력은 사용자가 바로 고칠 수 있으므로 대안을 권하지 않는다.
+     AI/네트워크 실패처럼 사용자가 손쓸 수 없는 경우에만, 그리고 볼 이력이 있을 때만 권한다. */
+  function showErrorWithFallback(message) {
+    status.showError(message);
+    fallbackEl.hidden = historyItems.length === 0;
+  }
+
   function renderRecipes(recipes) {
     if (!recipes.length) {
-      status.showError("추천 결과를 만들지 못했어요. 재료를 다르게 입력해보세요.");
+      showErrorWithFallback("추천 결과를 만들지 못했어요. 재료를 다르게 입력해보세요.");
       return;
     }
 
@@ -82,6 +102,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const pantryNames = pantryNamesFor(loadPantry());
     resultEl.innerHTML = recipes.map((r) => recipeCardHtml(r, pantryNames)).join("");
     addToHistory(recipes);
+
+    /* 이력 클릭으로 과거 요리를 열었을 때는 노출하지 않는다 - 그 요리에 대한 재추천이 아니다. */
+    rerecommendBtn.hidden = false;
+    scrollToEl(resultEl);
   }
 });
 
@@ -170,6 +194,11 @@ function initHistory() {
     const recipe = historyItems[Number(btn.dataset.index)];
     if (!recipe || !resultEl) return;
     resultEl.innerHTML = recipeCardHtml(recipe, pantryNamesFor(loadPantry()));
+
+    /* 과거 요리를 다시 연 것이므로 "다른 요리 추천받기"는 맥락에 맞지 않는다. */
+    const rerecommendBtn = document.getElementById("rerecommend-btn");
+    if (rerecommendBtn) rerecommendBtn.hidden = true;
+
     scrollToEl(resultEl);
   });
 
