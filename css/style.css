@@ -217,12 +217,11 @@ a {
   font-weight: 700;
   padding: 14px 28px;
   border-radius: 999px;
-  transition: background 0.15s ease, transform 0.15s ease;
+  transition: background 0.15s ease;
 }
 
 .cta-button:hover {
   background: var(--color-primary-dark);
-  transform: translateY(-1px);
 }
 
 /* 히어로의 두 진입점(오늘 뭐 먹지 / 이번 주 뭐 사지)을 나란히 놓는다.
@@ -850,6 +849,21 @@ a {
    우선순위가 높아, hidden 속성만으로는 숨겨지지 않는다. 명시적으로 덮어쓴다. */
 .rerecommend-btn[hidden] {
   display: none;
+}
+
+/* AI 응답은 15~25초가 걸린다. 그렇게 기다린 결과가 아무 예고 없이 툭 나타나면
+   "도착했다"는 신호가 없다. 움직임을 쓸 만한 유일한 지점이라 여기에만 넣는다.
+   (모션 최소화 설정은 위쪽 prefers-reduced-motion 블록이 전역으로 차단한다) */
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.recipe-card,
+.mealplan-day-card {
+  animation: card-in 0.2s ease both;
 }
 
 /* 추천 결과 카드 */
