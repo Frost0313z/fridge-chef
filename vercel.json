@@ -1,18 +1,24 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "functions": {
-    "api/*.py": {
-      "maxDuration": 30
-    }
-  },
-  "headers": [
+  "builds": [
+    { "src": "api/index.py", "use": "@vercel/python" },
+    { "src": "*.html", "use": "@vercel/static" },
+    { "src": "css/**", "use": "@vercel/static" },
+    { "src": "js/**", "use": "@vercel/static" },
+    { "src": "docs/**", "use": "@vercel/static" }
+  ],
+  "routes": [
     {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
-      ]
-    }
+      "src": "/(.*)",
+      "headers": {
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Referrer-Policy": "strict-origin-when-cross-origin"
+      },
+      "continue": true
+    },
+    { "src": "/api/?$", "dest": "/api/index.py" },
+    { "src": "/api/([^/?]+)/?$", "dest": "/api/index.py?route=$1" },
+    { "handle": "filesystem" },
+    { "src": "/", "dest": "/index.html" }
   ]
 }

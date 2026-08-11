@@ -17,7 +17,7 @@ import json
 import os
 import sys
 from http.server import BaseHTTPRequestHandler
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
 # 같은 폴더의 기능 모듈을 이름으로 import 할 수 있게 한다.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -36,8 +36,7 @@ class handler(BaseHTTPRequestHandler):
         self._send(200, {"ok": True, "service": "fridge-chef"})
 
     def do_POST(self):
-        route = urlparse(self.path).path.rstrip("/").rsplit("/", 1)[-1]
-        run = ROUTES.get(route)
+        run = ROUTES.get(self._route())
         if not run:
             self._send(404, {"error": "not_found", "message": "요청한 기능을 찾을 수 없어요."})
             return
@@ -56,6 +55,18 @@ class handler(BaseHTTPRequestHandler):
 
         status, body = run(payload)
         self._send(status, body)
+
+    def _route(self):
+        """어떤 기능을 부르는지 알아낸다.
+
+        vercel.json이 /api/recommend 를 /api/index.py?route=recommend 로 넘기므로
+        쿼리를 먼저 보고, 없으면 경로의 마지막 조각을 쓴다(로컬 실행 대비).
+        """
+        parsed = urlparse(self.path)
+        from_query = parse_qs(parsed.query).get("route", [""])[0].strip()
+        if from_query:
+            return from_query
+        return parsed.path.rstrip("/").rsplit("/", 1)[-1]
 
     def _send(self, status, body):
         payload = json.dumps(body, ensure_ascii=False).encode("utf-8")
