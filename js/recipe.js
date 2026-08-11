@@ -77,18 +77,34 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    resultEl.innerHTML = recipes.map(recipeCardHtml).join("");
+    /* 보유 판정은 렌더 시점에 다시 계산한다 — 저장된 식단을 복원할 때 장보기 리스트를
+       다시 계산하는 것과 같은 규칙으로, 항상 "지금의 재료함" 기준이 되게 한다. */
+    const pantryNames = pantryNamesFor(loadPantry());
+    resultEl.innerHTML = recipes.map((r) => recipeCardHtml(r, pantryNames)).join("");
     addToHistory(recipes);
   }
 });
 
-function recipeCardHtml(r) {
+/* 주간 식단은 재료함과 대조해 없는 재료만 골라주는데, 레시피 추천 카드는 재료를 나열만 해서
+   사용자가 "양파가 나한테 있었나"를 직접 기억해야 했다. 서비스가 아는 걸 다시 묻지 않도록
+   장보기 리스트와 같은 판정(isCovered)으로 표시한다.
+   재료함이 비어 있으면 전부 "사야 해요"가 되어 정보가 아니라 노이즈이므로 표시하지 않는다. */
+function ingredientLiHtml(name, pantryNames) {
+  const safe = escapeHtml(name);
+  if (!pantryNames.length) return `<li>${safe}</li>`;
+
+  return isCovered(normalizeIngredient(name), pantryNames)
+    ? `<li class="ing-has">${safe}</li>`
+    : `<li class="ing-missing">${safe} <span class="ing-tag">사야 해요</span></li>`;
+}
+
+function recipeCardHtml(r, pantryNames = []) {
   return `
     <article class="recipe-card">
       <h3>${escapeHtml(r.name)}</h3>
       <p class="recipe-time">⏱ ${escapeHtml(r.time || "")}</p>
       <h4>재료</h4>
-      <ul>${(r.ingredients || []).map((i) => `<li>${escapeHtml(i)}</li>`).join("")}</ul>
+      <ul>${(r.ingredients || []).map((i) => ingredientLiHtml(i, pantryNames)).join("")}</ul>
       <h4>조리 순서</h4>
       <ol>${(r.steps || []).map((s) => `<li>${escapeHtml(s)}</li>`).join("")}</ol>
     </article>
@@ -153,7 +169,7 @@ function initHistory() {
     if (!btn) return;
     const recipe = historyItems[Number(btn.dataset.index)];
     if (!recipe || !resultEl) return;
-    resultEl.innerHTML = recipeCardHtml(recipe);
+    resultEl.innerHTML = recipeCardHtml(recipe, pantryNamesFor(loadPantry()));
     scrollToEl(resultEl);
   });
 

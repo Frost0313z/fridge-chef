@@ -842,6 +842,24 @@ a {
   margin-top: 4px;
 }
 
+/* 재료함에 있는 재료는 눈에 덜 띄게, 사야 하는 재료는 기본 색 그대로 두어
+   "무엇을 더 사야 하는가"가 먼저 읽히게 한다. 새 이모지는 쓰지 않는다. */
+.recipe-card .ing-has {
+  color: var(--color-text-muted);
+}
+
+.recipe-card .ing-tag {
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-primary-dark);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 /* ==========================================================================
    반응형
    ========================================================================== */
