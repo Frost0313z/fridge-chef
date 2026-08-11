@@ -73,13 +73,12 @@
       <p id="mealplan-loading" class="loading" role="status" aria-live="polite" hidden>🗓️ 일주일치 식단을 짜고 있어요...</p>
       <p id="mealplan-error" class="error-message" role="alert" hidden></p>
 
+      <p id="mealplan-empty" class="result-empty">아직 계획이 없어요. 위에서 며칠치 저녁을 계획해보세요.</p>
       <div id="mealplan-result" aria-live="polite"></div>
 
-      <section id="shopping-list-section" class="shopping-list-section" hidden>
-        <h2>🛒 장보기 리스트</h2>
-        <p id="shopping-list-hint" class="shopping-list-hint">재료함에 없는 재료만 모았어요. 자동으로 담기지는 않고, 클릭하면 쿠팡 검색 결과가 새 탭에서 열려요.</p>
-        <ul id="shopping-list" class="shopping-list"></ul>
-      </section>
+      <p id="mealplan-next" class="mealplan-next" hidden>
+        부족한 재료는 <a href="shopping.html">장보기 리스트에서 확인 →</a>
+      </p>
     </section>
   </main>
 

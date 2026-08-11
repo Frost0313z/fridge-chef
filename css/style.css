@@ -691,11 +691,59 @@ a {
   padding: 12px 16px;
 }
 
-.shopping-item a {
+.shopping-item-actions {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.shopping-item a {
   color: var(--color-primary-dark);
   font-weight: 600;
   font-size: 0.9rem;
+}
+
+/* 사고 나면 눌러서 바로 냉장고에 넣는다. 리스트에서 즉시 사라지므로
+   "샀다"는 사실이 화면에 반영된다(C3). */
+.shopping-bought-btn {
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-primary-dark);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.shopping-bought-btn:hover {
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.shopping-empty,
+.result-empty {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+.page-next-inline {
+  margin-top: 18px;
+}
+
+.mealplan-next {
+  margin-top: 24px;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+.mealplan-next a {
+  color: var(--color-primary-dark);
+  font-weight: 600;
+  text-decoration: underline;
 }
 
 .shopping-item-none {

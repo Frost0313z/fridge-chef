@@ -1,14 +1,7 @@
-const MEALPLAN_KEY = "fridge-chef-mealplan";
+/* MEALPLAN_KEY와 loadSavedPlan()은 장보기 페이지도 읽으므로 shared.js에 있다.
+   장보기 리스트 계산·렌더는 js/shopping.js로 옮겼다. */
 const MEALPLAN_DAYS_KEY = "fridge-chef-mealplan-days";
 const MP_REQUEST_TIMEOUT_MS = 25000;
-
-/* 재료함이 비어 있으면 걸러낼 대상이 없어 식단의 모든 재료가 리스트에 담긴다.
-   그 상태에서 "재료함에 없는 재료만 모았어요"라고 하면 걸러낸 적이 없는데 걸러낸 것처럼 들리고,
-   첫 사용자가 정확히 이 경로를 밟는다. 그래서 문구를 상황에 따라 나눈다. */
-const SHOPPING_HINT_FILTERED = "재료함에 없는 재료만 모았어요.";
-const SHOPPING_HINT_NO_PANTRY =
-  "재료함이 비어 있어서 식단에 필요한 재료를 모두 담았어요. 이미 가진 재료를 재료함에 등록하면 다음부터는 부족한 것만 보여드려요.";
-const SHOPPING_HINT_SUFFIX = "자동으로 담기지는 않고, 클릭하면 쿠팡 검색 결과가 새 탭에서 열려요.";
 
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("mealplan-form");
@@ -38,18 +31,25 @@ document.addEventListener("DOMContentLoaded", () => {
     if (savedDays) daysEl.value = savedDays;
   }
 
-  const saved = loadSavedPlan();
-  if (saved) {
-    renderPlan(saved.plan);
-    renderShoppingList(saved.plan, loadPantry());
-    clearBtn.hidden = false;
+  const emptyEl = document.getElementById("mealplan-empty");
+  const nextEl = document.getElementById("mealplan-next");
+
+  /* 계획 유무에 따라 빈 상태 안내 / 결과 / 다음 행동을 한 번에 맞춘다. */
+  function setPlanVisible(hasPlan) {
+    emptyEl.hidden = hasPlan;
+    nextEl.hidden = !hasPlan;
+    clearBtn.hidden = !hasPlan;
   }
+
+  const saved = loadSavedPlan();
+  setPlanVisible(Boolean(saved));
+  if (saved) renderPlan(saved.plan);
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     status.hideError();
     resultEl.innerHTML = "";
-    document.getElementById("shopping-list-section").hidden = true;
+    setPlanVisible(false);
 
     const pantry = loadPantry();
 
@@ -78,25 +78,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     renderPlan(plan);
-    renderShoppingList(plan, pantry);
     saveSavedPlan(plan);
-    clearBtn.hidden = false;
+    setPlanVisible(true);
   });
 
   clearBtn.addEventListener("click", () => {
     if (!confirm("저장된 식단 계획을 삭제할까요?")) return;
     localStorage.removeItem(MEALPLAN_KEY);
     resultEl.innerHTML = "";
-    document.getElementById("shopping-list-section").hidden = true;
-    clearBtn.hidden = true;
+    setPlanVisible(false);
   });
 
 });
-
-function loadSavedPlan() {
-  const saved = loadJson(MEALPLAN_KEY, null);
-  return saved && Array.isArray(saved.plan) ? saved : null;
-}
 
 function saveSavedPlan(plan) {
   saveJson(MEALPLAN_KEY, { plan, savedAt: new Date().toISOString() });
@@ -116,59 +109,4 @@ function mealplanDayHtml(d) {
       ${recipeSearchLinkHtml(d.menu, d.searchKeyword)}
     </article>
   `;
-}
-
-function renderShoppingList(plan, pantry) {
-  const sectionEl = document.getElementById("shopping-list-section");
-  const listEl = document.getElementById("shopping-list");
-  if (!sectionEl || !listEl) return;
-
-  /* 제출 직후와 저장된 계획 복원, 두 경로가 모두 이 함수를 거치므로 여기서 한 번만 갱신하면 된다. */
-  const hintEl = document.getElementById("shopping-list-hint");
-  if (hintEl) {
-    const reason = pantry.length ? SHOPPING_HINT_FILTERED : SHOPPING_HINT_NO_PANTRY;
-    hintEl.textContent = `${reason} ${SHOPPING_HINT_SUFFIX}`;
-  }
-
-  const shoppingList = computeShoppingList(plan, pantry);
-
-  if (!shoppingList.length) {
-    listEl.innerHTML = `<li class="shopping-item-none">재료함만으로 충분해요! 따로 살 재료가 없어요 🎉</li>`;
-  } else {
-    listEl.innerHTML = shoppingList
-      .map(
-        (item) => `
-      <li class="shopping-item">
-        <span>${escapeHtml(item.label)}</span>
-        <a href="https://www.coupang.com/np/search?q=${encodeURIComponent(item.query)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(item.query)} 쿠팡에서 검색">쿠팡에서 검색 →</a>
-      </li>
-    `
-      )
-      .join("");
-  }
-
-  sectionEl.hidden = false;
-}
-
-/* normalizeIngredient / isCovered / pantryNamesFor는 레시피 추천 카드의 보유 표시도 같은 규칙을
-   써야 해서 js/shared.js로 옮겼다. 아래 computeShoppingList는 주간 식단 전용이라 여기 남긴다. */
-function computeShoppingList(plan, pantry) {
-  const pantryNames = pantryNamesFor(pantry);
-  const seen = new Set();
-  const list = [];
-
-  plan.forEach((d) => {
-    (d.ingredients || []).forEach((ing) => {
-      const label = String(ing).trim();
-      const key = normalizeIngredient(label);
-      if (!key || seen.has(key)) return;
-      seen.add(key);
-
-      /* 화면에는 수량이 붙은 원문("계란 2개")을 그대로 보여주되,
-         쿠팡 검색은 수량을 뺀 이름("계란")으로 넘겨야 결과가 제대로 나온다. */
-      if (!isCovered(key, pantryNames)) list.push({ label, query: key });
-    });
-  });
-
-  return list;
 }
