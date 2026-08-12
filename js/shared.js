@@ -213,6 +213,58 @@ function addToPantry(rawValue) {
   return { empty: false, added, duplicated, stored: added.length ? savePantry(pantry) : true };
 }
 
+/* 방금 뺀 재료. 되돌리기 버튼을 그릴지도 이 값으로 판단한다.
+   페이지를 옮기면 사라진다 — 되돌리기는 "방금 한 일"에만 걸리는 게 맞다. */
+let lastRemoved = null;
+
+/* 지우는 것도 한 곳에서 한다. 냉장고 화면과 조회 바가 같은 함수를 쓴다. */
+function removeFromPantry(index) {
+  const pantry = loadPantry();
+  if (!(index >= 0 && index < pantry.length)) return null;
+
+  const [removed] = pantry.splice(index, 1);
+  const stored = savePantry(pantry);
+  /* 저장이 안 됐으면 되돌릴 것도 없다 (원래 값이 그대로 남아 있다). */
+  lastRemoved = stored ? { name: removed, index } : null;
+  return { removed, stored };
+}
+
+/* 확인창 대신 되돌리기를 둔다. 확인창은 맞게 지우는 99번을 방해하고,
+   되돌리기는 틀린 1번만 구제한다. 이쪽이 A4가 실제로 요구하는 형태다. */
+function undoRemove() {
+  if (!lastRemoved) return null;
+
+  const pantry = loadPantry();
+  pantry.splice(Math.min(lastRemoved.index, pantry.length), 0, lastRemoved.name);
+  const stored = savePantry(pantry);
+  const name = lastRemoved.name;
+  lastRemoved = null;
+  return { name, stored };
+}
+
+/* 칩만 돌려준다. 감싸는 상자는 부르는 쪽이 이미 갖고 있다
+   (냉장고 화면은 #pantry-chips, 조회 바는 새로 그리는 div). */
+function pantryChipsHtml(pantry) {
+  return pantry
+    .map(
+      (item, index) => `
+      <span class="pantry-chip">
+        ${escapeHtml(item)}
+        <button type="button" class="pantry-chip-remove" data-index="${index}"
+          aria-label="${escapeHtml(item)} 삭제">×</button>
+      </span>`
+    )
+    .join("");
+}
+
+/* 문구 옆에 되돌리기를 붙일 수 있게 텍스트가 아니라 HTML로 그린다. */
+function statusHtml(message, canUndo) {
+  if (!message) return "";
+  return `${escapeHtml(message)}${
+    canUndo ? ` <button type="button" class="link-button undo-btn">되돌리기</button>` : ""
+  }`;
+}
+
 /* 다섯 경우 모두 말해준다. 아무 말 없이 끝나면 사용자는 버튼이 고장 났다고 읽는다(C3). */
 function addResultMessage({ empty, added, duplicated, stored }) {
   if (empty) return "추가할 재료 이름을 입력해주세요.";
@@ -231,9 +283,9 @@ let pantryBarStatus = "";
 /* 레시피 추천·식단 계획·장보기는 모두 "지금 냉장고에 뭐가 있는지"를 알아야 판단이 된다.
    한 줄 요약만으로는 "외 3개"가 뭔지 몰라 부족하므로, 펼치면 전체 목록이 보이는 조회 바를 둔다.
 
-   추가는 여기서도 된다. 흐름 중간에 "아 양파도 있지" 하고 냉장고로 넘어가면 적던 재료와
-   추천 결과가 날아가기 때문이다. 반대로 삭제는 냉장고에서만 한다 — 되돌릴 수 없는 조작에만
-   마찰을 남긴다(A4). */
+   추가도 삭제도 여기서 된다. 흐름 중간에 "아 양파도 있지" 하고 냉장고로 넘어가면 적던 재료와
+   추천 결과가 날아가기 때문이다. 대신 삭제에는 되돌리기를 붙인다 — 페이지를 옮기게 하는 것은
+   마찰이 아니라 그냥 불편이고, 실수를 막아주지도 않는다(A4). */
 function renderPantryBar() {
   const barEl = document.getElementById("pantry-bar");
   if (!barEl) return;
@@ -251,9 +303,7 @@ function renderPantryBar() {
   bodyEl.innerHTML = `
     ${
       pantry.length
-        ? `<div class="pantry-chips">${pantry
-            .map((item) => `<span class="pantry-chip pantry-chip-readonly">${escapeHtml(item)}</span>`)
-            .join("")}</div>`
+        ? `<div class="pantry-chips">${pantryChipsHtml(pantry)}</div>`
         : `<p class="pantry-bar-empty">아직 등록된 재료가 없어요. 아래에 적으면 바로 들어가요.</p>`
     }
     <div class="pantry-bar-add">
@@ -261,8 +311,10 @@ function renderPantryBar() {
         placeholder="재료 추가 (쉼표로 여러 개)" aria-label="냉장고에 추가할 재료" />
       <button type="button" id="pantry-bar-add-btn">추가</button>
     </div>
-    <p class="pantry-bar-status" role="status"${status ? "" : " hidden"}>${escapeHtml(status)}</p>
-    <p class="pantry-bar-link">지우거나 정리하려면 <a href="pantry.html">냉장고 →</a></p>`;
+    <p class="pantry-bar-status" role="status"${status ? "" : " hidden"}>${statusHtml(
+      status,
+      Boolean(lastRemoved)
+    )}</p>`;
 }
 
 function initPantryBar() {
@@ -271,7 +323,30 @@ function initPantryBar() {
 
   /* 바 안쪽은 다시 그릴 때마다 통째로 바뀌므로, 남아 있는 바깥에 한 번만 건다. */
   barEl.addEventListener("click", (e) => {
-    if (e.target.closest("#pantry-bar-add-btn")) submitPantryBar();
+    if (e.target.closest("#pantry-bar-add-btn")) {
+      submitPantryBar();
+      return;
+    }
+
+    if (e.target.closest(".undo-btn")) {
+      const undone = undoRemove();
+      if (undone) {
+        pantryBarStatus = undone.stored
+          ? `${undone.name}을(를) 다시 넣었어요.`
+          : "브라우저에 저장하지 못했어요. 시크릿 창이라면 일반 창에서 다시 열어주세요.";
+        renderPantryBar();
+      }
+      return;
+    }
+
+    const removeBtn = e.target.closest(".pantry-chip-remove");
+    if (!removeBtn) return;
+    const result = removeFromPantry(Number(removeBtn.dataset.index));
+    if (!result) return;
+    pantryBarStatus = result.stored
+      ? `${result.removed}을(를) 냉장고에서 뺐어요.`
+      : "브라우저에 저장하지 못했어요. 시크릿 창이라면 일반 창에서 다시 열어주세요.";
+    renderPantryBar();
   });
   barEl.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && e.target.closest("#pantry-bar-input")) {
@@ -306,24 +381,15 @@ function initPantry() {
      사용자 입장에서는 버튼을 눌렀는데 화면이 그대로라 고장으로 보였다.
      setTimeout으로 스스로 사라지게 하지 않는다 — 다음 조작 때 교체되는 편이
      스크린리더에서도 놓치지 않고, 불필요한 움직임도 만들지 않는다. */
-  function setStatus(message) {
+  function setStatus(message, canUndo) {
     if (!statusEl) return;
-    statusEl.textContent = message || "";
+    statusEl.innerHTML = statusHtml(message, canUndo);
     statusEl.hidden = !message;
   }
 
   function render() {
     emptyEl.hidden = pantry.length > 0;
-    chipsEl.innerHTML = pantry
-      .map(
-        (item, index) => `
-      <span class="pantry-chip">
-        ${escapeHtml(item)}
-        <button type="button" class="pantry-chip-remove" data-index="${index}" aria-label="${escapeHtml(item)} 삭제">×</button>
-      </span>
-    `
-      )
-      .join("");
+    chipsEl.innerHTML = pantryChipsHtml(pantry);
   }
 
   function addItems(rawValue) {
@@ -365,18 +431,36 @@ function initPantry() {
   chipsEl.addEventListener("click", (e) => {
     const btn = e.target.closest(".pantry-chip-remove");
     if (!btn) return;
-    const index = Number(btn.dataset.index);
-    const [removed] = pantry.splice(index, 1);
-    const stored = savePantry(pantry);
+
+    const result = removeFromPantry(Number(btn.dataset.index));
+    if (!result) return;
+    pantry = loadPantry();
     render();
     /* 칩이 사라지는 것 자체가 반응이지만, 직전 "추가했어요" 문구가 남아 있으면
        방금 한 일과 어긋나 보인다. 마지막 조작으로 갱신한다. */
     setStatus(
-      stored
-        ? `${removed}을(를) 냉장고에서 뺐어요.`
-        : "브라우저에 저장하지 못했어요. 시크릿 창이라면 일반 창에서 다시 열어주세요."
+      result.stored
+        ? `${result.removed}을(를) 냉장고에서 뺐어요.`
+        : "브라우저에 저장하지 못했어요. 시크릿 창이라면 일반 창에서 다시 열어주세요.",
+      result.stored
     );
   });
+
+  /* 되돌리기는 상태 문구 안에 함께 그려지므로 그 줄에 건다. */
+  if (statusEl) {
+    statusEl.addEventListener("click", (e) => {
+      if (!e.target.closest(".undo-btn")) return;
+      const undone = undoRemove();
+      if (!undone) return;
+      pantry = loadPantry();
+      render();
+      setStatus(
+        undone.stored
+          ? `${undone.name}을(를) 다시 넣었어요.`
+          : "브라우저에 저장하지 못했어요. 시크릿 창이라면 일반 창에서 다시 열어주세요."
+      );
+    });
+  }
 
   render();
 }
