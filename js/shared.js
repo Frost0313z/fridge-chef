@@ -253,9 +253,9 @@ function initPantry() {
     if (added.length && duplicated.length) {
       setStatus(`${added.join(", ")}을(를) 추가했어요. ${duplicated.join(", ")}은(는) 이미 있어요.`);
     } else if (added.length) {
-      setStatus(`${added.join(", ")}을(를) 재료함에 추가했어요.`);
+      setStatus(`${added.join(", ")}을(를) 냉장고에 넣었어요.`);
     } else {
-      setStatus(`${duplicated.join(", ")}은(는) 이미 재료함에 있어요.`);
+      setStatus(`${duplicated.join(", ")}은(는) 이미 냉장고에 있어요.`);
     }
   }
 
@@ -293,7 +293,7 @@ function initPantry() {
     render();
     /* 칩이 사라지는 것 자체가 반응이지만, 직전 "추가했어요" 문구가 남아 있으면
        방금 한 일과 어긋나 보인다. 마지막 조작으로 갱신한다. */
-    setStatus(`${removed}을(를) 재료함에서 뺐어요.`);
+    setStatus(`${removed}을(를) 냉장고에서 뺐어요.`);
   });
 
   render();
