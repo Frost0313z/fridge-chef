@@ -11,11 +11,18 @@ function coupangSearchUrl(keyword) {
   return `https://www.coupang.com/np/search?q=${encodeURIComponent(keyword)}&channel=user&component=`;
 }
 
+const REFRESH_TIMEOUT_MS = 25000;
+
 document.addEventListener("DOMContentLoaded", () => {
   const listEl = document.getElementById("shopping-list");
   if (!listEl) return;
 
   render();
+
+  /* 식단을 고치면 목록이 계획과 어긋난다. 자동으로 다시 부르지 않고 버튼으로 두는 이유는,
+     편집할 때마다 AI를 호출하면 느려지고 비용도 계속 나가기 때문이다. 부를 시점은 사용자가 정한다. */
+  const refreshBtn = document.getElementById("shopping-refresh-btn");
+  if (refreshBtn) refreshBtn.addEventListener("click", refreshShoppingList);
 
   /* 산 재료를 냉장고에 넣으면 그 자리에서 리스트가 줄어든다.
      냉장고 → 식단 → 장보기 → 냉장고로 고리가 닫히는 지점이다. */
@@ -43,6 +50,7 @@ function render() {
   const emptyEl = document.getElementById("shopping-empty");
   const emptyCtaEl = document.getElementById("shopping-empty-cta");
   const resultEl = document.getElementById("shopping-result");
+  const staleEl = document.getElementById("shopping-stale");
 
   const saved = loadSavedPlan();
   const hasPlan = Boolean(saved);
@@ -52,7 +60,46 @@ function render() {
   resultEl.hidden = !hasPlan;
   if (!hasPlan) return;
 
+  if (staleEl) staleEl.hidden = !saved.edited;
   renderShoppingList(saved, loadPantry());
+}
+
+/* 지금 저장된 계획을 그대로 서버에 보내 목록만 다시 받는다. 계획은 새로 만들지 않는다 —
+   장을 다시 보려는 것이지 식단을 새로 짜려는 게 아니다. */
+async function refreshShoppingList() {
+  const btn = document.getElementById("shopping-refresh-btn");
+  const loadingEl = document.getElementById("shopping-refresh-loading");
+  const errorEl = document.getElementById("shopping-refresh-error");
+
+  const saved = loadSavedPlan();
+  if (!saved) return;
+
+  btn.disabled = true;
+  loadingEl.hidden = false;
+  errorEl.hidden = true;
+
+  const result = await postJson(
+    "/api/shopping",
+    { plan: saved.plan, pantry: loadPantry() },
+    REFRESH_TIMEOUT_MS
+  );
+
+  loadingEl.hidden = true;
+  btn.disabled = false;
+
+  if (!result.ok) {
+    errorEl.textContent = result.message;
+    errorEl.hidden = false;
+    return;
+  }
+
+  /* 성공했을 때만 edited를 지운다. 실패했는데 지우면 어긋난 목록을 맞는 것처럼 보여주게 된다. */
+  saveJson(MEALPLAN_KEY, {
+    ...saved,
+    shoppingList: Array.isArray(result.data.shoppingList) ? result.data.shoppingList : [],
+    edited: false,
+  });
+  render();
 }
 
 function renderShoppingList(saved, pantry) {

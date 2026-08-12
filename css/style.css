@@ -11,6 +11,9 @@
   --color-primary-dark: #b8501f;
   /* 밝은 주황 채움 위에 흰 글자를 올리면 2.59:1이다. 잉크를 올려 5.96:1로 맞춘다. */
   --color-on-primary: #2b2320;
+  /* 채움 버튼의 hover. 글자가 잉크이므로 어두워지면 대비가 떨어진다(#b8501f 위에서 3.09:1).
+     hover는 밝아지는 쪽으로 간다. */
+  --color-primary-hover: #ff9466;
   --color-text: #2b2320;
   --color-text-muted: #7a6f68;
   --color-border: #f0ddd0;
@@ -29,6 +32,7 @@
   /* 다크 모드에서는 주황이 어두운 배경 위에 놓여 이미 7.8:1이므로 밝은 쪽을 그대로 쓴다. */
   --color-primary-dark: #ffa477;
   --color-on-primary: #2b2320;
+  --color-primary-hover: #ffa477;
   --color-text: #f3ece6;
   --color-text-muted: #b8a99e;
   --color-border: #3a2f28;
@@ -286,7 +290,7 @@ a {
 }
 
 .cta-button:hover {
-  background: var(--color-primary-dark);
+  background: var(--color-primary-hover);
 }
 
 /* 히어로의 두 진입점(오늘 뭐 먹지 / 이번 주 뭐 사지)을 나란히 놓는다.
@@ -663,7 +667,7 @@ a {
 .mealplan-days {
   margin-top: 24px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 16px;
 }
 
@@ -681,10 +685,38 @@ a {
   font-weight: 700;
 }
 
-.mealplan-menu {
-  margin: 0 0 10px;
+/* 하루가 아침·점심·저녁 세 칸으로 나뉜다. 칸 사이를 선으로 끊어 어디까지가 한 끼인지 보이게 한다. */
+.meal-slot {
+  padding: 12px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.mealplan-day-card h3 + .meal-slot {
+  border-top: none;
+  padding-top: 6px;
+}
+
+.meal-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+/* 끼니 이름은 메뉴보다 약해야 한다 — 읽는 사람이 찾는 것은 "뭘 먹는지"다. */
+.meal-label {
+  flex: none;
+  font-size: 0.75rem;
   font-weight: 700;
-  font-size: 1.05rem;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+
+.meal-menu {
+  font-weight: 700;
+  font-size: 1rem;
 }
 
 .mealplan-day-card ul {
@@ -692,6 +724,83 @@ a {
   padding-left: 18px;
   font-size: 0.88rem;
   color: var(--color-text-muted);
+}
+
+.meal-slot-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.meal-empty-text {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.meal-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.meal-move,
+.meal-delete {
+  font: inherit;
+  font-size: 0.82rem;
+  min-height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+.meal-move {
+  flex: 1;
+  min-width: 0;
+}
+
+.meal-delete {
+  flex: none;
+  color: var(--color-danger);
+}
+
+.meal-delete:hover,
+.meal-move:hover {
+  border-color: var(--color-primary-dark);
+}
+
+/* 화면에는 안 보이지만 스크린리더는 읽어야 하는 설명. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 식단을 고친 뒤의 장보기 목록은 계획과 다를 수 있다. 그 사실을 목록보다 먼저 말한다. */
+.shopping-stale {
+  margin: 0 0 14px;
+  padding: 12px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 640px) {
+  /* 손가락으로 누르는 크기를 확보한다 (C9). */
+  .meal-move,
+  .meal-delete {
+    min-height: 44px;
+  }
 }
 
 .shopping-list-section {

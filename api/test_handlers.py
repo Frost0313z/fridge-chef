@@ -107,6 +107,63 @@ def test_ai_returns_no_content():
         _common.OpenAI = original
 
 
+def test_plan_meals():
+    """(날짜, 끼니) 한 자리에는 하나만. 모르는 끼니를 저녁으로 바꾸면 진짜 저녁을 밀어낸다."""
+    out = mealplan.sanitize_plan(
+        [
+            {"day": "1일차", "meal": "아침", "menu": "토스트"},
+            {"day": "1일차", "meal": "아침", "menu": "같은 자리"},
+            {"day": "1일차", "meal": "브런치", "menu": "모르는 끼니"},
+            {"day": "1일차", "meal": "저녁", "menu": "덮밥"},
+        ],
+        days=2,
+    )
+    assert [(i["meal"], i["menu"]) for i in out] == [("아침", "토스트"), ("저녁", "덮밥")], out
+
+
+def test_plan_without_meal_is_dinner():
+    """세 끼로 나누기 전에 저장된 계획에는 meal이 없다. 그때 계획한 것은 저녁이었다."""
+    out = mealplan.sanitize_plan([{"day": f"{d}일차", "menu": f"{d}번"} for d in range(1, 8)], days=7)
+    assert len(out) == 7 and {i["meal"] for i in out} == {"저녁"}, out
+
+
+def test_plan_capped_by_days():
+    """일수 × 3끼를 넘겨 오면 잘라낸다."""
+    raw = [{"day": f"{d}일차", "meal": m, "menu": f"{d}{m}"} for d in range(1, 8) for m in mealplan.MEALS]
+    assert len(mealplan.sanitize_plan(raw, days=2)) == 6
+
+
+def test_shopping_rules_are_shared():
+    """식단을 짤 때와 목록만 다시 뽑을 때가 같은 기준을 써야 한다."""
+    assert mealplan.SHOPPING_RULES in mealplan.SYSTEM_PROMPT
+    assert mealplan.SHOPPING_RULES in mealplan.SHOPPING_SYSTEM_PROMPT
+
+
+def test_shopping_handler():
+    """고친 식단을 그대로 받아 목록만 돌려준다. 계획이 비면 부르지 않는다."""
+    status, body = mealplan.handle_shopping({"plan": [], "pantry": []})
+    assert status == 400 and body["error"] == "empty_plan", body
+
+    seen = {}
+
+    def fake_call(system, user, timeout, temperature):
+        seen["user"] = user
+        return {"shoppingList": [{"name": "계란", "amount": "6개"}, {"name": "밥"}]}, None
+
+    original, mealplan.call_openai = mealplan.call_openai, fake_call
+    try:
+        status, body = mealplan.handle_shopping(
+            {"plan": [{"day": "1일차", "meal": "저녁", "menu": "덮밥", "ingredients": ["두부"]}],
+             "pantry": ["계란 2개"]}
+        )
+        assert status == 200
+        # 프롬프트에 고친 식단이 그대로 들어가고, 사러 갈 일 없는 "밥"은 서버가 뺀다.
+        assert "1일차 저녁: 덮밥 (두부)" in seen["user"], seen["user"]
+        assert body["shoppingList"] == [{"name": "계란", "amount": "6개"}], body
+    finally:
+        mealplan.call_openai = original
+
+
 def test_shopping_list_filter():
     """사러 갈 일이 없는 항목은 AI가 넣어도 서버가 뺀다."""
     out = mealplan.sanitize_shopping_list(

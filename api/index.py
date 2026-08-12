@@ -29,6 +29,8 @@ import recommend  # noqa: E402
 ROUTES = {
     "recommend": recommend.handle,
     "mealplan": mealplan.handle,
+    # 사용자가 식단을 고친 뒤 장보기 목록만 다시 뽑는다. 계획은 새로 만들지 않는다.
+    "shopping": mealplan.handle_shopping,
 }
 
 

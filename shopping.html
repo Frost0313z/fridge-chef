@@ -50,6 +50,12 @@
 
       <div id="shopping-result" hidden>
         <h2>🛒 장보기 리스트</h2>
+        <p id="shopping-stale" class="shopping-stale" role="status" hidden>
+          식단을 수정해서 이 목록이 지금 계획과 다를 수 있어요.
+          <button type="button" id="shopping-refresh-btn" class="link-button">장보기 다시 뽑기</button>
+        </p>
+        <p id="shopping-refresh-loading" class="loading" role="status" hidden>🛒 바뀐 식단으로 다시 계산하고 있어요...</p>
+        <p id="shopping-refresh-error" class="error-message" role="alert" hidden></p>
         <p id="shopping-list-hint" class="shopping-list-hint"></p>
         <ul id="shopping-list" class="shopping-list" aria-live="polite"></ul>
       </div>
