@@ -671,6 +671,20 @@ function loadSavedPlan() {
   return saved && Array.isArray(saved.plan) ? saved : null;
 }
 
+/* 추천 이력은 레시피 추천 화면이 쌓지만, 식단 계획 화면도 읽는다 —
+   빈 자리에 메뉴를 넣을 때 "최근 추천받은 요리"에서 고를 수 있게 하기 위해서다.
+   저장된 항목이 요리 하나를 통째로 담고 있어(이름·검색어·재료) 그대로 식단 칸에 넣을 수 있다.
+
+   이름 없는 항목이 하나라도 섞이면 렌더에서 예외가 나고, 그 예외가 화면을 중간에 끊는다.
+   읽을 때 한 번 걸러둔다. */
+const HISTORY_KEY = "fridge-chef-history";
+const HISTORY_LIMIT = 5;
+
+function loadHistory() {
+  const saved = loadJson(HISTORY_KEY, []);
+  return Array.isArray(saved) ? saved.filter((r) => r && r.name) : [];
+}
+
 /* 페이지마다 초기화 호출을 적어두면 페이지가 늘 때 빠뜨리기 쉽다.
    해당 요소가 있는 페이지에서만 알아서 동작하게 둔다. */
 document.addEventListener("DOMContentLoaded", () => {

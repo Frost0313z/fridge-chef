@@ -947,7 +947,8 @@ a {
 
 /* 고르는 대상 자체가 버튼이다. 별도 조작 아이콘을 덧붙이지 않는다. */
 .meal-pick,
-.meal-drop {
+.meal-drop,
+.meal-add {
   font: inherit;
   text-align: left;
   display: flex;
@@ -965,13 +966,16 @@ a {
   cursor: pointer;
 }
 
-.meal-drop {
+/* 아직 비어 있는 자리라는 표시. 점선은 "여기에 뭔가 들어갈 수 있다"를 말한다. */
+.meal-drop,
+.meal-add {
   border-style: dashed;
   color: var(--color-primary-dark);
 }
 
 .meal-pick:hover,
-.meal-drop:hover {
+.meal-drop:hover,
+.meal-add:hover {
   border-color: var(--color-primary-dark);
   border-style: solid;
 }
@@ -1002,6 +1006,91 @@ a {
 
 .meal-delete:hover {
   border-color: var(--color-danger);
+}
+
+/* 메뉴를 직접 넣는 자리. 열려 있는 동안에는 이 칸이 화면의 초점이므로
+   점선 대신 실선으로 바꿔 "지금 여기에 적는 중"을 분명히 한다. */
+.meal-slot-add {
+  padding: 12px 10px;
+  border: 1px solid var(--color-primary-dark);
+  border-radius: 10px;
+  background: var(--color-bg);
+}
+
+.meal-add-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.meal-add-input {
+  width: 100%;
+  font: inherit;
+  font-size: 0.95rem;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.meal-add-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.meal-add-confirm {
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  min-height: 40px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 10px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  cursor: pointer;
+}
+
+.meal-add-confirm:hover {
+  background: var(--color-primary-hover);
+}
+
+/* 이미 추천받아 둔 요리를 그대로 쓰는 쪽이 손으로 적는 것보다 빠르고 정확하다.
+   그래서 입력칸 아래에 붙여, 적기 전에 눈에 들어오게 한다. */
+.meal-add-recent {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.meal-add-recent-title {
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.meal-add-recent-item {
+  font: inherit;
+  font-size: 0.85rem;
+  min-height: 36px;
+  margin: 0 6px 6px 0;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.meal-add-recent-item:hover {
+  border-color: var(--color-primary-dark);
+  color: var(--color-primary-dark);
 }
 
 /* 식단을 고친 뒤의 장보기 목록은 계획과 다를 수 있다. 그 사실을 목록보다 먼저 말한다. */

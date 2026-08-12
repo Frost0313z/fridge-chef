@@ -8,15 +8,23 @@ const MEALS = ["아침", "점심", "저녁"];
 /* 끼니마다 라벨 색이 다르다. 클래스 이름을 한글로 만들지 않으려고 여기서 한 번 옮긴다. */
 const MEAL_CLASS = { 아침: "morning", 점심: "noon", 저녁: "night" };
 
-/* 화면이 고쳐 쓰는 대상. 옮기기·삭제가 이 배열 하나만 바꾸고 다시 그린다. */
+/* 화면이 고쳐 쓰는 대상. 넣기·옮기기·삭제가 이 배열 하나만 바꾸고 다시 그린다. */
 let planItems = [];
 let planShoppingList = [];
+
+/* 계획한 일수. 남아 있는 메뉴에서 역산하지 않고 따로 들고 있는다 —
+   마지막 날 세 끼를 다 지우면 그 날짜 칸이 통째로 사라져서, 거기에 다시 넣을 수가 없었다. */
+let planDays = 0;
 
 /* 평소에는 읽는 화면이다. 21칸마다 조작 버튼을 띄워두면 정작 "이번 주 뭐 먹지"가 안 읽힌다.
    고치는 동안에만 조작을 꺼낸다. */
 let editMode = false;
 /* 고르고 → 놓기. 드래그와 달리 마우스·터치·키보드가 모두 같은 경로로 동작한다. */
 let selectedIndex = null;
+
+/* 지금 메뉴를 넣고 있는 빈 자리 {day, meal}. 한 번에 한 자리만 연다 —
+   21칸에 입력창을 동시에 띄우면 어디에 넣는 중인지 알 수 없다. */
+let addingSlot = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("mealplan-form");
@@ -67,6 +75,8 @@ document.addEventListener("DOMContentLoaded", () => {
       .filter((i) => i && i.menu)
       .map((i) => ({ ...i, meal: MEALS.includes(i.meal) ? i.meal : "저녁" }));
     planShoppingList = Array.isArray(saved.shoppingList) ? saved.shoppingList : [];
+    /* 일수를 적어두기 전에 저장된 계획은 0이 된다 — 그때는 예전처럼 메뉴에서 역산한다. */
+    planDays = Number(saved.days) || 0;
   }
   setPlanVisible(Boolean(saved));
   if (saved) renderPlan();
@@ -107,6 +117,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     planItems = plan;
     planShoppingList = Array.isArray(result.data.shoppingList) ? result.data.shoppingList : [];
+    planDays = Number(daysEl.value) || 0;
     savePlan(false);
     renderPlan();
     setPlanVisible(true);
@@ -117,6 +128,7 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.removeItem(MEALPLAN_KEY);
     planItems = [];
     planShoppingList = [];
+    planDays = 0;
     resultEl.innerHTML = "";
     setPlanVisible(false);
   });
@@ -128,7 +140,36 @@ document.addEventListener("DOMContentLoaded", () => {
     const del = e.target.closest(".meal-delete");
     if (del) {
       deleteMeal(Number(del.dataset.index));
-      if (!planItems.length) setPlanVisible(false);
+      /* 메뉴가 하나도 안 남아도 날짜 칸은 남겨둔다 — 거기에 다시 넣을 수 있어야 한다.
+         계획을 진짜로 없애는 건 "계획 지우기"의 일이다. */
+      if (!planItems.length && !planDays) setPlanVisible(false);
+      return;
+    }
+
+    /* 빈 자리에 메뉴를 직접 넣는다. 여는 것과 닫는 것 모두 그 자리에서 끝난다. */
+    const add = e.target.closest(".meal-add");
+    if (add) {
+      openAddSlot(add.dataset.day, add.dataset.meal);
+      return;
+    }
+
+    if (e.target.closest(".meal-add-cancel")) {
+      addingSlot = null;
+      renderPlan();
+      return;
+    }
+
+    if (e.target.closest(".meal-add-confirm")) {
+      submitAddSlot();
+      return;
+    }
+
+    /* 최근 추천받은 요리에서 골랐다 — 이름뿐 아니라 검색어·재료까지 그대로 가져온다.
+       그래야 레시피 링크가 걸리고, 장보기를 다시 뽑을 때도 이 메뉴의 재료가 반영된다. */
+    const recent = e.target.closest(".meal-add-recent-item");
+    if (recent) {
+      const picked = loadHistory()[Number(recent.dataset.historyIndex)];
+      if (picked) addMeal(picked.name, picked.searchKeyword, picked.ingredients);
       return;
     }
 
@@ -158,12 +199,64 @@ document.addEventListener("DOMContentLoaded", () => {
     selectedIndex = null;
     moveMeal(from, target.day, target.meal);
   });
+
+  /* 메뉴 이름을 적고 Enter. 폼 밖이라 제출될 일은 없지만 줄바꿈도 만들지 않는다. */
+  resultEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && e.target.closest(".meal-add-input")) {
+      e.preventDefault();
+      submitAddSlot();
+    }
+  });
 });
 
-/* 편집 모드에서만 조작이 나타난다. 모드를 끄면 고르던 것도 함께 푼다. */
+/* 한 자리씩만 연다. 다른 자리를 열면 적던 것은 버린다 —
+   두 자리에 반쯤 적힌 상태가 남으면 어디에 넣는 중인지 알 수 없다. */
+function openAddSlot(day, meal) {
+  addingSlot = { day, meal };
+  selectedIndex = null;
+  renderPlan();
+
+  /* 다시 그리면서 입력칸이 새로 생긴다. 누른 자리에 바로 적을 수 있게 초점을 옮긴다. */
+  const input = document.querySelector(".meal-add-input");
+  if (input) input.focus();
+}
+
+function submitAddSlot() {
+  const input = document.querySelector(".meal-add-input");
+  if (input) addMeal(input.value);
+}
+
+/* 빈 자리에 메뉴 한 칸을 만든다. 재료는 묻지 않는다 — 21칸마다 재료까지 적게 하면
+   손으로 넣는 편이 다시 계획하는 것보다 번거로워진다. 재료가 없으면 서버가
+   "재료 정보 없음"으로 보고 장보기 목록을 뽑는다(api/mealplan.py). */
+function addMeal(menu, searchKeyword, ingredients) {
+  if (!addingSlot) return;
+
+  const name = String(menu || "").trim();
+  if (!name) {
+    editNotice = "넣을 메뉴 이름을 적어주세요.";
+    renderEditStatus();
+    const input = document.querySelector(".meal-add-input");
+    if (input) input.focus();
+    return;
+  }
+
+  planItems.push({
+    day: addingSlot.day,
+    meal: addingSlot.meal,
+    menu: name,
+    searchKeyword: String(searchKeyword || "").trim(),
+    ingredients: Array.isArray(ingredients) ? ingredients : [],
+  });
+  addingSlot = null;
+  commitEdit();
+}
+
+/* 편집 모드에서만 조작이 나타난다. 모드를 끄면 고르던 것과 적던 것도 함께 푼다. */
 function setEditMode(on) {
   editMode = on;
   selectedIndex = null;
+  addingSlot = null;
 
   const btn = document.getElementById("mealplan-edit-btn");
   if (btn) {
@@ -174,6 +267,10 @@ function setEditMode(on) {
   renderPlan();
 }
 
+/* 다음 렌더 한 번만 보여주고 지우는 문구. 조작이 아무 일도 하지 않았을 때 쓴다 —
+   버튼을 눌렀는데 화면이 그대로면 사용자는 고장으로 읽는다(C3). */
+let editNotice = "";
+
 /* 지금 무엇을 해야 하는지 한 줄로 알린다. role="status"라 화면을 보지 않아도 읽힌다. */
 function renderEditStatus() {
   const el = document.getElementById("mealplan-edit-status");
@@ -183,10 +280,23 @@ function renderEditStatus() {
     el.hidden = true;
     return;
   }
+
+  if (editNotice) {
+    el.textContent = editNotice;
+    editNotice = "";
+    el.hidden = false;
+    return;
+  }
+
   const picked = selectedIndex !== null ? planItems[selectedIndex] : null;
-  el.textContent = picked
-    ? `"${picked.menu}"을(를) 어디로 옮길까요? 옮길 자리를 누르세요. (이미 메뉴가 있으면 서로 바뀝니다)`
-    : "옮길 메뉴를 누르세요. 지울 메뉴는 옆의 × 를 누르면 됩니다.";
+  if (picked) {
+    el.textContent = `"${picked.menu}"을(를) 어디로 옮길까요? 옮길 자리를 누르세요. (이미 메뉴가 있으면 서로 바뀝니다)`;
+  } else if (addingSlot) {
+    el.textContent = `${addingSlot.day} ${addingSlot.meal}에 넣을 메뉴를 적거나, 최근 추천받은 요리에서 고르세요.`;
+  } else {
+    el.textContent =
+      "옮길 메뉴를 누르세요. 빈 자리를 누르면 메뉴를 직접 넣고, 옆의 × 를 누르면 지웁니다.";
+  }
   el.hidden = false;
 }
 
@@ -196,6 +306,8 @@ function savePlan(edited) {
   return saveJson(MEALPLAN_KEY, {
     plan: planItems,
     shoppingList: planShoppingList,
+    /* 메뉴를 다 지워도 며칠치였는지는 남겨야 그 날짜 칸에 다시 넣을 수 있다. */
+    days: planDays,
     edited: Boolean(edited),
     savedAt: new Date().toISOString(),
   });
@@ -232,10 +344,11 @@ function deleteMeal(index) {
   commitEdit();
 }
 
-/* 날짜 칸은 남아 있는 메뉴가 아니라 계획의 마지막 날짜를 기준으로 만든다.
-   3일차 메뉴를 다 지웠다고 3일차 칸이 사라지면, 거기로 다시 옮길 수가 없다. */
+/* 날짜 칸은 남아 있는 메뉴가 아니라 계획한 일수를 기준으로 만든다.
+   3일차 메뉴를 다 지웠다고 3일차 칸이 사라지면, 거기로 다시 옮기거나 넣을 수가 없다.
+   (planDays를 적어두기 전에 저장된 계획은 0이라, 예전처럼 메뉴에서 역산한 값이 이긴다) */
 function dayLabels() {
-  const last = Math.max(0, ...planItems.map((i) => parseInt(i.day, 10) || 0));
+  const last = Math.max(planDays, 0, ...planItems.map((i) => parseInt(i.day, 10) || 0));
   return Array.from({ length: last }, (_, n) => `${n + 1}일차`);
 }
 
@@ -274,15 +387,58 @@ function menuLinkHtml(item) {
     aria-label="${name} 레시피를 만개의레시피에서 찾아보기">${name}${EXTERNAL_LINK_ICON}</a>`;
 }
 
+/* 최근 추천받은 요리를 그대로 식단에 넣을 수 있게 늘어놓는다.
+   손으로 이름을 적는 것보다 빠르고, 재료·검색어까지 딸려와서 결과도 정확하다.
+   이력이 비어 있으면 아무것도 그리지 않는다 — 빈 목록은 정보가 아니라 노이즈다. */
+function addRecentHtml() {
+  const items = loadHistory();
+  if (!items.length) return "";
+
+  return `<div class="meal-add-recent">
+    <p class="meal-add-recent-title">최근 추천받은 요리</p>
+    ${items
+      .map(
+        (r, i) => `<button type="button" class="meal-add-recent-item" data-history-index="${i}">
+          ${escapeHtml(r.name)}</button>`
+      )
+      .join("")}
+  </div>`;
+}
+
+function mealAddFormHtml(day, meal) {
+  return `<div class="meal-slot meal-slot-add">
+    <label class="meal-add-label" for="meal-add-input">${escapeHtml(day)} ${meal}에 넣을 메뉴</label>
+    <input type="text" id="meal-add-input" class="meal-add-input" autocomplete="off"
+      placeholder="예: 김치볶음밥" />
+    <div class="meal-add-actions">
+      <button type="button" class="meal-add-confirm">넣기</button>
+      <button type="button" class="link-button link-button-muted meal-add-cancel">취소</button>
+    </div>
+    ${addRecentHtml()}
+  </div>`;
+}
+
 function mealSlotHtml(day, meal) {
   const index = planItems.findIndex((i) => i.day === day && i.meal === meal);
   const label = `<span class="meal-label meal-label-${MEAL_CLASS[meal] || "night"}">${meal}</span>`;
 
   if (index < 0) {
+    if (addingSlot && addingSlot.day === day && addingSlot.meal === meal) {
+      return mealAddFormHtml(day, meal);
+    }
+    /* 메뉴를 고른 상태에서는 옮길 자리로만 쓴다 — 옮기기와 넣기를 한 자리에 같이 두면
+       무엇을 누르는 건지 알 수 없다. 고른 게 없을 때만 넣기가 나온다. */
     if (editMode && selectedIndex !== null) {
       return `<div class="meal-slot">
         <button type="button" class="meal-drop" data-day="${escapeHtml(day)}" data-meal="${meal}">
           ${label}<span class="meal-hint">여기로 옮기기</span>
+        </button></div>`;
+    }
+    if (editMode) {
+      return `<div class="meal-slot">
+        <button type="button" class="meal-add" data-day="${escapeHtml(day)}" data-meal="${meal}"
+          aria-label="${escapeHtml(day)} ${meal}에 메뉴 넣기">
+          ${label}<span class="meal-hint">+ 메뉴 넣기</span>
         </button></div>`;
     }
     return `<div class="meal-slot meal-slot-empty">${label}

@@ -1,6 +1,4 @@
-const HISTORY_KEY = "fridge-chef-history";
-const HISTORY_LIMIT = 5;
-
+/* HISTORY_KEY · HISTORY_LIMIT · loadHistory()는 식단 계획 화면도 읽으므로 shared.js에 있다. */
 document.addEventListener("DOMContentLoaded", () => {
   initHistory();
 
@@ -151,13 +149,6 @@ function recipeCardHtml(r, pantryNames = []) {
    초기 로드/새 추천/전체 삭제가 모두 이 하나의 배열을 갱신하도록 모듈 스코프에 둔다.
    (initHistory 안의 지역 변수로 두면 새 추천 후 화면만 바뀌고 배열은 옛 순서로 남아 클릭이 어긋난다) */
 let historyItems = [];
-
-/* 이름 없는 항목이 하나라도 섞이면 아래 비교와 렌더에서 예외가 나고,
-   그 예외가 추천 결과 렌더를 중간에 끊어버린다. 읽을 때 한 번 걸러둔다. */
-function loadHistory() {
-  const saved = loadJson(HISTORY_KEY, []);
-  return Array.isArray(saved) ? saved.filter((r) => r && r.name) : [];
-}
 
 /* 서버의 dedupe_key와 같은 규칙 — "김치볶음밥"과 "김치 볶음밥"을 같은 요리로 본다. */
 function recipeKey(name) {

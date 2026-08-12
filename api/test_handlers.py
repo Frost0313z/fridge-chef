@@ -191,6 +191,20 @@ def test_shopping_handler():
         mealplan.call_openai = original
 
 
+def test_manual_menu_without_ingredients():
+    """사용자가 빈 자리에 직접 넣은 메뉴는 재료가 없다. 그래도 버려지지 않고 프롬프트에 들어가야 한다.
+
+    화면이 재료를 묻지 않기로 했으므로(21칸마다 재료까지 적게 하면 손으로 넣는 편이
+    다시 계획하는 것보다 번거로워진다) 이 형태가 서버로 올라오는 정상 입력이다."""
+    plan = mealplan.sanitize_plan(
+        [{"day": "3일차", "meal": "저녁", "menu": "제육볶음", "searchKeyword": "", "ingredients": []}], 7
+    )
+    assert len(plan) == 1, plan
+
+    prompt = mealplan.build_shopping_prompt(plan, ["계란 2개"])
+    assert "3일차 저녁: 제육볶음 (재료 정보 없음)" in prompt, prompt
+
+
 def test_shopping_list_filter():
     """사러 갈 일이 없는 항목은 AI가 넣어도 서버가 뺀다."""
     out = mealplan.sanitize_shopping_list(
