@@ -139,6 +139,24 @@ def test_shopping_rules_are_shared():
     assert mealplan.SHOPPING_RULES in mealplan.SHOPPING_SYSTEM_PROMPT
 
 
+def test_pantry_cap():
+    """재료가 상한을 넘으면 앞에서 끊는다. 화면 안내가 이 숫자를 그대로 말하므로 값이 중요하다."""
+    seen = {}
+
+    def fake_call(system, user, timeout, temperature):
+        seen["user"] = user
+        return {"plan": [], "shoppingList": []}, None
+
+    original, mealplan.call_openai = mealplan.call_openai, fake_call
+    try:
+        mealplan.handle({"days": 3, "pantry": [f"재료{i}" for i in range(40)]})
+        assert "재료29" in seen["user"], "앞의 30개는 들어가야 한다"
+        assert "재료30" not in seen["user"], "31번째부터는 잘려야 한다"
+        assert mealplan.MAX_PANTRY == 30, "js/shared.js의 MEALPLAN_PANTRY_LIMIT과 같아야 한다"
+    finally:
+        mealplan.call_openai = original
+
+
 def test_shopping_handler():
     """고친 식단을 그대로 받아 목록만 돌려준다. 계획이 비면 부르지 않는다."""
     status, body = mealplan.handle_shopping({"plan": [], "pantry": []})

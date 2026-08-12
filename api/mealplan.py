@@ -74,6 +74,11 @@ HEALTHY_HINT = "건강 관리를 신경 쓰는 중이야. 기름지거나 자극
 MAX_DAYS = 7
 MAX_SHOPPING_ITEMS = 30
 
+# 프롬프트가 날짜 수만큼 곱해져 길어지므로 재료를 앞에서 끊는다.
+# 화면이 "먼저 넣은 30개만 쓰인다"고 안내하므로 js/shared.js의 MEALPLAN_PANTRY_LIMIT과
+# 같은 값이어야 한다. 한쪽만 고치면 화면이 사실과 다른 말을 하게 된다.
+MAX_PANTRY = 30
+
 
 def sanitize_plan(raw, days):
     """response_format으로 JSON은 보장되지만 '스키마'까지 보장되지는 않는다.
@@ -174,7 +179,7 @@ def handle(payload):
     pantry = payload.get("pantry") or []
     if not isinstance(pantry, list):
         pantry = []
-    pantry = [str(p).strip() for p in pantry if str(p).strip()][:30]
+    pantry = [str(p).strip() for p in pantry if str(p).strip()][:MAX_PANTRY]
 
     # 세 끼로 늘면서 응답이 3배가 됐다. 저녁만 계획하던 때의 20초로는 7일치가 잘린다.
     data, error = call_openai(
@@ -230,7 +235,7 @@ def handle_shopping(payload):
     pantry = payload.get("pantry") or []
     if not isinstance(pantry, list):
         pantry = []
-    pantry = [str(p).strip() for p in pantry if str(p).strip()][:30]
+    pantry = [str(p).strip() for p in pantry if str(p).strip()][:MAX_PANTRY]
 
     data, error = call_openai(
         SHOPPING_SYSTEM_PROMPT,

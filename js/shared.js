@@ -181,6 +181,23 @@ function createFormStatus({ loadingEl, errorEl, submitBtn }) {
   };
 }
 
+/* 서버(api/mealplan.py)가 프롬프트에 넣는 재료 개수 상한과 같은 값이어야 한다.
+   한쪽만 고치면 화면이 사실과 다른 말을 하게 되므로 양쪽 주석으로 묶어둔다. */
+const MEALPLAN_PANTRY_LIMIT = 30;
+
+/* 상한을 넘으면 뒤쪽 재료가 식단 계획에서 조용히 빠진다. 조용히 빠지는 것이 문제였다 —
+   사용자는 "분명 넣었는데 장보기에 또 떴다"로 겪으면서 원인을 알 방법이 없었다.
+   버려지는 쪽이 최근에 넣은 재료라는 점까지 말해줘야 무엇을 정리할지 판단할 수 있다. */
+function pantryLimitNoticeHtml(pantry) {
+  const over = pantry.length - MEALPLAN_PANTRY_LIMIT;
+  if (over <= 0) return "";
+
+  return `<p class="pantry-limit-note">재료가 ${pantry.length}개예요.
+    <strong>식단 계획</strong>에는 먼저 넣은 ${MEALPLAN_PANTRY_LIMIT}개만 쓰여서,
+    최근에 넣은 ${over}개는 빠집니다. 안 쓰는 재료를 지우면 최근 것까지 반영돼요.
+    (레시피 추천은 개수 제한 없이 전부 씁니다.)</p>`;
+}
+
 /* 접혀 있어도 지금 뭐가 들었는지 알 수 있어야 한다. 앞의 두 개만 보여주고 나머지는 개수로 줄인다.
    냉장고 페이지의 재료함과 다른 페이지의 조회 바가 같은 문구를 써야 하므로 여기 둔다. */
 function pantrySummaryText(pantry) {
@@ -306,6 +323,7 @@ function renderPantryBar() {
         ? `<div class="pantry-chips">${pantryChipsHtml(pantry)}</div>`
         : `<p class="pantry-bar-empty">아직 등록된 재료가 없어요. 아래에 적으면 바로 들어가요.</p>`
     }
+    ${pantryLimitNoticeHtml(pantry)}
     <div class="pantry-bar-add">
       <input type="text" id="pantry-bar-input" autocomplete="off"
         placeholder="재료 추가 (쉼표로 여러 개)" aria-label="냉장고에 추가할 재료" />
@@ -387,9 +405,15 @@ function initPantry() {
     statusEl.hidden = !message;
   }
 
+  const limitEl = document.getElementById("pantry-limit-note");
+
   function render() {
     emptyEl.hidden = pantry.length > 0;
     chipsEl.innerHTML = pantryChipsHtml(pantry);
+    if (limitEl) {
+      limitEl.innerHTML = pantryLimitNoticeHtml(pantry);
+      limitEl.hidden = pantry.length <= MEALPLAN_PANTRY_LIMIT;
+    }
   }
 
   function addItems(rawValue) {
