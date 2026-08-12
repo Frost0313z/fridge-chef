@@ -68,12 +68,29 @@ function escapeHtml(str) {
 const QUANTITY_PATTERN =
   /\d+(\.\d+)?(\/\d+)?\s*(g|kg|ml|l|개|알|장|줄|대|모|쪽|톨|컵|큰술|작은술|스푼|봉지|봉|팩|캔|공기|인분|주먹)?/g;
 
-function normalizeIngredient(name) {
-  return String(name)
+/* 숫자 없는 수량 표현. 입력칸이 "김치 조금"을 예시로 권하는데 이걸 떼지 않으면
+   "김치"와 "김치 조금"이 다른 재료로 취급돼, 권한 대로 적은 사람만 중복이 쌓인다. */
+const VAGUE_AMOUNT_PATTERN = /(조금|약간|살짝|많이|넉넉히|한줌|두줌)/g;
+
+/* 수량·단위·괄호를 걷어내고 재료 이름만 남긴다. 띄어쓰기는 살린다("닭 가슴살"). */
+function stripAmounts(raw) {
+  return String(raw)
     .replace(/\([^)]*\)/g, " ")
     .replace(QUANTITY_PATTERN, " ")
-    .replace(/\s+/g, "")
+    .replace(VAGUE_AMOUNT_PATTERN, " ")
+    .replace(/\s+/g, " ")
     .trim();
+}
+
+/* 비교용. 띄어쓰기 차이("닭 가슴살"과 "닭가슴살")까지 같게 본다. */
+function normalizeIngredient(name) {
+  return stripAmounts(name).replace(/\s+/g, "");
+}
+
+/* 화면용. 수량을 숨기는 모드에서 쓴다. 수량뿐인 입력처럼 남는 게 없으면 원문을 그대로 쓴다 —
+   빈 칩을 그리는 것보다 이상한 이름이라도 보여주는 편이 낫다. */
+function ingredientDisplayName(raw) {
+  return stripAmounts(raw) || String(raw).trim();
 }
 
 /* 한 방향 비교(`식단재료.includes(재료함항목)`)는 재료함에 "파"가 있으면
@@ -214,20 +231,33 @@ function addToPantry(rawValue) {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-  if (!items.length) return { empty: true, added: [], duplicated: [], stored: true };
+  if (!items.length) return { empty: true, added: [], updated: [], unchanged: [], stored: true };
 
   const pantry = loadPantry();
   const added = [];
-  const duplicated = [];
+  const updated = [];
+  const unchanged = [];
+
   items.forEach((item) => {
-    if (pantry.includes(item)) duplicated.push(item);
-    else {
+    /* 이름이 같으면 같은 재료다. "계란"과 "계란 2개"를 두 줄로 쌓지 않는다. */
+    const key = normalizeIngredient(item);
+    const at = pantry.findIndex((p) => normalizeIngredient(p) === key);
+
+    if (at < 0) {
       pantry.push(item);
       added.push(item);
+    } else if (pantry[at] === item) {
+      unchanged.push(item);
+    } else {
+      /* 다시 넣는 행위는 "지금은 이만큼이다"라는 최신 선언으로 본다.
+         막으면 수량을 고칠 방법이 없어지고, 물어보면 매번 한 단계가 늘어난다. */
+      updated.push({ from: pantry[at], to: item });
+      pantry[at] = item;
     }
   });
 
-  return { empty: false, added, duplicated, stored: added.length ? savePantry(pantry) : true };
+  const changed = added.length || updated.length;
+  return { empty: false, added, updated, unchanged, stored: changed ? savePantry(pantry) : true };
 }
 
 /* 방금 뺀 재료. 되돌리기 버튼을 그릴지도 이 값으로 판단한다.
@@ -259,18 +289,28 @@ function undoRemove() {
   return { name, stored };
 }
 
+/* 평소에는 이름만 보여준다. 훑는 목적은 "뭐가 있는지"지 몇 개인지가 아니고,
+   30개에 수량까지 붙으면 화면이 수량으로 뒤덮인다. 수량은 켜서 본다.
+   (같은 재료가 한 줄로 합쳐지기 때문에 숨겨도 안전하다 — 합치기가 없으면
+   "계란 2개"와 "계란 5개"가 둘 다 "계란"으로 보여 같은 게 둘인 것처럼 된다) */
+function showAmounts() {
+  return Boolean(loadPrefs().showAmounts);
+}
+
 /* 칩만 돌려준다. 감싸는 상자는 부르는 쪽이 이미 갖고 있다
    (냉장고 화면은 #pantry-chips, 조회 바는 새로 그리는 div). */
-function pantryChipsHtml(pantry) {
+function pantryChipsHtml(pantry, withAmounts) {
   return pantry
-    .map(
-      (item, index) => `
+    .map((item, index) => {
+      /* 화면에서 수량을 숨겨도 삭제는 원본 기준이고, 스크린리더에는 원문을 그대로 읽어준다. */
+      const label = withAmounts ? item : ingredientDisplayName(item);
+      return `
       <span class="pantry-chip">
-        ${escapeHtml(item)}
+        ${escapeHtml(label)}
         <button type="button" class="pantry-chip-remove" data-index="${index}"
           aria-label="${escapeHtml(item)} 삭제">×</button>
-      </span>`
-    )
+      </span>`;
+    })
     .join("");
 }
 
@@ -282,15 +322,21 @@ function statusHtml(message, canUndo) {
   }`;
 }
 
-/* 다섯 경우 모두 말해준다. 아무 말 없이 끝나면 사용자는 버튼이 고장 났다고 읽는다(C3). */
-function addResultMessage({ empty, added, duplicated, stored }) {
+/* 무슨 일이 있었는지 빠짐없이 말해준다. 아무 말 없이 끝나면 사용자는 버튼이 고장 났다고 읽고(C3),
+   특히 "합쳐졌다"는 조용히 넘어가면 안 된다 — 사용자 눈에는 새로 넣은 것이 사라진 것처럼 보인다. */
+function addResultMessage({ empty, added, updated, unchanged, stored }) {
   if (empty) return "추가할 재료 이름을 입력해주세요.";
   if (!stored) return "브라우저에 저장하지 못했어요. 시크릿 창이라면 일반 창에서 다시 열어주세요.";
-  if (added.length && duplicated.length) {
-    return `${added.join(", ")}을(를) 추가했어요. ${duplicated.join(", ")}은(는) 이미 있어요.`;
+
+  const parts = [];
+  if (added.length) parts.push(`${added.join(", ")}을(를) 냉장고에 넣었어요.`);
+  if (updated.length) {
+    parts.push(
+      `이미 있던 ${updated.map((u) => `${u.from} → ${u.to}`).join(", ")}(으)로 바꿨어요.`
+    );
   }
-  if (added.length) return `${added.join(", ")}을(를) 냉장고에 넣었어요.`;
-  return `${duplicated.join(", ")}은(는) 이미 냉장고에 있어요.`;
+  if (unchanged.length) parts.push(`${unchanged.join(", ")}은(는) 이미 그대로 있어요.`);
+  return parts.join(" ");
 }
 
 /* 조작 결과를 다음 렌더 한 번만 보여주고 지운다. 다른 이유로 다시 그릴 때
@@ -320,7 +366,7 @@ function renderPantryBar() {
   bodyEl.innerHTML = `
     ${
       pantry.length
-        ? `<div class="pantry-chips">${pantryChipsHtml(pantry)}</div>`
+        ? `<div class="pantry-chips">${pantryChipsHtml(pantry, showAmounts())}</div>`
         : `<p class="pantry-bar-empty">아직 등록된 재료가 없어요. 아래에 적으면 바로 들어가요.</p>`
     }
     ${pantryLimitNoticeHtml(pantry)}
@@ -409,7 +455,7 @@ function initPantry() {
 
   function render() {
     emptyEl.hidden = pantry.length > 0;
-    chipsEl.innerHTML = pantryChipsHtml(pantry);
+    chipsEl.innerHTML = pantryChipsHtml(pantry, showAmounts());
     if (limitEl) {
       limitEl.innerHTML = pantryLimitNoticeHtml(pantry);
       limitEl.hidden = pantry.length <= MEALPLAN_PANTRY_LIMIT;
@@ -420,7 +466,7 @@ function initPantry() {
     const result = addToPantry(rawValue);
     /* 저장된 것을 다시 읽어 그린다. 저장에 실패했다면 화면에도 나타나지 않아야
        "넣었어요"와 실제가 어긋나지 않는다. */
-    if (result.added.length) {
+    if (result.added.length || result.updated.length) {
       pantry = loadPantry();
       render();
     }
@@ -469,6 +515,26 @@ function initPantry() {
       result.stored
     );
   });
+
+  /* 평소에는 이름만, 필요할 때만 수량까지. 선택은 기억한다 — 매번 다시 켜게 하지 않는다. */
+  const amountToggle = document.getElementById("pantry-amount-toggle");
+
+  function syncAmountToggle() {
+    if (!amountToggle) return;
+    const on = showAmounts();
+    amountToggle.textContent = on ? "수량 숨기기" : "수량 보기";
+    amountToggle.setAttribute("aria-pressed", String(on));
+    amountToggle.classList.toggle("is-on", on);
+  }
+
+  if (amountToggle) {
+    syncAmountToggle();
+    amountToggle.addEventListener("click", () => {
+      savePrefs({ showAmounts: !showAmounts() });
+      syncAmountToggle();
+      render();
+    });
+  }
 
   /* 되돌리기는 상태 문구 안에 함께 그려지므로 그 줄에 건다. */
   if (statusEl) {

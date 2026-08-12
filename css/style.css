@@ -558,8 +558,41 @@ a {
   margin: 0 0 6px;
 }
 
+/* 제목과 수량 토글을 한 줄에. 토글은 목록을 보는 방식이지 새 행동이 아니므로
+   제목 옆에 조용히 둔다(주 버튼처럼 채우지 않는다). */
+.pantry-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 32px;
+}
+
 .pantry-list-title {
-  margin-top: 32px !important;
+  margin: 0 !important;
+}
+
+.pantry-amount-toggle {
+  flex: none;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-primary-dark);
+  cursor: pointer;
+}
+
+.pantry-amount-toggle:hover {
+  border-color: var(--color-primary-dark);
+}
+
+.pantry-amount-toggle.is-on {
+  background: var(--color-bg);
+  border-color: var(--color-primary-dark);
 }
 
 .page-next {
