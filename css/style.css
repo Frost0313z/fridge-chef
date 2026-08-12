@@ -671,6 +671,15 @@ a {
   font-size: 0.9rem;
 }
 
+/* 수량은 이름보다 한 단계 뒤로 물린다. 훑을 때 찾는 것은 이름이지 숫자가 아니다.
+   색만 바꾸면 "계란2개"처럼 붙어 보이므로 앞에 여백을 준다. */
+.pantry-chip-amount {
+  margin-left: 5px;
+  color: var(--color-text-muted);
+  font-size: 0.82em;
+  font-weight: 400;
+}
+
 .pantry-chip-remove {
   position: relative;
   border: none;

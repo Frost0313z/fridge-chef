@@ -93,6 +93,26 @@ function ingredientDisplayName(raw) {
   return stripAmounts(raw) || String(raw).trim();
 }
 
+/* 이름과 수량을 나눠 돌려준다. 수량을 켜서 볼 때 둘을 다른 색으로 그리기 위한 것이다 —
+   "계란 2개"가 한 덩어리로 보이면 훑을 때 이름과 숫자가 섞여 읽힌다.
+   이름을 뺀 나머지를 수량으로 보지 않고, 수량으로 알아본 조각만 모은다.
+   그래야 "닭  가슴살 200g"처럼 띄어쓰기가 불규칙해도 어긋나지 않는다. */
+function splitIngredient(raw) {
+  const text = String(raw).trim();
+  const amount = []
+    .concat(text.match(/\([^)]*\)/g) || [])
+    .concat(text.match(QUANTITY_PATTERN) || [])
+    .concat(text.match(VAGUE_AMOUNT_PATTERN) || [])
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join(" ");
+
+  const name = stripAmounts(text);
+  /* 이름이 안 남으면(수량만 적은 입력) 원문을 이름으로 두고 수량은 비운다.
+     같은 글자를 이름과 수량 양쪽에 두 번 그리지 않기 위해서다. */
+  return name ? { name, amount } : { name: text, amount: "" };
+}
+
 /* 한 방향 비교(`식단재료.includes(재료함항목)`)는 재료함에 "파"가 있으면
    "파프리카"·"파스타"까지 보유로 간주해버린다. 양방향으로 비교하되,
    짧은 쪽이 1글자면 우연한 겹침이므로 포함 매칭을 인정하지 않는다.
@@ -303,10 +323,15 @@ function pantryChipsHtml(pantry, withAmounts) {
   return pantry
     .map((item, index) => {
       /* 화면에서 수량을 숨겨도 삭제는 원본 기준이고, 스크린리더에는 원문을 그대로 읽어준다. */
-      const label = withAmounts ? item : ingredientDisplayName(item);
+      const { name, amount } = splitIngredient(item);
+      const label =
+        withAmounts && amount
+          ? `${escapeHtml(name)}<span class="pantry-chip-amount">${escapeHtml(amount)}</span>`
+          : escapeHtml(withAmounts ? item : name);
+
       return `
       <span class="pantry-chip">
-        ${escapeHtml(label)}
+        ${label}
         <button type="button" class="pantry-chip-remove" data-index="${index}"
           aria-label="${escapeHtml(item)} 삭제">×</button>
       </span>`;
