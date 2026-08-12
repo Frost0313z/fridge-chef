@@ -288,9 +288,14 @@ function renderEditStatus() {
     return;
   }
 
+  /* 칸마다 붙이던 설명("여기와 맞바꾸기", "다시 누르면 취소", "여기로 옮기기")을 여기로 모았다.
+     같은 문장이 21번 반복되면 화면이 안내문으로 뒤덮이고, 정작 메뉴 이름이 안 읽힌다.
+     어느 칸을 들고 있는지는 색이 말하고, 무엇을 할 수 있는지는 이 한 줄이 말한다. */
   const picked = selectedIndex !== null ? planItems[selectedIndex] : null;
   if (picked) {
-    el.textContent = `"${picked.menu}"을(를) 어디로 옮길까요? 옮길 자리를 누르세요. (이미 메뉴가 있으면 서로 바뀝니다)`;
+    el.textContent =
+      `"${picked.menu}"을(를) 들었어요. 옮길 자리를 누르세요. ` +
+      `이미 메뉴가 있는 자리를 누르면 서로 바뀌고, 색이 칠해진 "${picked.menu}"을(를) 다시 누르면 취소됩니다.`;
   } else if (addingSlot) {
     el.textContent = `${addingSlot.day} ${addingSlot.meal}에 넣을 메뉴를 적거나, 최근 추천받은 요리에서 고르세요.`;
   } else {
@@ -429,10 +434,12 @@ function mealSlotHtml(day, meal) {
     /* 메뉴를 고른 상태에서는 옮길 자리로만 쓴다 — 옮기기와 넣기를 한 자리에 같이 두면
        무엇을 누르는 건지 알 수 없다. 고른 게 없을 때만 넣기가 나온다. */
     if (editMode && selectedIndex !== null) {
+      /* "여기로 옮기기"도 칸마다 반복되던 문장이라 뺐다. 점선 테두리가 빈 자리라는 표시고,
+         눌렀을 때 무슨 일이 일어나는지는 상단 안내가 이미 말하고 있다.
+         (아무것도 안 든 상태의 "+ 메뉴 넣기"는 남긴다 — 그건 설명이 아니라 그 버튼의 이름이다) */
       return `<div class="meal-slot">
-        <button type="button" class="meal-drop" data-day="${escapeHtml(day)}" data-meal="${meal}">
-          ${label}<span class="meal-hint">여기로 옮기기</span>
-        </button></div>`;
+        <button type="button" class="meal-drop" data-day="${escapeHtml(day)}" data-meal="${meal}"
+          aria-label="${escapeHtml(day)} ${meal}으로 옮기기">${label}</button></div>`;
     }
     if (editMode) {
       return `<div class="meal-slot">
@@ -452,15 +459,16 @@ function mealSlotHtml(day, meal) {
     return `<div class="meal-slot"><div class="meal-head">${label}${menuLinkHtml(item)}</div></div>`;
   }
 
+  /* 칸에는 설명을 붙이지 않는다. 고른 상태는 색이, 다음에 무엇을 할지는 상단 안내가 말한다
+     (21칸에 같은 문장을 반복하면 정작 메뉴 이름이 안 읽힌다).
+     aria-pressed가 스크린리더에는 눌린 상태를 그대로 전한다. */
   const picked = selectedIndex === index;
-  const hint = picked ? "고른 메뉴 · 다시 누르면 취소" : selectedIndex !== null ? "여기와 맞바꾸기" : "";
 
   return `
     <div class="meal-slot meal-slot-edit">
       <button type="button" class="meal-pick${picked ? " is-picked" : ""}" data-index="${index}"
         aria-pressed="${picked}">
         ${label}<span class="meal-menu">${name}</span>
-        ${hint ? `<span class="meal-hint">${hint}</span>` : ""}
       </button>
       <button type="button" class="meal-delete" data-index="${index}" aria-label="${name} 삭제">×</button>
     </div>`;
