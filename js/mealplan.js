@@ -255,6 +255,20 @@ function renderPlan() {
    재료를 21칸에 모두 펼치면 100줄이 넘어 "이번 주 뭐 먹지"가 안 읽힌다.
    무엇을 사야 하는지는 장보기 화면이, 어떻게 만드는지는 레시피 링크가 이미 답한다.
    (재료 데이터 자체는 지우지 않는다 — 장보기를 다시 뽑을 때 서버로 보낸다) */
+/* 21칸에 "만개의레시피에서 찾아보기 →"를 반복하면 링크 문구가 메뉴 이름보다 길어서
+   화면이 링크 문구로 뒤덮인다. 반복 자체가 이미 의미를 알려주므로 이름을 링크로 만들고
+   화살표만 붙인다. 링크 텍스트가 요리 이름이 되어 스크린리더에도 더 정확해진다.
+   (레시피 추천 화면은 카드가 1~3장뿐이고 이 링크가 화면의 결론이라 문장을 그대로 둔다) */
+function menuLinkHtml(item) {
+  const name = escapeHtml(item.menu || "");
+  const url = recipeSearchUrl(item.menu, item.searchKeyword);
+  if (!url) return `<span class="meal-menu">${name}</span>`;
+
+  return `<a class="meal-menu meal-menu-link" href="${escapeHtml(url)}"
+    target="_blank" rel="noopener noreferrer"
+    aria-label="${name} 레시피를 만개의레시피에서 찾아보기">${name}${EXTERNAL_LINK_ICON}</a>`;
+}
+
 function mealSlotHtml(day, meal) {
   const index = planItems.findIndex((i) => i.day === day && i.meal === meal);
   const label = `<span class="meal-label">${meal}</span>`;
@@ -274,11 +288,7 @@ function mealSlotHtml(day, meal) {
   const name = escapeHtml(item.menu || "");
 
   if (!editMode) {
-    return `
-      <div class="meal-slot">
-        <div class="meal-head">${label}<span class="meal-menu">${name}</span></div>
-        ${recipeSearchLinkHtml(item.menu, item.searchKeyword)}
-      </div>`;
+    return `<div class="meal-slot"><div class="meal-head">${label}${menuLinkHtml(item)}</div></div>`;
   }
 
   const picked = selectedIndex === index;

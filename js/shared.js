@@ -104,14 +104,24 @@ function pantryNamesFor(pantry) {
    매칭해서, "냉장고털이 두부 계란 덮밥"으로 검색하면 결과가 0건이 아니라 3만 건의
    무관한 레시피가 나온다. 그래서 AI에게 짧은 검색용 이름(searchKeyword)을 따로 받고,
    없으면(옛 저장 데이터 포함) 요리 이름으로 대체한다. */
-function recipeSearchLinkHtml(name, searchKeyword) {
+function recipeSearchUrl(name, searchKeyword) {
   const query = (searchKeyword || name || "").trim();
-  if (!query) return "";
+  return query ? `https://www.10000recipe.com/recipe/list.html?q=${encodeURIComponent(query)}` : "";
+}
 
-  const url = `https://www.10000recipe.com/recipe/list.html?q=${encodeURIComponent(query)}`;
+function recipeSearchLinkHtml(name, searchKeyword) {
+  const url = recipeSearchUrl(name, searchKeyword);
+  if (!url) return "";
+
+  const query = (searchKeyword || name || "").trim();
   return `<a class="recipe-search-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer"
     aria-label="${escapeHtml(query)} 레시피를 만개의레시피에서 찾아보기">만개의레시피에서 찾아보기 →</a>`;
 }
+
+/* 새 탭으로 나간다는 표시. 이모지 대신 SVG인 이유는 두 가지다 — 이모지는 기기마다 모양이 달라
+   크기·정렬이 흔들리고, 이 서비스는 이미 이모지를 쓰는 자리가 많아 규칙을 정해야 할 상태다
+   (UI/UX 원칙 체크리스트 10번). 5줄이면 되는 것에 아이콘 라이브러리를 들이지 않는다. */
+const EXTERNAL_LINK_ICON = `<svg class="ext-icon" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true" focusable="false"><path d="M6.5 3H13v6.5M13 3 7.5 8.5M11 9.5V13H3V5h3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 /* scrollIntoView에 behavior:'smooth'를 하드코딩하면 모션을 줄이도록 설정한 사용자에게도
    부드러운 스크롤이 걸린다. CSS의 prefers-reduced-motion 처리와 동작을 맞춘다. */

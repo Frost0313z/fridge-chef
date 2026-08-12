@@ -719,6 +719,27 @@ a {
   font-size: 1rem;
 }
 
+/* 메뉴 이름 자체가 레시피로 나가는 링크다. 별도 링크 줄을 두지 않아 21칸이 그만큼 짧아진다. */
+.meal-menu-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px; /* 본문 속 링크가 아니라 독립된 조작이므로 누를 높이를 확보한다 */
+  color: var(--color-text);
+}
+
+.meal-menu-link:hover {
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* 새 탭으로 나간다는 표시. 이름 뒤에 조용히 붙고 색은 링크를 따라간다. */
+.ext-icon {
+  flex: none;
+  color: var(--color-primary-dark);
+}
+
 .mealplan-day-card ul {
   margin: 0;
   padding-left: 18px;
