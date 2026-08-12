@@ -20,6 +20,15 @@
   --color-danger: #b32d2d;
   --color-danger-bg: #fdecec;
   --color-danger-border: #f4c2c2;
+  /* 끼니 라벨. 해가 뜨고(호박) 한낮이고(초록) 해가 지는(남보라) 순서로 읽히게 골랐다.
+     색은 거들 뿐이고 의미는 글자("아침"·"점심"·"저녁")가 지고 있다 — 색을 구분하지
+     못해도 정보가 사라지지 않아야 한다(WCAG 1.4.1). 모든 쌍이 4.5:1을 넘는다(A8). */
+  --meal-morning-ink: #7d4f08;
+  --meal-morning-bg: #ffeccc;
+  --meal-noon-ink: #41661f;
+  --meal-noon-bg: #e9f3e0;
+  --meal-night-ink: #4b3f92;
+  --meal-night-bg: #eae7f7;
   --radius: 14px;
   --max-width: 1080px;
   --header-height: 64px;
@@ -39,6 +48,13 @@
   --color-danger: #ff8080;
   --color-danger-bg: #3a2323;
   --color-danger-border: #5c3535;
+  /* 어두운 배경 위에서는 같은 색조를 밝은 쪽으로 뒤집는다. */
+  --meal-morning-ink: #f0c674;
+  --meal-morning-bg: #3d2f16;
+  --meal-noon-ink: #a8d08d;
+  --meal-noon-bg: #25331f;
+  --meal-night-ink: #bdb4ee;
+  --meal-night-bg: #2b2742;
 }
 
 * {
@@ -703,15 +719,35 @@ a {
   margin-bottom: 8px;
 }
 
-/* 끼니 이름은 메뉴보다 약해야 한다 — 읽는 사람이 찾는 것은 "뭘 먹는지"다. */
+/* 끼니 이름은 메뉴보다 약해야 한다 — 읽는 사람이 찾는 것은 "뭘 먹는지"다.
+   대신 끼니마다 색을 달리해서, 21칸을 훑을 때 세로로 리듬이 잡히게 한다.
+   폭을 고정하는 이유: "아침"·"점심"·"저녁"이 두 글자로 같아 보여도 칩 폭이 미세하게
+   달라지면 세로줄이 어긋나 오히려 읽기 어려워진다. */
 .meal-label {
   flex: none;
+  min-width: 3.4em;
+  text-align: center;
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--color-text-muted);
   background: var(--color-bg);
   border-radius: 999px;
   padding: 3px 9px;
+}
+
+.meal-label-morning {
+  color: var(--meal-morning-ink);
+  background: var(--meal-morning-bg);
+}
+
+.meal-label-noon {
+  color: var(--meal-noon-ink);
+  background: var(--meal-noon-bg);
+}
+
+.meal-label-night {
+  color: var(--meal-night-ink);
+  background: var(--meal-night-bg);
 }
 
 .meal-menu {

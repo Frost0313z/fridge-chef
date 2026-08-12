@@ -5,6 +5,9 @@ const MP_REQUEST_TIMEOUT_MS = 30000;
 /* 서버(api/mealplan.py)의 MEALS와 순서·이름이 같아야 자리가 맞는다. */
 const MEALS = ["아침", "점심", "저녁"];
 
+/* 끼니마다 라벨 색이 다르다. 클래스 이름을 한글로 만들지 않으려고 여기서 한 번 옮긴다. */
+const MEAL_CLASS = { 아침: "morning", 점심: "noon", 저녁: "night" };
+
 /* 화면이 고쳐 쓰는 대상. 옮기기·삭제가 이 배열 하나만 바꾸고 다시 그린다. */
 let planItems = [];
 let planShoppingList = [];
@@ -271,7 +274,7 @@ function menuLinkHtml(item) {
 
 function mealSlotHtml(day, meal) {
   const index = planItems.findIndex((i) => i.day === day && i.meal === meal);
-  const label = `<span class="meal-label">${meal}</span>`;
+  const label = `<span class="meal-label meal-label-${MEAL_CLASS[meal] || "night"}">${meal}</span>`;
 
   if (index < 0) {
     if (editMode && selectedIndex !== null) {
