@@ -53,7 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    status.hideError();
+    status.setError("");
     fallbackEl.hidden = true;
     rerecommendBtn.hidden = true;
     resultEl.innerHTML = "";
@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const ingredients = [pantryIngredients, extraIngredients].filter(Boolean).join(", ");
 
     if (!ingredients) {
-      status.showError("냉장고에 재료를 넣거나, 오늘 있는 재료를 1개 이상 입력해주세요.");
+      status.setError("냉장고에 재료를 넣거나, 오늘 있는 재료를 1개 이상 입력해주세요.");
       ingredientsEl.focus();
       return;
     }
@@ -97,7 +97,7 @@ document.addEventListener("DOMContentLoaded", () => {
   /* 빈 입력은 사용자가 바로 고칠 수 있으므로 대안을 권하지 않는다.
      AI/네트워크 실패처럼 사용자가 손쓸 수 없는 경우에만, 그리고 볼 이력이 있을 때만 권한다. */
   function showErrorWithFallback(message) {
-    status.showError(message);
+    status.setError(message);
     fallbackEl.hidden = historyItems.length === 0;
   }
 

@@ -77,11 +77,10 @@ function pantryPromptText(item) {
   return age ? `${pantryText(item)} (${age}에 넣음)` : pantryText(item);
 }
 
-/* toISOString()은 UTC 기준이라 한국에서 자정 무렵에 하루가 어긋난다. 로컬 날짜로 만든다. */
+/* toISOString()은 UTC 기준이라 한국에서 자정 무렵에 하루가 어긋난다.
+   스웨덴 로캘이 쓰는 형식이 마침 YYYY-MM-DD라, 로컬 날짜를 그대로 얻는 데 쓴다. */
 function todayISO() {
-  const d = new Date();
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return new Date().toLocaleDateString("sv-SE");
 }
 
 /* 넣은 지 며칠 됐는지. 날짜를 모르거나(옛 저장분) 값이 깨졌으면 null이다.
@@ -90,7 +89,9 @@ function daysSince(addedAt) {
   if (typeof addedAt !== "string") return null;
   const then = new Date(`${addedAt}T00:00:00`);
   if (isNaN(then.getTime())) return null;
-  return Math.round((new Date(`${todayISO()}T00:00:00`) - then) / 86400000);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((today - then) / 86400000);
 }
 
 /* 사람은 "며칠 됐나"로 생각하지 달력을 역산하지 않는다. 8월 1일보다 "11일 전"이 읽힌다. */
@@ -100,13 +101,6 @@ function pantryAgoLabel(addedAt) {
   if (days <= 0) return "오늘";
   if (days === 1) return "어제";
   return `${days}일 전`;
-}
-
-/* 정확한 날짜는 마우스를 올렸을 때만 보여준다. 화면에 늘 두기엔 자리를 많이 먹는다. */
-function pantryAddedTitle(addedAt) {
-  if (typeof addedAt !== "string") return "";
-  const m = addedAt.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  return m ? `${Number(m[2])}월 ${Number(m[3])}일에 넣음` : "";
 }
 
 /* 며칠부터 "오래됐다"고 볼 것인가. 갓 넣은 재료에 "0일 전"을 붙이면 노이즈가 되고
@@ -168,12 +162,6 @@ function stripAmounts(raw) {
 /* 비교용. 띄어쓰기 차이("닭 가슴살"과 "닭가슴살")까지 같게 본다. */
 function normalizeIngredient(name) {
   return stripAmounts(name).replace(/\s+/g, "");
-}
-
-/* 화면용. 수량을 숨기는 모드에서 쓴다. 수량뿐인 입력처럼 남는 게 없으면 원문을 그대로 쓴다 —
-   빈 칩을 그리는 것보다 이상한 이름이라도 보여주는 편이 낫다. */
-function ingredientDisplayName(raw) {
-  return stripAmounts(raw) || String(raw).trim();
 }
 
 /* 이름과 수량을 나눠 돌려준다. 수량을 켜서 볼 때 둘을 다른 색으로 그리기 위한 것이다 —
@@ -283,20 +271,17 @@ async function postJson(url, body, timeoutMs) {
   }
 }
 
-/* 로딩 표시 / 에러 문구 / 제출 버튼 잠금 — 두 폼이 쓰는 세트를 한 번에 만들어준다. */
+/* 로딩 표시 / 에러 문구 / 제출 버튼 잠금 — 두 폼이 쓰는 세트를 한 번에 만들어준다.
+   빈 문구를 넣는 것이 곧 지우는 것이다 — 숨기기를 따로 두면 "문구는 남았는데 숨김"이 가능해진다. */
 function createFormStatus({ loadingEl, errorEl, submitBtn }) {
   return {
     setLoading(isLoading) {
       loadingEl.hidden = !isLoading;
       submitBtn.disabled = isLoading;
     },
-    showError(message) {
-      errorEl.textContent = message;
-      errorEl.hidden = false;
-    },
-    hideError() {
-      errorEl.hidden = true;
-      errorEl.textContent = "";
+    setError(message) {
+      errorEl.textContent = message || "";
+      errorEl.hidden = !message;
     },
   };
 }
@@ -427,11 +412,9 @@ function pantryChipsHtml(pantry, withDetails) {
         ? [item.amount, badge ? "" : pantryAgoLabel(item.addedAt)].filter(Boolean).join(" · ")
         : "";
 
-      const title = pantryAddedTitle(item.addedAt);
-
       /* 화면에서 곁가지를 숨겨도 삭제는 원본 기준이고, 스크린리더에는 원문을 읽어준다. */
       return `
-      <span class="pantry-chip"${title ? ` title="${escapeHtml(title)}"` : ""}>
+      <span class="pantry-chip">
         ${escapeHtml(item.name)}
         ${meta ? `<span class="pantry-chip-meta">${escapeHtml(meta)}</span>` : ""}
         ${badge ? `<span class="pantry-chip-age">${badge}</span>` : ""}

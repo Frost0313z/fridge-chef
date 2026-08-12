@@ -1,9 +1,6 @@
 /* 장보기 — 식단 계획을 세울 때 AI가 함께 뽑아둔 "부족한 재료" 목록을 보여준다.
    무엇을 살지는 수량 판단이 필요해서 서버(api/mealplan.py)가 정하고, 여기서는 그리기만 한다. */
 
-const SHOPPING_HINT_AI = "식단에 필요한 양에서 냉장고에 있는 만큼을 빼고 남은 것만 모았어요.";
-const SHOPPING_HINT_SUFFIX = "자동으로 담기지는 않고, 클릭하면 쿠팡 검색 결과가 새 탭에서 열려요.";
-
 /* q만 붙인 최소 형태(`?q=계란`)로는 검색어가 반영되지 않고 빈 검색으로 열린다.
    쿠팡 검색 페이지가 채널 파라미터까지 있어야 초기 검색 상태를 세팅하기 때문에,
    쿠팡이 스스로 만드는 URL과 같은 형태로 맞춘다. */
@@ -110,14 +107,15 @@ function renderShoppingList(saved, pantry) {
   if (!listEl) return;
 
   /* AI가 장보기 목록을 직접 뽑기 전에 저장된 계획에는 이 필드가 없다.
-     빈 목록으로 그리면 "다 있어요"로 읽혀 사실과 어긋나므로, 다시 뽑도록 안내한다. */
-  if (!Array.isArray(saved.shoppingList)) {
+     빈 목록으로 그리면 "다 있어요"로 읽혀 사실과 어긋나므로, 다시 뽑도록 안내한다.
+     이때는 목록이 아예 없으므로 "무엇을 모았는지" 설명(HTML에 고정된 문구)도 함께 숨긴다. */
+  const hasList = Array.isArray(saved.shoppingList);
+  if (hintEl) hintEl.hidden = !hasList;
+  if (!hasList) {
     listEl.innerHTML = `<li class="shopping-item-none">예전에 저장한 식단이라 장보기 목록이 없어요.
          <a href="mealplan.html">식단을 다시 계획하면 →</a> 부족한 재료를 뽑아드려요.</li>`;
     return;
   }
-
-  if (hintEl) hintEl.textContent = `${SHOPPING_HINT_AI} ${SHOPPING_HINT_SUFFIX}`;
 
   /* localStorage는 사용자가 직접 고칠 수 있어 항목이 통째로 비어 있을 수 있다.
      그대로 i.name을 읽으면 페이지가 죽으므로 여기서 걸러낸다. */

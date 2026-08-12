@@ -73,7 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    status.hideError();
+    status.setError("");
     resultEl.innerHTML = "";
     setPlanVisible(false);
 
@@ -95,13 +95,13 @@ document.addEventListener("DOMContentLoaded", () => {
     status.setLoading(false);
 
     if (!result.ok) {
-      status.showError(result.message);
+      status.setError(result.message);
       return;
     }
 
     const plan = result.data.plan || [];
     if (!plan.length) {
-      status.showError("식단을 만들지 못했어요. 잠시 후 다시 시도해보세요.");
+      status.setError("식단을 만들지 못했어요. 잠시 후 다시 시도해보세요.");
       return;
     }
 

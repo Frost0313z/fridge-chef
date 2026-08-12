@@ -400,19 +400,6 @@ a {
   margin: 0 0 20px;
 }
 
-.home-next {
-  max-width: 680px;
-  margin: 24px 0 0;
-  color: var(--color-text-muted);
-  font-size: 0.95rem;
-}
-
-.home-next a {
-  color: var(--color-primary-dark);
-  font-weight: 600;
-  text-decoration: underline;
-}
-
 .features {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -549,6 +536,52 @@ a {
   font-size: 0.95rem;
 }
 
+/* 텍스트 링크처럼 보이는 버튼. 되돌리기 · 이력 전체 지우기 · 계획 지우기가 모두 이 모양이다.
+   링크가 아니라 button인 이유는 이동이 아니라 조작이기 때문 — 시맨틱은 두고 모양만 맞춘다. */
+.link-button {
+  font: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--color-primary-dark);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* 지우는 쪽. 평소에는 조용히 있다가 누르려 할 때만 빨강으로 무엇을 하는지 알린다. */
+.link-button-muted {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.link-button-muted:hover {
+  color: var(--color-danger);
+}
+
+/* 켜고 끄는 알약 버튼. 냉장고의 "자세히"와 식단의 "메뉴 바꾸기"가 같은 모양이다 —
+   둘 다 새 행동이 아니라 보는 방식을 바꾸는 조작이라 주 버튼처럼 채우지 않는다.
+   켜졌을 때 무엇을 바꿀지는 쓰는 쪽이 .is-on으로 정한다. */
+.pill-toggle {
+  flex: none;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-primary-dark);
+  cursor: pointer;
+}
+
+.pill-toggle:hover {
+  border-color: var(--color-primary-dark);
+}
+
 /* ==========================================================================
    내 재료함
    ========================================================================== */
@@ -572,24 +605,7 @@ a {
   margin: 0 !important;
 }
 
-.pantry-amount-toggle {
-  flex: none;
-  font: inherit;
-  font-size: 0.82rem;
-  font-weight: 600;
-  min-height: 36px;
-  padding: 0 14px;
-  border-radius: 999px;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-primary-dark);
-  cursor: pointer;
-}
-
-.pantry-amount-toggle:hover {
-  border-color: var(--color-primary-dark);
-}
-
+/* 켜져 있어도 조용히 둔다 — "자세히"는 상태이지 진행 중인 작업이 아니다. */
 .pantry-amount-toggle.is-on {
   background: var(--color-bg);
   border-color: var(--color-primary-dark);
@@ -765,23 +781,13 @@ a {
 /* ==========================================================================
    주간 식단 계획
    ========================================================================== */
+/* 모양은 .link-button .link-button-muted가 준다. 여기서는 자리만 잡는다. */
 .mealplan-clear-btn {
   margin-top: 10px;
-  border: none;
-  background: none;
-  font: inherit;
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
-  text-decoration: underline;
-  cursor: pointer;
 }
 
 .mealplan-clear-btn:not([hidden]) {
   display: block;
-}
-
-.mealplan-clear-btn:hover {
-  color: var(--color-danger);
 }
 
 .mealplan-days {
@@ -917,23 +923,6 @@ a {
   font-size: 1.1rem;
 }
 
-.mealplan-edit-btn {
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  min-height: 40px;
-  padding: 0 16px;
-  border-radius: 999px;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-primary-dark);
-  cursor: pointer;
-}
-
-.mealplan-edit-btn:hover {
-  border-color: var(--color-primary-dark);
-}
-
 /* 켜져 있는 동안은 버튼 자체가 상태 표시다. */
 .mealplan-edit-btn.is-on {
   background: var(--color-primary);
@@ -1023,17 +1012,6 @@ a {
   border-radius: 10px;
   background: var(--color-bg);
   font-size: 0.9rem;
-}
-
-.shopping-list-section {
-  margin-top: 32px;
-  padding-top: 24px;
-  border-top: 1px solid var(--color-border);
-}
-
-.shopping-list-section h2 {
-  font-size: 1.1rem;
-  margin: 0 0 6px;
 }
 
 .shopping-list-hint {
@@ -1139,20 +1117,6 @@ a {
 .history-header h2 {
   font-size: 1.1rem;
   margin: 0;
-}
-
-.history-clear-btn {
-  font: inherit;
-  font-size: 0.85rem;
-  border: none;
-  background: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-.history-clear-btn:hover {
-  color: var(--color-danger);
 }
 
 .history-empty {
@@ -1294,18 +1258,6 @@ a {
   margin-top: 10px;
   color: var(--color-text-muted);
   font-size: 0.9rem;
-}
-
-.link-button {
-  font: inherit;
-  font-size: inherit;
-  font-weight: 600;
-  border: none;
-  background: none;
-  padding: 0;
-  color: var(--color-primary-dark);
-  text-decoration: underline;
-  cursor: pointer;
 }
 
 .rerecommend-btn {
