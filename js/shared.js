@@ -69,6 +69,14 @@ function pantryText(item) {
   return item.amount ? `${item.name} ${item.amount}` : item.name;
 }
 
+/* AI에게 보낼 때만 쓰는 표기. 오래 둔 재료에만 며칠 됐는지를 덧붙인다.
+   전부 붙이면 프롬프트만 길어진다 — AI가 오늘 넣은 계란까지 신경 쓸 이유는 없고,
+   알아야 할 것은 "이건 곧 상하니 먼저 써라" 하나다. */
+function pantryPromptText(item) {
+  const age = pantryAgeText(item);
+  return age ? `${pantryText(item)} (${age}에 넣음)` : pantryText(item);
+}
+
 /* toISOString()은 UTC 기준이라 한국에서 자정 무렵에 하루가 어긋난다. 로컬 날짜로 만든다. */
 function todayISO() {
   const d = new Date();

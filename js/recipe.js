@@ -58,7 +58,8 @@ document.addEventListener("DOMContentLoaded", () => {
     rerecommendBtn.hidden = true;
     resultEl.innerHTML = "";
 
-    const pantryIngredients = loadPantry().map(pantryText).join(", ");
+    /* 오래 둔 재료에는 며칠 됐는지가 붙어서 나간다. AI가 그걸 먼저 쓰는 요리를 고른다. */
+    const pantryIngredients = loadPantry().map(pantryPromptText).join(", ");
     const extraIngredients = ingredientsEl.value.trim();
     const ingredients = [pantryIngredients, extraIngredients].filter(Boolean).join(", ");
 

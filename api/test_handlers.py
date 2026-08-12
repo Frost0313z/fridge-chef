@@ -139,6 +139,15 @@ def test_shopping_rules_are_shared():
     assert mealplan.SHOPPING_RULES in mealplan.SHOPPING_SYSTEM_PROMPT
 
 
+def test_stale_ingredient_instruction():
+    """오래 둔 재료를 먼저 쓰라는 지시가 두 프롬프트에 모두 있어야 한다.
+    프론트가 "(13일 전에 넣음)"을 붙여 보내도 지시가 없으면 AI는 그냥 무시한다."""
+    assert "전에 넣음" in recommend.SYSTEM_PROMPT, "레시피 추천 프롬프트에 지시 없음"
+    assert "먼저 추천" in recommend.SYSTEM_PROMPT
+    assert "전에 넣음" in mealplan.SYSTEM_PROMPT, "식단 프롬프트에 지시 없음"
+    assert "1일차에 가까운" in mealplan.SYSTEM_PROMPT
+
+
 def test_pantry_cap():
     """재료가 상한을 넘으면 앞에서 끊는다. 화면 안내가 이 숫자를 그대로 말하므로 값이 중요하다."""
     seen = {}

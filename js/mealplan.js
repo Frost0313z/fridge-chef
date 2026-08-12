@@ -77,8 +77,9 @@ document.addEventListener("DOMContentLoaded", () => {
     resultEl.innerHTML = "";
     setPlanVisible(false);
 
-    /* 서버는 예전처럼 문자열 배열을 받는다. 세 칸으로 나눈 것은 화면 사정이다. */
-    const pantry = loadPantry().map(pantryText);
+    /* 서버는 예전처럼 문자열 배열을 받는다. 세 칸으로 나눈 것은 화면 사정이다.
+       오래 둔 재료에는 며칠 됐는지가 붙어서, AI가 앞쪽 날짜에 배치한다. */
+    const pantry = loadPantry().map(pantryPromptText);
 
     status.setLoading(true);
     const result = await postJson(
