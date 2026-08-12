@@ -1,14 +1,7 @@
-/* 장보기 — 저장된 식단 계획에서 냉장고에 없는 재료만 골라 보여준다.
-   계산 로직(computeShoppingList)은 mealplan.js에서 그대로 옮겨왔다.
-   정규화·양방향 매칭은 과거 버그를 고쳐 만든 규칙이라 이동하면서 손대지 않았다. */
+/* 장보기 — 식단 계획을 세울 때 AI가 함께 뽑아둔 "부족한 재료" 목록을 보여준다.
+   무엇을 살지는 수량 판단이 필요해서 서버(api/mealplan.py)가 정하고, 여기서는 그리기만 한다. */
 
-/* 재료함이 비어 있으면 걸러낼 대상이 없어 식단의 모든 재료가 리스트에 담긴다.
-   그 상태에서 "냉장고에 없는 재료만 모았어요"라고 하면 걸러낸 적이 없는데 걸러낸 것처럼 들리고,
-   첫 사용자가 정확히 이 경로를 밟는다. 그래서 문구를 상황에 따라 나눈다. */
 const SHOPPING_HINT_AI = "식단에 필요한 양에서 냉장고에 있는 만큼을 빼고 남은 것만 모았어요.";
-const SHOPPING_HINT_FILTERED = "냉장고에 없는 재료만 모았어요.";
-const SHOPPING_HINT_NO_PANTRY =
-  "냉장고가 비어 있어서 식단에 필요한 재료를 모두 담았어요. 이미 가진 재료를 냉장고에 넣으면 다음부터는 부족한 것만 보여드려요.";
 const SHOPPING_HINT_SUFFIX = "자동으로 담기지는 않고, 클릭하면 쿠팡 검색 결과가 새 탭에서 열려요.";
 
 /* q만 붙인 최소 형태(`?q=계란`)로는 검색어가 반영되지 않고 빈 검색으로 열린다.
@@ -30,8 +23,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const btn = e.target.closest(".shopping-bought-btn");
     if (!btn) return;
 
-    /* 화면에는 원문("계란 2개")을 보여주지만 냉장고에는 정규화된 이름("계란")을 넣어야 한다.
-       수량이 붙은 채로 들어가면 다음 계산에서 isCovered() 매칭이 어긋난다. */
+    /* 화면에는 원문("계란 2개")을 보여주지만 냉장고에는 수량을 뺀 이름("계란")을 넣는다.
+       수량이 붙은 채로 들어가면 레시피 카드의 보유 표시(isCovered)가 어긋난다. */
     const name = btn.dataset.name;
     const pantry = loadPantry();
     /* 냉장고에 "계란 2개"처럼 수량이 붙어 있을 수 있어 문자열 일치로는 중복을 못 잡는다.
@@ -62,32 +55,26 @@ function render() {
   renderShoppingList(saved, loadPantry());
 }
 
-/* 살 것을 정하려면 수량을 따져야 한다 — "계란 2개"가 있어도 5일치에 8개가 필요하면 사야 한다.
-   프론트의 이름 매칭으로는 이 구분이 불가능해서, 이제 AI가 목록을 직접 뽑아준다.
-   이 필드가 없는 옛 저장분은 기존 이름 매칭으로 계산한다. */
-function shoppingItemsFor(saved, pantry) {
-  if (Array.isArray(saved.shoppingList)) {
-    return {
-      hint: SHOPPING_HINT_AI,
-      items: saved.shoppingList.map((i) => ({
-        label: [i.name, i.amount].filter(Boolean).join(" "),
-        query: i.name,
-      })),
-    };
-  }
-  return {
-    hint: pantry.length ? SHOPPING_HINT_FILTERED : SHOPPING_HINT_NO_PANTRY,
-    items: computeShoppingList(saved.plan, pantry),
-  };
-}
-
 function renderShoppingList(saved, pantry) {
   const listEl = document.getElementById("shopping-list");
   const hintEl = document.getElementById("shopping-list-hint");
   if (!listEl) return;
 
-  const { hint, items: shoppingList } = shoppingItemsFor(saved, pantry);
-  if (hintEl) hintEl.textContent = `${hint} ${SHOPPING_HINT_SUFFIX}`;
+  /* AI가 장보기 목록을 직접 뽑기 전에 저장된 계획에는 이 필드가 없다.
+     빈 목록으로 그리면 "다 있어요"로 읽혀 사실과 어긋나므로, 다시 뽑도록 안내한다. */
+  if (!Array.isArray(saved.shoppingList)) {
+    listEl.innerHTML = `<li class="shopping-item-none">예전에 저장한 식단이라 장보기 목록이 없어요.
+         <a href="mealplan.html">식단을 다시 계획하면 →</a> 부족한 재료를 뽑아드려요.</li>`;
+    return;
+  }
+
+  if (hintEl) hintEl.textContent = `${SHOPPING_HINT_AI} ${SHOPPING_HINT_SUFFIX}`;
+
+  /* localStorage는 사용자가 직접 고칠 수 있어 항목이 통째로 비어 있을 수 있다.
+     그대로 i.name을 읽으면 페이지가 죽으므로 여기서 걸러낸다. */
+  const shoppingList = saved.shoppingList
+    .filter((i) => i && i.name)
+    .map((i) => ({ label: [i.name, i.amount].filter(Boolean).join(" "), query: i.name }));
 
   if (!shoppingList.length) {
     /* 수량을 안 적으면 AI가 "충분히 있다"고 보고 아무것도 안 내놓는다.
@@ -114,25 +101,4 @@ function renderShoppingList(saved, pantry) {
   `
     )
     .join("");
-}
-
-function computeShoppingList(plan, pantry) {
-  const pantryNames = pantryNamesFor(pantry);
-  const seen = new Set();
-  const list = [];
-
-  plan.forEach((d) => {
-    (d.ingredients || []).forEach((ing) => {
-      const label = String(ing).trim();
-      const key = normalizeIngredient(label);
-      if (!key || seen.has(key)) return;
-      seen.add(key);
-
-      /* 화면에는 수량이 붙은 원문("계란 2개")을 그대로 보여주되,
-         쿠팡 검색은 수량을 뺀 이름("계란")으로 넘겨야 결과가 제대로 나온다. */
-      if (!isCovered(key, pantryNames)) list.push({ label, query: key });
-    });
-  });
-
-  return list;
 }
