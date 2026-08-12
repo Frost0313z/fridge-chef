@@ -1,6 +1,5 @@
 const HISTORY_KEY = "fridge-chef-history";
 const HISTORY_LIMIT = 5;
-const RECIPE_TIMELIMIT_KEY = "fridge-chef-recipe-timelimit";
 
 document.addEventListener("DOMContentLoaded", () => {
   initHistory();
@@ -27,14 +26,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   portionEl.addEventListener("change", () => savePrefs({ portion: portionEl.value }));
   healthyEl.addEventListener("change", () => savePrefs({ healthy: healthyEl.checked }));
-  timeLimitEl.addEventListener("change", () => localStorage.setItem(RECIPE_TIMELIMIT_KEY, timeLimitEl.value));
+  timeLimitEl.addEventListener("change", () => savePrefs({ timeLimit: timeLimitEl.value }));
 
   function restorePreferences() {
     const prefs = loadPrefs();
     if (prefs.portion) portionEl.value = prefs.portion;
     healthyEl.checked = Boolean(prefs.healthy);
-    const savedTimeLimit = localStorage.getItem(RECIPE_TIMELIMIT_KEY);
-    if (savedTimeLimit) timeLimitEl.value = savedTimeLimit;
+    if (prefs.timeLimit) timeLimitEl.value = prefs.timeLimit;
   }
 
   /* 오류 문구가 "잠시 후 다시 시도해주세요"로 끝나면 지금 저녁을 정해야 하는 사람에게는

@@ -1,6 +1,5 @@
 /* MEALPLAN_KEY와 loadSavedPlan()은 장보기 페이지도 읽으므로 shared.js에 있다.
    장보기 리스트 계산·렌더는 js/shopping.js로 옮겼다. */
-const MEALPLAN_DAYS_KEY = "fridge-chef-mealplan-days";
 const MP_REQUEST_TIMEOUT_MS = 25000;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -19,7 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   restorePreferences();
 
-  daysEl.addEventListener("change", () => localStorage.setItem(MEALPLAN_DAYS_KEY, daysEl.value));
+  daysEl.addEventListener("change", () => savePrefs({ days: daysEl.value }));
   portionEl.addEventListener("change", () => savePrefs({ portion: portionEl.value }));
   healthyEl.addEventListener("change", () => savePrefs({ healthy: healthyEl.checked }));
 
@@ -27,8 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const prefs = loadPrefs();
     if (prefs.portion) portionEl.value = prefs.portion;
     healthyEl.checked = Boolean(prefs.healthy);
-    const savedDays = localStorage.getItem(MEALPLAN_DAYS_KEY);
-    if (savedDays) daysEl.value = savedDays;
+    if (prefs.days) daysEl.value = prefs.days;
   }
 
   const emptyEl = document.getElementById("mealplan-empty");

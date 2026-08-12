@@ -59,14 +59,9 @@ class handler(BaseHTTPRequestHandler):
     def _route(self):
         """어떤 기능을 부르는지 알아낸다.
 
-        vercel.json이 /api/recommend 를 /api/index.py?route=recommend 로 넘기므로
-        쿼리를 먼저 보고, 없으면 경로의 마지막 조각을 쓴다(로컬 실행 대비).
+        vercel.json이 /api/recommend 를 /api/index.py?route=recommend 로 넘긴다.
         """
-        parsed = urlparse(self.path)
-        from_query = parse_qs(parsed.query).get("route", [""])[0].strip()
-        if from_query:
-            return from_query
-        return parsed.path.rstrip("/").rsplit("/", 1)[-1]
+        return parse_qs(urlparse(self.path).query).get("route", [""])[0].strip()
 
     def _send(self, status, body):
         payload = json.dumps(body, ensure_ascii=False).encode("utf-8")
