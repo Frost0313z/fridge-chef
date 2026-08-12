@@ -76,6 +76,27 @@ function todayISO() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+/* 넣은 지 며칠 됐는지. 날짜를 모르거나(옛 저장분) 값이 깨졌으면 null이다.
+   양쪽 다 자정 기준으로 맞춰서 "몇 시에 넣었는지"가 결과를 흔들지 않게 한다. */
+function daysSince(addedAt) {
+  if (typeof addedAt !== "string") return null;
+  const then = new Date(`${addedAt}T00:00:00`);
+  if (isNaN(then.getTime())) return null;
+  return Math.round((new Date(`${todayISO()}T00:00:00`) - then) / 86400000);
+}
+
+/* 며칠부터 "오래됐다"고 볼 것인가. 갓 넣은 재료에 "0일 전"을 붙이면 노이즈가 되고
+   정작 봐야 할 오래된 재료가 묻힌다. 대부분의 냉장 재료가 한 주쯤 지나면 신경 쓸
+   시점이 되므로 7일로 둔다. */
+const PANTRY_AGE_NOTICE_DAYS = 7;
+
+/* 오래된 것만 말한다. 목록은 넣은 순서 그대로라 오래된 재료가 이미 위에 있고,
+   여기에 며칠 됐는지만 붙이면 "뭐부터 먹지"의 답이 된다. */
+function pantryAgeText(item) {
+  const days = daysSince(item.addedAt);
+  return days !== null && days >= PANTRY_AGE_NOTICE_DAYS ? `${days}일 전` : "";
+}
+
 function loadPrefs() {
   const saved = loadJson(PREFS_KEY, {});
   return saved && typeof saved === "object" && !Array.isArray(saved) ? saved : {};
@@ -375,9 +396,14 @@ function pantryChipsHtml(pantry, withAmounts) {
           ? `${escapeHtml(item.name)}<span class="pantry-chip-amount">${escapeHtml(item.amount)}</span>`
           : escapeHtml(item.name);
 
+      /* 오래된 재료에만 붙는다. 수량 모드와 무관하게 항상 보인다 —
+         "몇 개 있나"는 골라 볼 정보지만 "이거 상하겠다"는 놓치면 안 되는 정보다. */
+      const age = pantryAgeText(item);
+
       return `
       <span class="pantry-chip">
         ${label}
+        ${age ? `<span class="pantry-chip-age">${age}</span>` : ""}
         <button type="button" class="pantry-chip-remove" data-index="${index}"
           aria-label="${escapeHtml(pantryText(item))} 삭제">×</button>
       </span>`;

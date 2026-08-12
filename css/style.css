@@ -680,6 +680,19 @@ a {
   font-weight: 400;
 }
 
+/* 넣은 지 오래된 재료에만 붙는다. 수량(글자색만 다름)과 형태로 구분되도록 옅은 판을 깐다.
+   오류가 아니라 알아둘 사실이므로 빨강을 쓰지 않는다 — 재료는 상한 게 아니라 오래된 것뿐이다. */
+.pantry-chip-age {
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-size: 0.75em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .pantry-chip-remove {
   position: relative;
   border: none;
