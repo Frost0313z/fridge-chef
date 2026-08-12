@@ -93,6 +93,22 @@ function daysSince(addedAt) {
   return Math.round((new Date(`${todayISO()}T00:00:00`) - then) / 86400000);
 }
 
+/* 사람은 "며칠 됐나"로 생각하지 달력을 역산하지 않는다. 8월 1일보다 "11일 전"이 읽힌다. */
+function pantryAgoLabel(addedAt) {
+  const days = daysSince(addedAt);
+  if (days === null) return "";
+  if (days <= 0) return "오늘";
+  if (days === 1) return "어제";
+  return `${days}일 전`;
+}
+
+/* 정확한 날짜는 마우스를 올렸을 때만 보여준다. 화면에 늘 두기엔 자리를 많이 먹는다. */
+function pantryAddedTitle(addedAt) {
+  if (typeof addedAt !== "string") return "";
+  const m = addedAt.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${Number(m[2])}월 ${Number(m[3])}일에 넣음` : "";
+}
+
 /* 며칠부터 "오래됐다"고 볼 것인가. 갓 넣은 재료에 "0일 전"을 붙이면 노이즈가 되고
    정작 봐야 할 오래된 재료가 묻힌다. 대부분의 냉장 재료가 한 주쯤 지나면 신경 쓸
    시점이 되므로 7일로 둔다. */
@@ -102,7 +118,7 @@ const PANTRY_AGE_NOTICE_DAYS = 7;
    여기에 며칠 됐는지만 붙이면 "뭐부터 먹지"의 답이 된다. */
 function pantryAgeText(item) {
   const days = daysSince(item.addedAt);
-  return days !== null && days >= PANTRY_AGE_NOTICE_DAYS ? `${days}일 전` : "";
+  return days !== null && days >= PANTRY_AGE_NOTICE_DAYS ? pantryAgoLabel(item.addedAt) : "";
 }
 
 function loadPrefs() {
@@ -386,32 +402,39 @@ function undoRemove() {
 }
 
 /* 평소에는 이름만 보여준다. 훑는 목적은 "뭐가 있는지"지 몇 개인지가 아니고,
-   30개에 수량까지 붙으면 화면이 수량으로 뒤덮인다. 수량은 켜서 본다.
+   30개에 수량과 날짜까지 붙으면 화면이 곁가지로 뒤덮인다. 필요할 때 켜서 본다.
    (같은 재료가 한 줄로 합쳐지기 때문에 숨겨도 안전하다 — 합치기가 없으면
-   "계란 2개"와 "계란 5개"가 둘 다 "계란"으로 보여 같은 게 둘인 것처럼 된다) */
-function showAmounts() {
+   "계란 2개"와 "계란 5개"가 둘 다 "계란"으로 보여 같은 게 둘인 것처럼 된다)
+
+   저장 키는 showAmounts 그대로 둔다. 수량만 보여주던 시절에 정한 이름인데,
+   지금 바꾸면 이미 켜둔 사용자의 설정이 초기화된다. */
+function showDetails() {
   return Boolean(loadPrefs().showAmounts);
 }
 
 /* 칩만 돌려준다. 감싸는 상자는 부르는 쪽이 이미 갖고 있다
    (냉장고 화면은 #pantry-chips, 조회 바는 새로 그리는 div). */
-function pantryChipsHtml(pantry, withAmounts) {
+function pantryChipsHtml(pantry, withDetails) {
   return pantry
     .map((item, index) => {
-      /* 화면에서 수량을 숨겨도 삭제는 원본 기준이고, 스크린리더에는 원문을 그대로 읽어준다. */
-      const label =
-        withAmounts && item.amount
-          ? `${escapeHtml(item.name)}<span class="pantry-chip-amount">${escapeHtml(item.amount)}</span>`
-          : escapeHtml(item.name);
-
-      /* 오래된 재료에만 붙는다. 수량 모드와 무관하게 항상 보인다 —
+      /* 오래된 재료에만 붙는다. 자세히 보기와 무관하게 항상 보인다 —
          "몇 개 있나"는 골라 볼 정보지만 "이거 상하겠다"는 놓치면 안 되는 정보다. */
-      const age = pantryAgeText(item);
+      const badge = pantryAgeText(item);
 
+      /* 자세히 보기에서 이름 뒤에 붙는 것들. 배지가 이미 며칠 됐는지 말하고 있으면
+         같은 말을 두 번 하지 않는다. */
+      const meta = withDetails
+        ? [item.amount, badge ? "" : pantryAgoLabel(item.addedAt)].filter(Boolean).join(" · ")
+        : "";
+
+      const title = pantryAddedTitle(item.addedAt);
+
+      /* 화면에서 곁가지를 숨겨도 삭제는 원본 기준이고, 스크린리더에는 원문을 읽어준다. */
       return `
-      <span class="pantry-chip">
-        ${label}
-        ${age ? `<span class="pantry-chip-age">${age}</span>` : ""}
+      <span class="pantry-chip"${title ? ` title="${escapeHtml(title)}"` : ""}>
+        ${escapeHtml(item.name)}
+        ${meta ? `<span class="pantry-chip-meta">${escapeHtml(meta)}</span>` : ""}
+        ${badge ? `<span class="pantry-chip-age">${badge}</span>` : ""}
         <button type="button" class="pantry-chip-remove" data-index="${index}"
           aria-label="${escapeHtml(pantryText(item))} 삭제">×</button>
       </span>`;
@@ -471,7 +494,7 @@ function renderPantryBar() {
   bodyEl.innerHTML = `
     ${
       pantry.length
-        ? `<div class="pantry-chips">${pantryChipsHtml(pantry, showAmounts())}</div>`
+        ? `<div class="pantry-chips">${pantryChipsHtml(pantry, showDetails())}</div>`
         : `<p class="pantry-bar-empty">아직 등록된 재료가 없어요. 아래에 적으면 바로 들어가요.</p>`
     }
     ${pantryLimitNoticeHtml(pantry)}
@@ -560,7 +583,7 @@ function initPantry() {
 
   function render() {
     emptyEl.hidden = pantry.length > 0;
-    chipsEl.innerHTML = pantryChipsHtml(pantry, showAmounts());
+    chipsEl.innerHTML = pantryChipsHtml(pantry, showDetails());
     if (limitEl) {
       limitEl.innerHTML = pantryLimitNoticeHtml(pantry);
       limitEl.hidden = pantry.length <= MEALPLAN_PANTRY_LIMIT;
@@ -626,8 +649,8 @@ function initPantry() {
 
   function syncAmountToggle() {
     if (!amountToggle) return;
-    const on = showAmounts();
-    amountToggle.textContent = on ? "수량 숨기기" : "수량 보기";
+    const on = showDetails();
+    amountToggle.textContent = on ? "간단히" : "자세히";
     amountToggle.setAttribute("aria-pressed", String(on));
     amountToggle.classList.toggle("is-on", on);
   }
@@ -635,7 +658,7 @@ function initPantry() {
   if (amountToggle) {
     syncAmountToggle();
     amountToggle.addEventListener("click", () => {
-      savePrefs({ showAmounts: !showAmounts() });
+      savePrefs({ showAmounts: !showDetails() });
       syncAmountToggle();
       render();
     });
