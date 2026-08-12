@@ -9,6 +9,12 @@ const MEALS = ["아침", "점심", "저녁"];
 let planItems = [];
 let planShoppingList = [];
 
+/* 평소에는 읽는 화면이다. 21칸마다 조작 버튼을 띄워두면 정작 "이번 주 뭐 먹지"가 안 읽힌다.
+   고치는 동안에만 조작을 꺼낸다. */
+let editMode = false;
+/* 고르고 → 놓기. 드래그와 달리 마우스·터치·키보드가 모두 같은 경로로 동작한다. */
+let selectedIndex = null;
+
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("mealplan-form");
   if (!form) return;
@@ -39,11 +45,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const emptyEl = document.getElementById("mealplan-empty");
   const nextEl = document.getElementById("mealplan-next");
 
+  const toolbarEl = document.getElementById("mealplan-toolbar");
+  const editBtn = document.getElementById("mealplan-edit-btn");
+
   /* 계획 유무에 따라 빈 상태 안내 / 결과 / 다음 행동을 한 번에 맞춘다. */
   function setPlanVisible(hasPlan) {
     emptyEl.hidden = hasPlan;
     nextEl.hidden = !hasPlan;
     clearBtn.hidden = !hasPlan;
+    toolbarEl.hidden = !hasPlan;
+    if (!hasPlan) setEditMode(false);
   }
 
   const saved = loadSavedPlan();
@@ -105,21 +116,74 @@ document.addEventListener("DOMContentLoaded", () => {
     setPlanVisible(false);
   });
 
-  /* 옮기기와 삭제는 매번 새로 그리는 카드 위에서 일어나므로 컨테이너에 한 번만 건다. */
-  resultEl.addEventListener("change", (e) => {
-    const select = e.target.closest(".meal-move");
-    if (!select || !select.value) return;
-    const [day, meal] = select.value.split("|");
-    moveMeal(Number(select.dataset.index), day, meal);
-  });
+  editBtn.addEventListener("click", () => setEditMode(!editMode));
 
+  /* 조작은 매번 새로 그리는 카드 위에서 일어나므로 컨테이너에 한 번만 건다. */
   resultEl.addEventListener("click", (e) => {
-    const btn = e.target.closest(".meal-delete");
-    if (!btn) return;
-    deleteMeal(Number(btn.dataset.index));
-    if (!planItems.length) setPlanVisible(false);
+    const del = e.target.closest(".meal-delete");
+    if (del) {
+      deleteMeal(Number(del.dataset.index));
+      if (!planItems.length) setPlanVisible(false);
+      return;
+    }
+
+    /* 빈 자리를 눌렀다 — 고른 메뉴를 여기로 옮긴다. */
+    const drop = e.target.closest(".meal-drop");
+    if (drop && selectedIndex !== null) {
+      const from = selectedIndex;
+      selectedIndex = null;
+      moveMeal(from, drop.dataset.day, drop.dataset.meal);
+      return;
+    }
+
+    const pick = e.target.closest(".meal-pick");
+    if (!pick) return;
+    const index = Number(pick.dataset.index);
+
+    if (selectedIndex === null || selectedIndex === index) {
+      // 고르기, 또는 같은 걸 다시 눌러 고르기 취소
+      selectedIndex = selectedIndex === null ? index : null;
+      renderPlan();
+      return;
+    }
+
+    /* 다른 메뉴 위에 놓았다 — 서로 자리를 맞바꾼다. */
+    const from = selectedIndex;
+    const target = planItems[index];
+    selectedIndex = null;
+    moveMeal(from, target.day, target.meal);
   });
 });
+
+/* 편집 모드에서만 조작이 나타난다. 모드를 끄면 고르던 것도 함께 푼다. */
+function setEditMode(on) {
+  editMode = on;
+  selectedIndex = null;
+
+  const btn = document.getElementById("mealplan-edit-btn");
+  if (btn) {
+    btn.textContent = on ? "다 바꿨어요" : "메뉴 바꾸기";
+    btn.setAttribute("aria-pressed", String(on));
+    btn.classList.toggle("is-on", on);
+  }
+  renderPlan();
+}
+
+/* 지금 무엇을 해야 하는지 한 줄로 알린다. role="status"라 화면을 보지 않아도 읽힌다. */
+function renderEditStatus() {
+  const el = document.getElementById("mealplan-edit-status");
+  if (!el) return;
+
+  if (!editMode) {
+    el.hidden = true;
+    return;
+  }
+  const picked = selectedIndex !== null ? planItems[selectedIndex] : null;
+  el.textContent = picked
+    ? `"${picked.menu}"을(를) 어디로 옮길까요? 옮길 자리를 누르세요. (이미 메뉴가 있으면 서로 바뀝니다)`
+    : "옮길 메뉴를 누르세요. 지울 메뉴는 옆의 × 를 누르면 됩니다.";
+  el.hidden = false;
+}
 
 /* 계획을 고치면 장보기 목록은 더 이상 이 계획의 것이 아니다.
    edited로 표시해두고, 장보기 화면이 "다시 뽑기"를 권한다. */
@@ -174,8 +238,7 @@ function renderPlan() {
   const resultEl = document.getElementById("mealplan-result");
   if (!resultEl) return;
 
-  const days = dayLabels();
-  resultEl.innerHTML = `<div class="mealplan-days">${days
+  resultEl.innerHTML = `<div class="mealplan-days${editMode ? " is-editing" : ""}">${dayLabels()
     .map(
       (day) => `
       <article class="mealplan-day-card">
@@ -184,54 +247,50 @@ function renderPlan() {
       </article>`
     )
     .join("")}</div>`;
+
+  renderEditStatus();
 }
 
+/* 읽을 때는 끼니·메뉴·레시피 링크만 보여준다.
+   재료를 21칸에 모두 펼치면 100줄이 넘어 "이번 주 뭐 먹지"가 안 읽힌다.
+   무엇을 사야 하는지는 장보기 화면이, 어떻게 만드는지는 레시피 링크가 이미 답한다.
+   (재료 데이터 자체는 지우지 않는다 — 장보기를 다시 뽑을 때 서버로 보낸다) */
 function mealSlotHtml(day, meal) {
   const index = planItems.findIndex((i) => i.day === day && i.meal === meal);
   const label = `<span class="meal-label">${meal}</span>`;
 
   if (index < 0) {
+    if (editMode && selectedIndex !== null) {
+      return `<div class="meal-slot">
+        <button type="button" class="meal-drop" data-day="${escapeHtml(day)}" data-meal="${meal}">
+          ${label}<span class="meal-hint">여기로 옮기기</span>
+        </button></div>`;
+    }
     return `<div class="meal-slot meal-slot-empty">${label}
-      <span class="meal-empty-text">비어 있음 — 다른 끼니를 여기로 옮길 수 있어요</span></div>`;
+      <span class="meal-empty-text">비어 있음</span></div>`;
   }
 
   const item = planItems[index];
-  return `
-    <div class="meal-slot">
-      <div class="meal-head">
-        ${label}
-        <span class="meal-menu">${escapeHtml(item.menu || "")}</span>
-      </div>
-      <ul class="meal-ingredients">${(item.ingredients || [])
-        .map((i) => `<li>${escapeHtml(i)}</li>`)
-        .join("")}</ul>
-      ${recipeSearchLinkHtml(item.menu, item.searchKeyword)}
-      <div class="meal-actions">
-        <label class="meal-move-label">
-          <span class="visually-hidden">${escapeHtml(item.menu || "")} 옮길 자리</span>
-          <select class="meal-move" data-index="${index}">
-            <option value="">옮기기…</option>
-            ${moveOptionsHtml(day, meal)}
-          </select>
-        </label>
-        <button type="button" class="meal-delete" data-index="${index}"
-          aria-label="${escapeHtml(item.menu || "")} 삭제">삭제</button>
-      </div>
-    </div>`;
-}
+  const name = escapeHtml(item.menu || "");
 
-/* 자기 자리를 뺀 모든 칸을 목적지로 제시한다. 이미 찬 자리는 맞바꾼다는 걸 미리 알려준다. */
-function moveOptionsHtml(fromDay, fromMeal) {
-  return dayLabels()
-    .map((day) => {
-      const options = MEALS.filter((meal) => !(day === fromDay && meal === fromMeal))
-        .map((meal) => {
-          const taken = planItems.some((i) => i.day === day && i.meal === meal);
-          const text = taken ? `${day} ${meal} (맞바꾸기)` : `${day} ${meal}`;
-          return `<option value="${escapeHtml(day)}|${meal}">${escapeHtml(text)}</option>`;
-        })
-        .join("");
-      return `<optgroup label="${escapeHtml(day)}">${options}</optgroup>`;
-    })
-    .join("");
+  if (!editMode) {
+    return `
+      <div class="meal-slot">
+        <div class="meal-head">${label}<span class="meal-menu">${name}</span></div>
+        ${recipeSearchLinkHtml(item.menu, item.searchKeyword)}
+      </div>`;
+  }
+
+  const picked = selectedIndex === index;
+  const hint = picked ? "고른 메뉴 · 다시 누르면 취소" : selectedIndex !== null ? "여기와 맞바꾸기" : "";
+
+  return `
+    <div class="meal-slot meal-slot-edit">
+      <button type="button" class="meal-pick${picked ? " is-picked" : ""}" data-index="${index}"
+        aria-pressed="${picked}">
+        ${label}<span class="meal-menu">${name}</span>
+        ${hint ? `<span class="meal-hint">${hint}</span>` : ""}
+      </button>
+      <button type="button" class="meal-delete" data-index="${index}" aria-label="${name} 삭제">×</button>
+    </div>`;
 }

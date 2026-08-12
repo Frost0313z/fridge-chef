@@ -737,52 +737,121 @@ a {
   color: var(--color-text-muted);
 }
 
-.meal-actions {
+/* ==========================================================================
+   식단 편집 모드
+   ==========================================================================
+   평소에는 읽는 화면이라 조작 요소를 두지 않는다. "메뉴 바꾸기"를 누른 동안에만
+   고르기·놓기·삭제가 나타난다. 드래그가 아니라 "고르고 → 놓기"인 이유는
+   마우스·터치·키보드가 모두 같은 경로로 동작해야 하기 때문이다(A7). */
+.mealplan-toolbar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 10px;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 28px;
 }
 
-.meal-move,
-.meal-delete {
+.mealplan-toolbar-title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.mealplan-edit-btn {
   font: inherit;
-  font-size: 0.82rem;
-  min-height: 36px;
-  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
   border: 1px solid var(--color-border);
   background: var(--color-surface);
-  color: var(--color-text);
-  padding: 0 10px;
+  color: var(--color-primary-dark);
   cursor: pointer;
 }
 
-.meal-move {
-  flex: 1;
-  min-width: 0;
-}
-
-.meal-delete {
-  flex: none;
-  color: var(--color-danger);
-}
-
-.meal-delete:hover,
-.meal-move:hover {
+.mealplan-edit-btn:hover {
   border-color: var(--color-primary-dark);
 }
 
-/* 화면에는 안 보이지만 스크린리더는 읽어야 하는 설명. */
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-  border: 0;
+/* 켜져 있는 동안은 버튼 자체가 상태 표시다. */
+.mealplan-edit-btn.is-on {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.mealplan-edit-status {
+  margin: 10px 0 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  font-size: 0.88rem;
+}
+
+.meal-slot-edit {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+/* 고르는 대상 자체가 버튼이다. 별도 조작 아이콘을 덧붙이지 않는다. */
+.meal-pick,
+.meal-drop {
+  font: inherit;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.meal-drop {
+  border-style: dashed;
+  color: var(--color-primary-dark);
+}
+
+.meal-pick:hover,
+.meal-drop:hover {
+  border-color: var(--color-primary-dark);
+  border-style: solid;
+}
+
+/* 고른 메뉴는 테두리만으로는 약하다. 배경까지 바꿔 어느 것을 들고 있는지 분명히 한다. */
+.meal-pick.is-picked {
+  background: var(--color-bg);
+  border-color: var(--color-primary-dark);
+  box-shadow: inset 0 0 0 1px var(--color-primary-dark);
+}
+
+.meal-hint {
+  flex-basis: 100%;
+  font-size: 0.78rem;
+  color: var(--color-primary-dark);
+}
+
+.meal-delete {
+  font: inherit;
+  flex: none;
+  width: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-danger);
+  cursor: pointer;
+}
+
+.meal-delete:hover {
+  border-color: var(--color-danger);
 }
 
 /* 식단을 고친 뒤의 장보기 목록은 계획과 다를 수 있다. 그 사실을 목록보다 먼저 말한다. */
@@ -793,14 +862,6 @@ a {
   border-radius: 10px;
   background: var(--color-bg);
   font-size: 0.9rem;
-}
-
-@media (max-width: 640px) {
-  /* 손가락으로 누르는 크기를 확보한다 (C9). */
-  .meal-move,
-  .meal-delete {
-    min-height: 44px;
-  }
 }
 
 .shopping-list-section {

@@ -73,7 +73,14 @@
       <p id="mealplan-loading" class="loading" role="status" aria-live="polite" hidden>🗓️ 일주일치 식단을 짜고 있어요...</p>
       <p id="mealplan-error" class="error-message" role="alert" hidden></p>
 
-      <p id="mealplan-empty" class="result-empty">아직 계획이 없어요. 위에서 며칠치 저녁을 계획해보세요.</p>
+      <p id="mealplan-empty" class="result-empty">아직 계획이 없어요. 위에서 며칠치 세 끼를 계획해보세요.</p>
+
+      <div id="mealplan-toolbar" class="mealplan-toolbar" hidden>
+        <h2 class="mealplan-toolbar-title">🗓️ 이번 주 식단</h2>
+        <button type="button" id="mealplan-edit-btn" class="mealplan-edit-btn" aria-pressed="false">메뉴 바꾸기</button>
+      </div>
+      <p id="mealplan-edit-status" class="mealplan-edit-status" role="status" hidden></p>
+
       <div id="mealplan-result" aria-live="polite"></div>
 
       <p id="mealplan-next" class="mealplan-next" hidden>
