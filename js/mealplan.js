@@ -227,8 +227,8 @@ function submitAddSlot() {
 }
 
 /* 빈 자리에 메뉴 한 칸을 만든다. 재료는 묻지 않는다 — 21칸마다 재료까지 적게 하면
-   손으로 넣는 편이 다시 계획하는 것보다 번거로워진다. 재료가 없으면 서버가
-   "재료 정보 없음"으로 보고 장보기 목록을 뽑는다(api/mealplan.py). */
+   손으로 넣는 편이 다시 계획하는 것보다 번거로워진다. 재료가 비어 있으면 장보기를
+   다시 뽑을 때 서버가 그 메뉴의 재료만 AI에게 물어 채운다(api/mealplan.py). */
 function addMeal(menu, searchKeyword, ingredients) {
   if (!addingSlot) return;
 

@@ -19,6 +19,7 @@ import _common  # noqa: E402
 import index  # noqa: E402
 import mealplan  # noqa: E402
 import recommend  # noqa: E402
+import shopping  # noqa: E402
 
 
 def test_recipes_dedupe():
@@ -133,10 +134,13 @@ def test_plan_capped_by_days():
     assert len(mealplan.sanitize_plan(raw, days=2)) == 6
 
 
-def test_shopping_rules_are_shared():
-    """식단을 짤 때와 목록만 다시 뽑을 때가 같은 기준을 써야 한다."""
-    assert mealplan.SHOPPING_RULES in mealplan.SYSTEM_PROMPT
-    assert mealplan.SHOPPING_RULES in mealplan.SHOPPING_SYSTEM_PROMPT
+def test_ingredient_rules_are_shared():
+    """식단을 짤 때와 빠진 재료를 채울 때가 같은 기준으로 재료를 적어야 한다.
+    한쪽만 고치면 같은 요리인데 표기가 달라져 합산이 어긋난다."""
+    assert mealplan.INGREDIENT_RULES in mealplan.SYSTEM_PROMPT
+    assert mealplan.INGREDIENT_RULES in mealplan.INGREDIENT_SYSTEM_PROMPT
+    # 수량을 안 적으면 서버가 뺄셈을 할 수 없다. 이 지시가 빠지면 조용히 다시 부정확해진다.
+    assert "숫자를 붙이세요" in mealplan.INGREDIENT_RULES
 
 
 def test_stale_ingredient_instruction():
@@ -166,51 +170,134 @@ def test_pantry_cap():
         mealplan.call_openai = original
 
 
-def test_shopping_handler():
-    """고친 식단을 그대로 받아 목록만 돌려준다. 계획이 비면 부르지 않는다."""
+def test_shopping_handler_needs_no_ai():
+    """재료가 다 적혀 있으면 목록은 코드가 센다 — AI를 부를 일이 없다.
+    계획이 비면 아무것도 하지 않는다."""
     status, body = mealplan.handle_shopping({"plan": [], "pantry": []})
     assert status == 400 and body["error"] == "empty_plan", body
 
-    seen = {}
+    def must_not_call(system, user, timeout, temperature):
+        raise AssertionError("재료가 다 있는데 AI를 불렀다")
 
-    def fake_call(system, user, timeout, temperature):
-        seen["user"] = user
-        return {"shoppingList": [{"name": "계란", "amount": "6개"}, {"name": "밥"}]}, None
-
-    original, mealplan.call_openai = mealplan.call_openai, fake_call
+    original, mealplan.call_openai = mealplan.call_openai, must_not_call
     try:
         status, body = mealplan.handle_shopping(
-            {"plan": [{"day": "1일차", "meal": "저녁", "menu": "덮밥", "ingredients": ["두부"]}],
-             "pantry": ["계란 2개"]}
+            {
+                "plan": [
+                    {"day": "1일차", "meal": "저녁", "menu": "덮밥",
+                     "ingredients": ["계란 4개", "두부 1모", "밥 1공기"]}
+                ],
+                "pantry": ["계란 1개"],
+            }
         )
         assert status == 200
-        # 프롬프트에 고친 식단이 그대로 들어가고, 사러 갈 일 없는 "밥"은 서버가 뺀다.
-        assert "1일차 저녁: 덮밥 (두부)" in seen["user"], seen["user"]
-        assert body["shoppingList"] == [{"name": "계란", "amount": "6개"}], body
+        # 계란은 4개 필요한데 1개뿐이라 3개, 두부는 없으니 1모. "밥"은 사러 갈 일이 없다.
+        assert body["shoppingList"] == [
+            {"name": "계란", "amount": "3개"},
+            {"name": "두부", "amount": "1모"},
+        ], body
     finally:
         mealplan.call_openai = original
 
 
-def test_manual_menu_without_ingredients():
-    """사용자가 빈 자리에 직접 넣은 메뉴는 재료가 없다. 그래도 버려지지 않고 프롬프트에 들어가야 한다.
+def test_manual_menu_ingredients_are_filled():
+    """사용자가 빈 자리에 직접 넣은 메뉴는 재료가 없다. 그대로 두면 그 끼니가 통째로
+    장보기에서 빠지므로, 그 메뉴만 AI에게 물어 채운 뒤 계산에 넣는다."""
+    seen = {}
 
-    화면이 재료를 묻지 않기로 했으므로(21칸마다 재료까지 적게 하면 손으로 넣는 편이
-    다시 계획하는 것보다 번거로워진다) 이 형태가 서버로 올라오는 정상 입력이다."""
-    plan = mealplan.sanitize_plan(
-        [{"day": "3일차", "meal": "저녁", "menu": "제육볶음", "searchKeyword": "", "ingredients": []}], 7
-    )
-    assert len(plan) == 1, plan
+    def fake_call(system, user, timeout, temperature):
+        seen["user"] = user
+        return {"menus": [{"menu": "제육볶음", "ingredients": ["돼지고기 150g", "양파 1개"]}]}, None
 
-    prompt = mealplan.build_shopping_prompt(plan, ["계란 2개"])
-    assert "3일차 저녁: 제육볶음 (재료 정보 없음)" in prompt, prompt
+    original, mealplan.call_openai = mealplan.call_openai, fake_call
+    try:
+        status, body = mealplan.handle_shopping(
+            {
+                "plan": [
+                    {"day": "3일차", "meal": "저녁", "menu": "제육볶음", "ingredients": []},
+                    {"day": "3일차", "meal": "점심", "menu": "덮밥", "ingredients": ["계란 2개"]},
+                ],
+                "pantry": ["양파 3개"],
+            }
+        )
+        assert status == 200
+        # 재료를 모르는 메뉴만 묻는다 — 이미 아는 "덮밥"까지 물으면 느려지고 답이 흔들린다.
+        assert "제육볶음" in seen["user"] and "덮밥" not in seen["user"], seen["user"]
+        # 양파는 냉장고에 3개가 있어 안 사도 된다. 채워 넣은 재료가 계산에 실제로 반영된다.
+        assert body["shoppingList"] == [
+            {"name": "돼지고기", "amount": "150g"},
+            {"name": "계란", "amount": "2개"},
+        ], body
+    finally:
+        mealplan.call_openai = original
 
 
-def test_shopping_list_filter():
-    """사러 갈 일이 없는 항목은 AI가 넣어도 서버가 뺀다."""
-    out = mealplan.sanitize_shopping_list(
-        [{"name": "밥"}, {"name": "소 금"}, {"name": "계란", "amount": "6개"}, {"name": ""}]
-    )
-    assert out == [{"name": "계란", "amount": "6개"}], out
+def test_parse_line():
+    """재료 한 줄에서 이름·수량·단위를 뽑는다. 못 읽으면 "없다"가 아니라 "모른다"로 둔다."""
+    assert shopping.parse_line("계란 2개") == ("계란", 2.0, "개")
+    assert shopping.parse_line("대파 1/2대") == ("대파", 0.5, "대")
+    assert shopping.parse_line("돼지고기 1.5kg") == ("돼지고기", 1500.0, "g")  # 작은 단위로 맞춘다
+    assert shopping.parse_line("계란 3알") == ("계란", 3.0, "개")  # 알과 개는 같은 것을 센다
+    assert shopping.parse_line("두부(1모)") == ("두부", 1.0, "모")
+    assert shopping.parse_line("김치 조금") == ("김치", None, "")
+    assert shopping.parse_line("두부") == ("두부", None, "")
+    # 냉장고 재료에 붙어 오는 "(13일 전에 넣음)"은 수량이 아니다. 13을 수량으로 읽으면 안 된다.
+    assert shopping.parse_line("양파 2개 (13일 전에 넣음)") == ("양파", 2.0, "개")
+
+
+def test_shopping_sums_across_meals():
+    """AI가 못 하던 일 — 여러 끼니에 흩어진 같은 재료를 더한다."""
+    plan = [
+        {"ingredients": ["계란 2개", "대파 1/2대"]},
+        {"ingredients": ["계란 3개"]},
+        {"ingredients": ["계란 1알", "대파 1/2대"]},
+    ]
+    assert shopping.build_shopping_list(plan, []) == [
+        {"name": "계란", "amount": "6개"},
+        {"name": "대파", "amount": "1대"},
+    ]
+
+
+def test_shopping_subtracts_pantry():
+    """냉장고에 있는 만큼만 뺀다. "조금이라도 있으면 넘어가는" 것이 원래의 버그였다."""
+    plan = [{"ingredients": ["계란 6개", "우유 300ml"]}, {"ingredients": ["계란 4개"]}]
+    assert shopping.build_shopping_list(plan, ["계란 4개", "우유 1l"]) == [
+        {"name": "계란", "amount": "6개"},  # 10개 필요, 4개 보유
+    ]  # 우유는 1리터가 있어 300ml는 덮인다
+
+
+def test_shopping_without_pantry_quantity():
+    """냉장고에 수량이 안 적혀 있으면 뺄 근거가 없다. 필요한 만큼을 그대로 올린다 —
+    이미 있는 걸 또 사는 쪽이, 필요한 걸 안 사서 못 만드는 쪽보다 낫다."""
+    plan = [{"ingredients": ["계란 6개"]}]
+    assert shopping.build_shopping_list(plan, ["계란"]) == [{"name": "계란", "amount": "6개"}]
+
+
+def test_shopping_without_plan_quantity():
+    """수량 없이 저장된 옛 계획. 얼마나 부족한지 계산할 수 없으므로 냉장고에 있으면 두고,
+    없으면 이름만 올린다. 여기서 수량을 지어내면 틀린 숫자를 믿게 만든다."""
+    plan = [{"ingredients": ["두부", "애호박"]}]
+    assert shopping.build_shopping_list(plan, ["두부 1모"]) == [{"name": "애호박", "amount": ""}]
+
+
+def test_shopping_rounds_up():
+    """0.5모가 필요해도 반 모는 못 산다. 살 수 있는 단위로 올린다."""
+    plan = [{"ingredients": ["두부 1/4모"]}, {"ingredients": ["두부 1/4모"]}]
+    assert shopping.build_shopping_list(plan, []) == [{"name": "두부", "amount": "1모"}]
+
+
+def test_shopping_excludes_staples():
+    """소금·밥처럼 사러 갈 일이 없는 것은 재료로 적혀 있어도 목록에서 뺀다."""
+    plan = [{"ingredients": ["소금 1작은술", "밥 1공기", "고춧가루 1큰술", "계란 1개"]}]
+    assert shopping.build_shopping_list(plan, []) == [{"name": "계란", "amount": "1개"}]
+
+
+def test_shopping_full_week_regression():
+    """AI가 틀렸던 그 상황 — 7일치 21끼. 계란은 냉장고에 4개뿐이라 반드시 목록에 남아야 한다.
+    계획이 커질수록 틀리던 것이 이 함수를 만든 이유이므로, 규모 그대로 확인한다."""
+    plan = [{"ingredients": ["계란 2개", "양파 1/2개", "대파 1/2대"]} for _ in range(21)]
+    out = {i["name"]: i["amount"] for i in shopping.build_shopping_list(plan, ["계란 4개", "양파 2개", "대파 1대"])}
+    assert out == {"계란": "38개", "양파": "9개", "대파": "10대"}, out
 
 
 def test_handler_returns_500_on_crash():
