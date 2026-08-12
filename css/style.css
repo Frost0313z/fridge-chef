@@ -4,12 +4,17 @@
 :root {
   --color-bg: #fff8f0;
   --color-surface: #ffffff;
+  /* 주황은 두 가지 역할을 한다. 채움(--color-primary)은 밝아도 되지만,
+     글자·포커스링(--color-primary-dark)은 배경과 4.5:1을 넘겨야 읽힌다.
+     예전 값 #e05e2b은 크림 배경에서 3.43:1이라 본문 크기 글자가 흐렸다. */
   --color-primary: #ff7a45;
-  --color-primary-dark: #e05e2b;
+  --color-primary-dark: #b8501f;
+  /* 밝은 주황 채움 위에 흰 글자를 올리면 2.59:1이다. 잉크를 올려 5.96:1로 맞춘다. */
+  --color-on-primary: #2b2320;
   --color-text: #2b2320;
   --color-text-muted: #7a6f68;
   --color-border: #f0ddd0;
-  --color-danger: #d64545;
+  --color-danger: #b32d2d;
   --color-danger-bg: #fdecec;
   --color-danger-border: #f4c2c2;
   --radius: 14px;
@@ -21,7 +26,9 @@
   --color-bg: #1a1512;
   --color-surface: #241d19;
   --color-primary: #ff8a5c;
+  /* 다크 모드에서는 주황이 어두운 배경 위에 놓여 이미 7.8:1이므로 밝은 쪽을 그대로 쓴다. */
   --color-primary-dark: #ffa477;
+  --color-on-primary: #2b2320;
   --color-text: #f3ece6;
   --color-text-muted: #b8a99e;
   --color-border: #3a2f28;
@@ -64,7 +71,7 @@ body {
 
 /* 키보드 사용자에게만 초점 위치를 확실히 보여준다 (마우스 클릭 시에는 표시하지 않음). */
 :focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-primary-dark);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -87,7 +94,7 @@ a {
   top: -60px;
   z-index: 200;
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
   font-weight: 600;
   padding: 10px 18px;
   border-radius: 0 0 10px 10px;
@@ -271,7 +278,7 @@ a {
 .cta-button {
   display: inline-block;
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
   font-weight: 700;
   padding: 14px 28px;
   border-radius: 999px;
@@ -446,7 +453,7 @@ a {
   height: 32px;
   border-radius: 50%;
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -888,7 +895,7 @@ a {
 #recipe-form textarea:focus,
 #recipe-form select:focus,
 #mealplan-form select:focus {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-primary-dark);
   outline-offset: 1px;
 }
 
