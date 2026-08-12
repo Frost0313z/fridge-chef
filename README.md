@@ -234,6 +234,14 @@ msong7618@gmail.com
 `git log --oneline --graph --all`
 
 ```
+* 4144ad7 docs: 배포 URL과 배포본 실행 화면 캡처를 README에 반영
+* c44d03f feat: 장보기 목록을 AI가 수량까지 따져 직접 뽑도록 변경
+* a45236f fix: 장보기 리스트에 소금·후추·물 같은 기본 조미료가 섞이던 문제
+* 358b429 fix: 배포 사이트에서 정적 페이지 대신 API 응답만 나오던 문제
+* b10b15c refactor: Vercel 단일 진입점 구조에 맞춰 api를 라우터 + 기능 모듈로 재구성
+* afec11f fix: Vercel Python 빌드 실패 - 레거시 빌더를 명시해 다중 엔드포인트 유지
+* adac892 fix: 쿠팡 검색 링크가 빈 검색으로 열리던 문제
+* 723be07 docs: 개발환경 증빙 git log 갱신
 * 6e89617 docs: 책임 단위 재편을 기획서/README/원칙 문서에 반영
 * b29628b fix: 네비 항목이 5개로 늘면서 모바일 메뉴 마지막 항목이 잘리던 문제
 * 08f6aa3 feat: 각 화면의 빈 상태와 다음 행동 안내 정비
