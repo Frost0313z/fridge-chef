@@ -77,7 +77,8 @@ document.addEventListener("DOMContentLoaded", () => {
     resultEl.innerHTML = "";
     setPlanVisible(false);
 
-    const pantry = loadPantry();
+    /* 서버는 예전처럼 문자열 배열을 받는다. 세 칸으로 나눈 것은 화면 사정이다. */
+    const pantry = loadPantry().map(pantryText);
 
     status.setLoading(true);
     const result = await postJson(

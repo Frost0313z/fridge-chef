@@ -29,13 +29,51 @@ function saveJson(key, value) {
   }
 }
 
+/* 재료 한 줄은 { name, amount, addedAt } 세 칸이다.
+   addedAt은 냉장고에 넣은 날(YYYY-MM-DD)이고 사용자가 입력하지 않는다 — 넣을 때 자동으로 찍힌다.
+   유통기한을 직접 적게 하면 자취생은 안 적는다. 넣은 날짜만 알아도 "뭐부터 먹지"는 답할 수 있다.
+
+   세 칸으로 나누기 전에는 "계란 2개" 같은 문자열 하나였다. 옛 저장분은 읽을 때 변환하되
+   저장은 건드리지 않는다 — 변환하다 실패해도 원본이 남아 있어야 냉장고가 비지 않는다.
+   다음에 뭔가를 넣거나 지울 때 새 형식으로 자연히 넘어간다. */
+function toPantryItem(raw) {
+  if (raw && typeof raw === "object") {
+    return {
+      name: String(raw.name || "").trim(),
+      amount: String(raw.amount || "").trim(),
+      addedAt: typeof raw.addedAt === "string" ? raw.addedAt : null,
+    };
+  }
+  /* 문자열도 객체도 아니면 재료가 아니다. String()으로 억지로 바꾸면 null이 "null"이라는
+     이름의 재료가 되어 화면에 나타난다. 이름을 비워 두면 아래에서 걸러진다. */
+  if (typeof raw !== "string") return { name: "", amount: "", addedAt: null };
+
+  /* 옛 저장분은 언제 넣었는지 알 길이 없다. 오늘로 찍지 않고 모른다고 둔다 —
+     2주 전에 넣은 것을 오늘 넣었다고 하면 "먼저 먹어라" 신호가 거꾸로 간다. */
+  return { ...splitIngredient(raw), addedAt: null };
+}
+
 function loadPantry() {
   const saved = loadJson(PANTRY_KEY, []);
-  return Array.isArray(saved) ? saved : [];
+  if (!Array.isArray(saved)) return [];
+  return saved.map(toPantryItem).filter((item) => item.name);
 }
 
 function savePantry(items) {
   return saveJson(PANTRY_KEY, items);
+}
+
+/* 화면과 프롬프트가 쓰는 한 줄 표기. 세 칸으로 나누기 전과 같은 모양이라
+   서버로 보내는 값도, 이름 비교 규칙도 그대로 쓸 수 있다. */
+function pantryText(item) {
+  return item.amount ? `${item.name} ${item.amount}` : item.name;
+}
+
+/* toISOString()은 UTC 기준이라 한국에서 자정 무렵에 하루가 어긋난다. 로컬 날짜로 만든다. */
+function todayISO() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 function loadPrefs() {
@@ -130,7 +168,7 @@ function isCovered(target, pantryNames) {
 /* 재료함 목록을 비교용으로 한 번에 정규화한다. 화면을 그릴 때마다 다시 부르므로
    "지금의 재료함" 기준이 항상 반영된다. */
 function pantryNamesFor(pantry) {
-  return pantry.map(normalizeIngredient).filter(Boolean);
+  return pantry.map((item) => normalizeIngredient(item.name)).filter(Boolean);
 }
 
 /* AI가 주는 조리 순서는 3~5줄이라 실제로 요리하기엔 얕고, 카드에서 흐름이 끝난다.
@@ -239,7 +277,7 @@ function pantryLimitNoticeHtml(pantry) {
    냉장고 페이지의 재료함과 다른 페이지의 조회 바가 같은 문구를 써야 하므로 여기 둔다. */
 function pantrySummaryText(pantry) {
   if (!pantry.length) return "(비어 있음 · 등록해두면 다음부터 편해요)";
-  const head = pantry.slice(0, 2).join(", ");
+  const head = pantry.slice(0, 2).map((item) => item.name).join(", ");
   const rest = pantry.length - 2;
   return rest > 0 ? `(${head} 외 ${rest}개)` : `(${head})`;
 }
@@ -257,23 +295,31 @@ function addToPantry(rawValue) {
   const added = [];
   const updated = [];
   const unchanged = [];
+  const today = todayISO();
 
-  items.forEach((item) => {
+  items.forEach((raw) => {
     /* 이름이 같으면 같은 재료다. "계란"과 "계란 2개"를 두 줄로 쌓지 않는다. */
-    const key = normalizeIngredient(item);
-    const at = pantry.findIndex((p) => normalizeIngredient(p) === key);
+    const key = normalizeIngredient(raw);
+    const at = pantry.findIndex((p) => normalizeIngredient(p.name) === key);
 
     if (at < 0) {
-      pantry.push(item);
-      added.push(item);
-    } else if (pantry[at] === item) {
-      unchanged.push(item);
-    } else {
-      /* 다시 넣는 행위는 "지금은 이만큼이다"라는 최신 선언으로 본다.
-         막으면 수량을 고칠 방법이 없어지고, 물어보면 매번 한 단계가 늘어난다. */
-      updated.push({ from: pantry[at], to: item });
-      pantry[at] = item;
+      pantry.push({ ...splitIngredient(raw), addedAt: today });
+      added.push(raw);
+      return;
     }
+
+    const current = pantry[at];
+    if (pantryText(current) === raw) {
+      unchanged.push(raw);
+      return;
+    }
+
+    /* 다시 넣는 행위는 "지금은 이만큼이다"라는 최신 선언으로 본다.
+       막으면 수량을 고칠 방법이 없어지고, 물어보면 매번 한 단계가 늘어난다. */
+    updated.push({ from: pantryText(current), to: raw });
+    /* 넣은 날짜는 그대로 둔다. 수량만 고쳤는데 날짜가 새로 찍히면 2주 된 두부가
+       오늘 넣은 것으로 둔갑해 "먼저 먹어라" 신호를 잃는다. */
+    pantry[at] = { ...splitIngredient(raw), addedAt: current.addedAt };
   });
 
   const changed = added.length || updated.length;
@@ -291,9 +337,10 @@ function removeFromPantry(index) {
 
   const [removed] = pantry.splice(index, 1);
   const stored = savePantry(pantry);
-  /* 저장이 안 됐으면 되돌릴 것도 없다 (원래 값이 그대로 남아 있다). */
-  lastRemoved = stored ? { name: removed, index } : null;
-  return { removed, stored };
+  /* 저장이 안 됐으면 되돌릴 것도 없다 (원래 값이 그대로 남아 있다).
+     되돌릴 때 넣은 날짜까지 살아나야 하므로 항목을 통째로 들고 있는다. */
+  lastRemoved = stored ? { item: removed, index } : null;
+  return { removed: pantryText(removed), stored };
 }
 
 /* 확인창 대신 되돌리기를 둔다. 확인창은 맞게 지우는 99번을 방해하고,
@@ -302,9 +349,9 @@ function undoRemove() {
   if (!lastRemoved) return null;
 
   const pantry = loadPantry();
-  pantry.splice(Math.min(lastRemoved.index, pantry.length), 0, lastRemoved.name);
+  pantry.splice(Math.min(lastRemoved.index, pantry.length), 0, lastRemoved.item);
   const stored = savePantry(pantry);
-  const name = lastRemoved.name;
+  const name = pantryText(lastRemoved.item);
   lastRemoved = null;
   return { name, stored };
 }
@@ -323,17 +370,16 @@ function pantryChipsHtml(pantry, withAmounts) {
   return pantry
     .map((item, index) => {
       /* 화면에서 수량을 숨겨도 삭제는 원본 기준이고, 스크린리더에는 원문을 그대로 읽어준다. */
-      const { name, amount } = splitIngredient(item);
       const label =
-        withAmounts && amount
-          ? `${escapeHtml(name)}<span class="pantry-chip-amount">${escapeHtml(amount)}</span>`
-          : escapeHtml(withAmounts ? item : name);
+        withAmounts && item.amount
+          ? `${escapeHtml(item.name)}<span class="pantry-chip-amount">${escapeHtml(item.amount)}</span>`
+          : escapeHtml(item.name);
 
       return `
       <span class="pantry-chip">
         ${label}
         <button type="button" class="pantry-chip-remove" data-index="${index}"
-          aria-label="${escapeHtml(item)} 삭제">×</button>
+          aria-label="${escapeHtml(pantryText(item))} 삭제">×</button>
       </span>`;
     })
     .join("");

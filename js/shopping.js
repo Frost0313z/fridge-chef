@@ -37,8 +37,10 @@ document.addEventListener("DOMContentLoaded", () => {
     /* 냉장고에 "계란 2개"처럼 수량이 붙어 있을 수 있어 문자열 일치로는 중복을 못 잡는다.
        정규화한 이름으로 비교해 같은 재료가 두 줄로 생기지 않게 한다. */
     const key = normalizeIngredient(name);
-    if (key && !pantry.some((p) => normalizeIngredient(p) === key)) {
-      pantry.push(name);
+    /* 이미 있으면 건드리지 않는다. 산 만큼 총량이 늘지만 정확한 총량은 알 수 없어서,
+       적게 잡는 쪽으로 틀리는 편이 안전하다(A1). */
+    if (key && !pantry.some((p) => normalizeIngredient(p.name) === key)) {
+      pantry.push({ ...splitIngredient(name), addedAt: todayISO() });
       savePantry(pantry);
     }
     render();
@@ -80,7 +82,7 @@ async function refreshShoppingList() {
 
   const result = await postJson(
     "/api/shopping",
-    { plan: saved.plan, pantry: loadPantry() },
+    { plan: saved.plan, pantry: loadPantry().map(pantryText) },
     REFRESH_TIMEOUT_MS
   );
 
@@ -126,7 +128,7 @@ function renderShoppingList(saved, pantry) {
   if (!shoppingList.length) {
     /* 수량을 안 적으면 AI가 "충분히 있다"고 보고 아무것도 안 내놓는다.
        그 상태에서 "다 있어요"라고 하면 사실과 다르므로, 왜 비었는지를 알려준다. */
-    const hasQuantity = pantry.some((p) => /\d/.test(p));
+    const hasQuantity = pantry.some((p) => /\d/.test(p.amount));
     listEl.innerHTML = hasQuantity
       ? `<li class="shopping-item-none">냉장고에 다 있어요! 따로 살 재료가 없어요 🎉</li>`
       : `<li class="shopping-item-none">살 게 없다고 나왔어요.

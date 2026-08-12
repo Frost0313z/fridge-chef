@@ -58,7 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
     rerecommendBtn.hidden = true;
     resultEl.innerHTML = "";
 
-    const pantryIngredients = loadPantry().join(", ");
+    const pantryIngredients = loadPantry().map(pantryText).join(", ");
     const extraIngredients = ingredientsEl.value.trim();
     const ingredients = [pantryIngredients, extraIngredients].filter(Boolean).join(", ");
 
