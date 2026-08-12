@@ -268,9 +268,53 @@ a {
   text-decoration: underline;
 }
 
-/* 조회 전용이므로 삭제 버튼 자리(오른쪽 여백)가 필요 없다. */
+/* 조회 바에서는 삭제하지 않으므로 삭제 버튼 자리(오른쪽 여백)가 필요 없다. */
 .pantry-chip-readonly {
   padding: 6px 14px;
+}
+
+/* 추가는 흐름 중간에 자주 필요하므로 여기서도 되게 한다. 삭제는 냉장고에서만(A4). */
+.pantry-bar-add {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.pantry-bar-add input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.pantry-bar-add button {
+  flex: none;
+  min-height: 44px;
+  padding: 0 18px;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 10px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  cursor: pointer;
+}
+
+.pantry-bar-add button:hover {
+  background: var(--color-primary-hover);
+}
+
+.pantry-bar-status {
+  margin: 8px 0 0;
+  font-size: 0.88rem;
+  color: var(--color-text);
 }
 
 /* ==========================================================================
