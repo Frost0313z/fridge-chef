@@ -433,23 +433,27 @@ function mealSlotHtml(day, meal) {
     }
     /* 메뉴를 고른 상태에서는 옮길 자리로만 쓴다 — 옮기기와 넣기를 한 자리에 같이 두면
        무엇을 누르는 건지 알 수 없다. 고른 게 없을 때만 넣기가 나온다. */
+    /* 빈 자리의 본문은 어느 상태에서나 "끼니 + 비어 있음"으로 같다.
+       메뉴가 있는 칸이 [본문][× 버튼]인 것과 맞추려고, 조작은 옆의 정사각 버튼이 진다. */
+    const blank = `${label}<span class="meal-empty-text">비어 있음</span>`;
+
+    /* 메뉴를 들고 있을 때는 본문 전체가 놓을 자리가 된다 — 정사각 버튼만 노리게 하면
+       21칸에서 표적이 너무 작다. 눌렀을 때 무슨 일이 생기는지는 상단 안내가 말한다. */
     if (editMode && selectedIndex !== null) {
-      /* "여기로 옮기기"도 칸마다 반복되던 문장이라 뺐다. 점선 테두리가 빈 자리라는 표시고,
-         눌렀을 때 무슨 일이 일어나는지는 상단 안내가 이미 말하고 있다.
-         (아무것도 안 든 상태의 "+ 메뉴 넣기"는 남긴다 — 그건 설명이 아니라 그 버튼의 이름이다) */
-      return `<div class="meal-slot">
+      return `<div class="meal-slot meal-slot-edit">
         <button type="button" class="meal-drop" data-day="${escapeHtml(day)}" data-meal="${meal}"
-          aria-label="${escapeHtml(day)} ${meal}으로 옮기기">${label}</button></div>`;
+          aria-label="${escapeHtml(day)} ${meal}으로 옮기기">${blank}</button></div>`;
     }
+
     if (editMode) {
-      return `<div class="meal-slot">
+      return `<div class="meal-slot meal-slot-edit">
+        <div class="meal-blank">${blank}</div>
         <button type="button" class="meal-add" data-day="${escapeHtml(day)}" data-meal="${meal}"
-          aria-label="${escapeHtml(day)} ${meal}에 메뉴 넣기">
-          ${label}<span class="meal-hint">+ 메뉴 넣기</span>
-        </button></div>`;
+          aria-label="${escapeHtml(day)} ${meal}에 메뉴 넣기">+</button>
+      </div>`;
     }
-    return `<div class="meal-slot meal-slot-empty">${label}
-      <span class="meal-empty-text">비어 있음</span></div>`;
+
+    return `<div class="meal-slot meal-slot-empty">${blank}</div>`;
   }
 
   const item = planItems[index];
