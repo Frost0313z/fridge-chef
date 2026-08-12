@@ -142,8 +142,21 @@ function escapeHtml(str) {
 /* AI는 "계란 2개", "두부(반모)", "대파 1/2대"처럼 수량을 붙여서 답하는데
    재료함에는 보통 "계란", "두부"처럼 이름만 등록돼 있다. 비교 전에 수량·단위·괄호를 걷어낸다.
    (주간 식단의 장보기 리스트와 레시피 추천 카드의 보유 표시가 같은 규칙을 써야 하므로 여기 둔다) */
-const QUANTITY_PATTERN =
-  /\d+(\.\d+)?(\/\d+)?\s*(g|kg|ml|l|개|알|장|줄|대|모|쪽|톨|컵|큰술|작은술|스푼|봉지|봉|팩|캔|공기|인분|주먹)?/g;
+/* 수량 뒤에 붙는 단위. 긴 것부터 시도해야 "kg"이 "g"로, "봉지"가 "봉"으로 잘리지 않는다.
+   서버(api/shopping.py)의 _UNITS와 같은 목록이어야 한다 — 한쪽에만 단위를 추가하면
+   화면이 수량으로 지운 글자를 서버는 이름의 일부로 읽어 같은 재료가 둘로 갈라진다. */
+const AMOUNT_UNITS = [
+  "g", "kg", "ml", "l", "개", "알", "장", "줄", "대", "모", "쪽", "톨", "컵",
+  "큰술", "작은술", "스푼", "봉지", "봉", "팩", "캔", "공기", "인분", "주먹",
+  "단", "통", "마리", "조각",
+].sort((a, b) => b.length - a.length);
+
+const NUMBER_SOURCE = "\\d+(?:\\.\\d+)?(?:\\/\\d+)?";
+
+const QUANTITY_PATTERN = new RegExp(
+  `${NUMBER_SOURCE}\\s*(?:${AMOUNT_UNITS.join("|")})?`,
+  "g"
+);
 
 /* 숫자 없는 수량 표현. 입력칸이 "김치 조금"을 예시로 권하는데 이걸 떼지 않으면
    "김치"와 "김치 조금"이 다른 재료로 취급돼, 권한 대로 적은 사람만 중복이 쌓인다. */
@@ -182,6 +195,69 @@ function splitIngredient(raw) {
   /* 이름이 안 남으면(수량만 적은 입력) 원문을 이름으로 두고 수량은 비운다.
      같은 글자를 이름과 수량 양쪽에 두 번 그리지 않기 위해서다. */
   return name ? { name, amount } : { name: text, amount: "" };
+}
+
+/* 같은 것을 다르게 세는 말과, 배수만 다른 단위. 합칠 수 있어야 "계란 2개"와 "계란 3알"이
+   5개로 모인다. api/shopping.py의 같은 표와 짝이다. 확실히 같은 것만 넣는다 —
+   마늘 "1통"과 "1톨"은 양이 열 배 차이라 묶으면 안 된다. */
+const UNIT_ALIASES = { 알: "개" };
+const UNIT_SCALES = { kg: ["g", 1000], l: ["ml", 1000] };
+
+const SINGLE_AMOUNT_PATTERN = new RegExp(
+  `(${NUMBER_SOURCE})\\s*(${AMOUNT_UNITS.join("|")})?`
+);
+
+/* 수량 하나를 숫자와 단위로 읽는다. 못 읽으면 null이다 — "0"이 아니라 "모른다"이므로,
+   부르는 쪽은 0으로 치지 말고 계산을 포기해야 한다.
+   서버(api/shopping.py)의 parse_line과 같은 규칙이어야 한다. 한쪽만 고치면
+   장보기는 6개를 사라고 해놓고 냉장고에는 다른 숫자가 들어간다. */
+function parseAmount(text) {
+  const match = String(text || "").match(SINGLE_AMOUNT_PATTERN);
+  if (!match) return null;
+
+  const raw = match[1];
+  let value;
+  if (raw.includes("/")) {
+    const [top, bottom] = raw.split("/").map(Number);
+    value = bottom ? top / bottom : NaN;
+  } else {
+    value = Number(raw);
+  }
+  if (!isFinite(value)) return null;
+
+  let unit = match[2] || "";
+  unit = UNIT_ALIASES[unit] || unit;
+  if (UNIT_SCALES[unit]) {
+    value *= UNIT_SCALES[unit][1];
+    unit = UNIT_SCALES[unit][0];
+  }
+  return { value, unit };
+}
+
+/* 살 수 있는 단위로 올려 적는다. 0.5모가 필요해도 반 모는 못 사고,
+   "2.0개"가 아니라 "2개"라고 적어야 목록으로 읽힌다.
+   0.5 + 0.5가 0.999...로 떨어져도 2개가 되지 않도록 여유를 두고 올린다. */
+function formatAmount(value, unit) {
+  return `${Math.ceil(value - 1e-9)}${unit}`;
+}
+
+/* 두 수량을 더한다. 단위가 다르거나 못 읽으면 null 이다 — 숫자를 지어내지 않는다. */
+function addAmounts(a, b) {
+  const left = parseAmount(a);
+  const right = parseAmount(b);
+  if (!left || !right || left.unit !== right.unit) return null;
+  return formatAmount(left.value + right.value, left.unit);
+}
+
+/* 재료 줄 목록("계란 4개", ...)에서 그 재료의 수량을 단위별로 합친다.
+   못 읽은 수량은 0으로 세지 않고 빼둔다 — 모르는 것을 없는 것으로 만들면 안 된다. */
+function amountIn(lines, name, unit) {
+  const key = normalizeIngredient(name);
+  return lines.reduce((sum, line) => {
+    if (normalizeIngredient(splitIngredient(line).name) !== key) return sum;
+    const parsed = parseAmount(line);
+    return parsed && parsed.unit === unit ? sum + parsed.value : sum;
+  }, 0);
 }
 
 /* 한 방향 비교(`식단재료.includes(재료함항목)`)는 재료함에 "파"가 있으면

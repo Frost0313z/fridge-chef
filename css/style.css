@@ -1177,6 +1177,14 @@ a {
   font-size: 0.88rem;
 }
 
+/* "샀어요"를 누른 뒤 무엇이 냉장고에 들어갔는지 알려주는 줄. 목록에서 줄이 사라지는 것도
+   반응이지만, 단위가 달라 합치지 못한 때처럼 목록이 그대로인 경우가 있다(원칙 3). */
+.shopping-status {
+  margin: 12px 0 0;
+  font-size: 0.88rem;
+  color: var(--color-text);
+}
+
 .shopping-list {
   list-style: none;
   margin: 0;

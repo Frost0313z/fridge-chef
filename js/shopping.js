@@ -28,23 +28,66 @@ document.addEventListener("DOMContentLoaded", () => {
     const btn = e.target.closest(".shopping-bought-btn");
     if (!btn) return;
 
-    /* 화면에는 원문("계란 2개")을 보여주지만 냉장고에는 수량을 뺀 이름("계란")을 넣는다.
-       수량이 붙은 채로 들어가면 레시피 카드의 보유 표시(isCovered)가 어긋난다. */
-    const name = btn.dataset.name;
-    const pantry = loadPantry();
-    /* 냉장고에 "계란 2개"처럼 수량이 붙어 있을 수 있어 문자열 일치로는 중복을 못 잡는다.
-       정규화한 이름으로 비교해 같은 재료가 두 줄로 생기지 않게 한다. */
-    const key = normalizeIngredient(name);
-    /* 이미 있으면 건드리지 않는다. 산 만큼 총량이 늘지만 정확한 총량은 알 수 없어서,
-       적게 잡는 쪽으로 틀리는 편이 안전하다(A1). */
-    if (key && !pantry.some((p) => normalizeIngredient(p.name) === key)) {
-      pantry.push({ ...splitIngredient(name), addedAt: todayISO() });
-      savePantry(pantry);
-    }
+    setStatus(buyIntoPantry(btn.dataset.name, btn.dataset.amount));
     render();
     renderPantryBar();
   });
 });
+
+/* 무슨 일이 있었는지 말해준다. 목록에서 줄이 사라지는 것도 반응이지만, 단위가 달라
+   합치지 못한 경우처럼 목록이 그대로인 때가 있다. 그때 아무 말이 없으면 고장으로 읽힌다. */
+function setStatus(message) {
+  const statusEl = document.getElementById("shopping-status");
+  if (!statusEl) return;
+  statusEl.textContent = message || "";
+  statusEl.hidden = !message;
+}
+
+/* 산 것을 냉장고에 넣는다. 이미 있으면 수량을 더한다.
+   예전에는 이미 있으면 아무것도 하지 않았다 — 수량이 모자라서 사러 간 바로 그 경우에
+   버튼이 데이터도 화면도 건드리지 않아 완전히 무반응이었다.
+   수량도 버리지 않는다. "대파 1단"을 "대파"로 넣으면 다음 계산이 그걸 "있다"로 읽어,
+   장보기가 스스로 자기 입력을 망가뜨린다. */
+function buyIntoPantry(name, amount) {
+  /* 냉장고에 "계란 2개"처럼 수량이 붙어 있어 문자열 일치로는 중복을 못 잡는다.
+     정규화한 이름으로 비교해 같은 재료가 두 줄로 생기지 않게 한다. */
+  const key = normalizeIngredient(name);
+  if (!key) return "";
+
+  const pantry = loadPantry();
+  const at = pantry.findIndex((p) => normalizeIngredient(p.name) === key);
+  const bought = [name, amount].filter(Boolean).join(" ");
+
+  if (at < 0) {
+    pantry.push({ name, amount: amount || "", addedAt: todayISO() });
+    return saveMessage(savePantry(pantry), `${bought}을(를) 냉장고에 넣었어요.`);
+  }
+
+  const current = pantry[at];
+  const merged = addAmounts(current.amount, amount);
+  if (merged) {
+    /* 넣은 날짜는 그대로 둔다. 수량만 늘었는데 날짜가 새로 찍히면 2주 된 재료가
+       오늘 넣은 것으로 둔갑해 "먼저 먹어라" 신호를 잃는다 (냉장고 화면과 같은 규칙). */
+    pantry[at] = { ...current, amount: merged };
+    return saveMessage(savePantry(pantry), `${current.name} ${current.amount} → ${merged}로 늘렸어요.`);
+  }
+
+  /* 냉장고 쪽 수량을 모르면("계란") 산 만큼이 최소한의 사실이다. 적게 잡는 쪽으로
+     틀리는 편이 안전하므로 그대로 적는다(A1). */
+  if (amount && !parseAmount(current.amount)) {
+    pantry[at] = { ...current, amount };
+    return saveMessage(savePantry(pantry), `${current.name}의 수량을 ${amount}로 적어뒀어요.`);
+  }
+
+  /* 단위가 서로 달라("1팩"과 "500ml") 더할 방법이 없다. 아무 숫자나 지어내지 않고,
+     무엇을 직접 고쳐야 하는지 알려준다. */
+  return `냉장고에 이미 "${current.name} ${current.amount}"이(가) 있어요.
+    단위가 달라 ${amount}을(를) 합치지 못했어요. 냉장고에서 직접 고쳐주세요.`;
+}
+
+function saveMessage(stored, message) {
+  return stored ? message : "브라우저에 저장하지 못했어요. 시크릿 창이라면 일반 창에서 다시 열어주세요.";
+}
 
 function render() {
   const emptyEl = document.getElementById("shopping-empty");
@@ -78,9 +121,12 @@ async function refreshShoppingList() {
   loadingEl.hidden = false;
   errorEl.hidden = true;
 
+  /* 보낸 냉장고와 스냅샷이 같은 순간의 것이어야 한다. 응답을 기다리는 사이에
+     조회 바로 재료를 넣으면 나중에 읽은 냉장고는 계산에 쓰인 것과 달라진다. */
+  const pantrySnapshot = loadPantry().map(pantryText);
   const result = await postJson(
     "/api/shopping",
-    { plan: saved.plan, pantry: loadPantry().map(pantryText) },
+    { plan: saved.plan, pantry: pantrySnapshot },
     REFRESH_TIMEOUT_MS
   );
 
@@ -93,13 +139,44 @@ async function refreshShoppingList() {
     return;
   }
 
-  /* 성공했을 때만 edited를 지운다. 실패했는데 지우면 어긋난 목록을 맞는 것처럼 보여주게 된다. */
+  /* 성공했을 때만 edited를 지운다. 실패했는데 지우면 어긋난 목록을 맞는 것처럼 보여주게 된다.
+     냉장고 스냅샷도 목록과 함께 갱신한다 — 새 목록의 수량은 지금 냉장고 기준의 부족분이라,
+     옛 스냅샷을 그대로 두면 이미 산 것을 또 뺀다. */
   saveJson(MEALPLAN_KEY, {
     ...saved,
     shoppingList: Array.isArray(result.data.shoppingList) ? result.data.shoppingList : [],
+    pantryAt: pantrySnapshot,
     edited: false,
   });
+  setStatus("");
   render();
+}
+
+/* 목록의 수량은 "목록을 뽑을 때의 냉장고" 기준으로 부족했던 양이다. 그 뒤로 냉장고에
+   들어온 만큼을 빼서 지금 남은 양을 돌려준다. 다 채웠으면 null — 그 줄은 사라진다.
+   그래야 "샀어요"가 실제로 목록을 줄이고, 냉장고 화면에서 직접 넣어도 똑같이 반영된다.
+
+   스냅샷이 없는 옛 계획은 뺄 기준이 없으므로 목록을 그대로 둔다. 기준 없이 지금 냉장고와
+   대조하면, 원래 갖고 있던 양까지 "방금 샀다"로 세어 필요한 재료를 목록에서 지워버린다. */
+function remainingAmount(item, pantryLines, pantryAt) {
+  const amount = item.amount || "";
+  if (!Array.isArray(pantryAt)) return amount;
+
+  const need = parseAmount(amount);
+  /* 수량을 모르거나("두부") 단위가 둘 이상이면("150g, 2개") 뺄셈을 할 수 없다.
+     그때는 이름이 냉장고에 새로 생겼는지만 본다 — 없던 것이 생겼으면 사 온 것이다. */
+  if (!need || amount.includes(",")) {
+    const key = normalizeIngredient(item.name);
+    const has = (lines) => lines.some((l) => normalizeIngredient(splitIngredient(l).name) === key);
+    return has(pantryLines) && !has(pantryAt) ? null : amount;
+  }
+
+  /* 줄어든 경우(냉장고에서 재료를 빼면 음수가 된다)까지 필요량에 더하지는 않는다.
+     장보기 목록은 그때의 계획이 기준이고, 그 뒤에 먹어 없앤 양까지 여기서 다시 세면
+     같은 재료를 두 번 사게 된다. */
+  const gained = amountIn(pantryLines, item.name, need.unit) - amountIn(pantryAt, item.name, need.unit);
+  const left = need.value - Math.max(0, gained);
+  return left > 0 ? formatAmount(left, need.unit) : null;
 }
 
 function renderShoppingList(saved, pantry) {
@@ -119,10 +196,18 @@ function renderShoppingList(saved, pantry) {
   }
 
   /* localStorage는 사용자가 직접 고칠 수 있어 항목이 통째로 비어 있을 수 있다.
-     그대로 i.name을 읽으면 페이지가 죽으므로 여기서 걸러낸다. */
+     그대로 i.name을 읽으면 페이지가 죽으므로 여기서 걸러낸다.
+     남은 양이 null이면 다 채운 것이므로 줄을 지운다 — 목록이 냉장고를 따라간다. */
+  const pantryLines = pantry.map(pantryText);
   const shoppingList = saved.shoppingList
     .filter((i) => i && i.name)
-    .map((i) => ({ label: [i.name, i.amount].filter(Boolean).join(" "), query: i.name }));
+    .map((i) => ({ name: i.name, amount: remainingAmount(i, pantryLines, saved.pantryAt) }))
+    .filter((i) => i.amount !== null)
+    .map((i) => ({
+      label: [i.name, i.amount].filter(Boolean).join(" "),
+      query: i.name,
+      amount: i.amount,
+    }));
 
   if (!shoppingList.length) {
     /* 수량을 안 적으면 AI가 "충분히 있다"고 보고 아무것도 안 내놓는다.
@@ -143,7 +228,8 @@ function renderShoppingList(saved, pantry) {
       <span>${escapeHtml(item.label)}</span>
       <span class="shopping-item-actions">
         <a href="${escapeHtml(coupangSearchUrl(item.query))}" target="_blank" rel="noopener" aria-label="${escapeHtml(item.query)} 쿠팡에서 검색">쿠팡에서 검색 →</a>
-        <button type="button" class="shopping-bought-btn" data-name="${escapeHtml(item.query)}" aria-label="${escapeHtml(item.label)} 샀어요 - 냉장고에 넣기">샀어요</button>
+        <button type="button" class="shopping-bought-btn" data-name="${escapeHtml(item.query)}"
+          data-amount="${escapeHtml(item.amount)}" aria-label="${escapeHtml(item.label)} 샀어요 - 냉장고에 넣기">샀어요</button>
       </span>
     </li>
   `

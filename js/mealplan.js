@@ -12,6 +12,11 @@ const MEAL_CLASS = { 아침: "morning", 점심: "noon", 저녁: "night" };
 let planItems = [];
 let planShoppingList = [];
 
+/* 장보기 목록을 뽑을 때의 냉장고. 목록의 수량은 "그때 기준으로 부족한 만큼"이라,
+   그 뒤에 냉장고가 얼마나 늘었는지를 알아야 장보기 화면이 남은 양을 계산할 수 있다.
+   이게 없으면 "샀어요"를 눌러도 목록이 줄지 않는다. */
+let planPantryAt = null;
+
 /* 계획한 일수. 남아 있는 메뉴에서 역산하지 않고 따로 들고 있는다 —
    마지막 날 세 끼를 다 지우면 그 날짜 칸이 통째로 사라져서, 거기에 다시 넣을 수가 없었다. */
 let planDays = 0;
@@ -75,6 +80,8 @@ document.addEventListener("DOMContentLoaded", () => {
       .filter((i) => i && i.menu)
       .map((i) => ({ ...i, meal: MEALS.includes(i.meal) ? i.meal : "저녁" }));
     planShoppingList = Array.isArray(saved.shoppingList) ? saved.shoppingList : [];
+    /* 빈 냉장고([])와 "옛 저장분이라 모름"(null)은 다르다. 뒤엣것은 뺄 기준이 없다는 뜻이다. */
+    planPantryAt = Array.isArray(saved.pantryAt) ? saved.pantryAt : null;
     /* 일수를 적어두기 전에 저장된 계획은 0이 된다 — 그때는 예전처럼 메뉴에서 역산한다. */
     planDays = Number(saved.days) || 0;
   }
@@ -88,8 +95,12 @@ document.addEventListener("DOMContentLoaded", () => {
     setPlanVisible(false);
 
     /* 서버는 예전처럼 문자열 배열을 받는다. 세 칸으로 나눈 것은 화면 사정이다.
-       오래 둔 재료에는 며칠 됐는지가 붙어서, AI가 앞쪽 날짜에 배치한다. */
-    const pantry = loadPantry().map(pantryPromptText);
+       오래 둔 재료에는 며칠 됐는지가 붙어서, AI가 앞쪽 날짜에 배치한다.
+       스냅샷은 지금 이 자리에서 뜬다 — 응답을 기다리는 사이에 조회 바로 재료를 넣으면
+       나중에 읽은 냉장고는 계산에 쓰인 것과 달라진다. */
+    const pantryItems = loadPantry();
+    const pantry = pantryItems.map(pantryPromptText);
+    const pantrySnapshot = pantryItems.map(pantryText);
 
     status.setLoading(true);
     const result = await postJson(
@@ -117,6 +128,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     planItems = plan;
     planShoppingList = Array.isArray(result.data.shoppingList) ? result.data.shoppingList : [];
+    planPantryAt = pantrySnapshot;
     planDays = Number(daysEl.value) || 0;
     savePlan(false);
     renderPlan();
@@ -128,6 +140,7 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.removeItem(MEALPLAN_KEY);
     planItems = [];
     planShoppingList = [];
+    planPantryAt = null;
     planDays = 0;
     resultEl.innerHTML = "";
     setPlanVisible(false);
@@ -311,6 +324,9 @@ function savePlan(edited) {
   return saveJson(MEALPLAN_KEY, {
     plan: planItems,
     shoppingList: planShoppingList,
+    /* 목록을 뽑을 때의 냉장고. 계획을 고쳐도 목록과 함께 그대로 따라가야
+       장보기 화면이 "그 뒤로 얼마나 채웠는지"를 잴 수 있다. */
+    pantryAt: planPantryAt,
     /* 메뉴를 다 지워도 며칠치였는지는 남겨야 그 날짜 칸에 다시 넣을 수 있다. */
     days: planDays,
     edited: Boolean(edited),
