@@ -51,5 +51,7 @@ def call_openai(system_prompt, user_prompt, timeout, temperature):
         return None, (502, {"error": "connection_error", "message": "AI 서버에 연결하지 못했어요. 잠시 후 다시 시도해주세요."})
     except APIStatusError:
         return None, (502, {"error": "upstream_error", "message": "AI 서비스에 일시적인 문제가 발생했어요. 잠시 후 다시 시도해주세요."})
-    except (ValueError, json.JSONDecodeError, KeyError, IndexError):
+    # TypeError는 AI가 거부 응답을 줘서 content가 None일 때 json.loads가 던진다.
+    # 잡지 않으면 예외가 그대로 올라가 응답을 못 보내고, 프론트가 네트워크 오류로 오해한다.
+    except (ValueError, TypeError, AttributeError, KeyError, IndexError):
         return None, (502, {"error": "bad_ai_response", "message": "AI 응답을 해석하지 못했어요. 다시 시도해주세요."})

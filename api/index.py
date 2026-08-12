@@ -16,6 +16,7 @@ Vercel의 Python 런타임은 프로젝트당 하나의 진입점을 기본 위�
 import json
 import os
 import sys
+import traceback
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
@@ -53,7 +54,14 @@ class handler(BaseHTTPRequestHandler):
             self._send(400, {"error": "invalid_request", "message": "요청 형식이 올바르지 않아요."})
             return
 
-        status, body = run(payload)
+        # 여기서 막지 않으면 예외가 그대로 올라가 응답 자체를 못 보낸다.
+        # 프론트는 그걸 네트워크 장애로 읽어서 "연결을 확인하세요"라는 엉뚱한 안내를 띄운다.
+        try:
+            status, body = run(payload)
+        except Exception:
+            traceback.print_exc()  # Vercel 런타임 로그(vercel logs)에 남는다
+            status, body = 500, {"error": "internal_error", "message": "처리 중 문제가 생겼어요. 잠시 후 다시 시도해주세요."}
+
         self._send(status, body)
 
     def _route(self):

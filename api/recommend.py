@@ -44,6 +44,12 @@ HEALTHY_HINT = "건강 관리를 신경 쓰는 중이야. 기름지거나 자극
 MAX_RECIPES = 3
 
 
+def dedupe_key(name):
+    """"김치볶음밥"과 "김치 볶음밥"을 같은 요리로 본다. 띄어쓰기만 지우고 그 이상은 하지 않는다 —
+    "된장찌개"와 "차돌된장찌개"를 같다고 묶으면 멀쩡한 추천이 사라진다."""
+    return name.replace(" ", "")
+
+
 def sanitize_recipes(raw):
     """response_format으로 JSON은 보장되지만 '스키마'까지 보장되지는 않는다.
     이름 없는 항목은 버리고, 나머지 필드는 프론트가 기대하는 타입으로 맞춰서 내보낸다."""
@@ -51,12 +57,18 @@ def sanitize_recipes(raw):
         return []
 
     recipes = []
+    seen = set()
     for item in raw:
         if not isinstance(item, dict):
             continue
         name = str(item.get("name") or "").strip()
         if not name:
             continue
+        # 한 응답 안에 같은 요리를 두 번 주는 경우가 있다. 카드가 두 장 뜨면 추천이 아니라 고장으로 보인다.
+        key = dedupe_key(name)
+        if key in seen:
+            continue
+        seen.add(key)
         recipes.append(
             {
                 "name": name,
@@ -70,7 +82,7 @@ def sanitize_recipes(raw):
     return recipes[:MAX_RECIPES]
 
 
-def build_user_prompt(ingredients, portion, time_limit, healthy):
+def build_user_prompt(ingredients, portion, time_limit, healthy, exclude=()):
     lines = [
         f"보유 재료: {ingredients}",
         # 혼자 먹는다는 전제이므로 "몇 인분"이 아니라 "몇 끼 분량"으로 전달한다.
@@ -79,6 +91,10 @@ def build_user_prompt(ingredients, portion, time_limit, healthy):
     ]
     if healthy:
         lines.append(HEALTHY_HINT)
+    # "다른 요리 추천받기"를 눌렀는데 같은 요리가 다시 나오면 버튼이 거짓말이 된다.
+    # 같은 요청을 온도에만 맡기지 않고, 방금 본 요리를 이름으로 빼달라고 명시한다.
+    if exclude:
+        lines.append(f"다음 요리는 방금 추천했으니 빼고 다른 요리로 골라줘: {', '.join(exclude)}")
     lines.append("위 조건에 맞는 요리를 추천해줘.")
     return "\n".join(lines)
 
@@ -93,9 +109,14 @@ def handle(payload):
     time_limit = (payload.get("timeLimit") or "상관없음").strip()
     healthy = bool(payload.get("healthy"))
 
+    # 프롬프트에 그대로 들어가므로 개수를 제한한다. 이력이 5개라 실제로는 넘칠 일이 없다.
+    # str(None)은 "None"이라 참 같은 값이 된다. 문자열만 받아야 프롬프트에 "None"이 섞이지 않는다.
+    raw_exclude = payload.get("exclude")
+    exclude = [x.strip() for x in raw_exclude if isinstance(x, str) and x.strip()][:10] if isinstance(raw_exclude, list) else []
+
     data, error = call_openai(
         SYSTEM_PROMPT,
-        build_user_prompt(ingredients, portion, time_limit, healthy),
+        build_user_prompt(ingredients, portion, time_limit, healthy, exclude),
         timeout=15.0,
         temperature=0.7,
     )
