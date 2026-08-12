@@ -796,14 +796,46 @@ a {
   display: block;
 }
 
+/* 날짜는 좌 → 우로 이어 붙인다. 5·7일치를 아래로 접으면 "이번 주"가 여러 덩어리로
+   쪼개져서, 3일차 다음이 왼쪽 끝으로 돌아가 시간 순서가 끊긴다.
+   가로로 이어두면 달력처럼 읽히고, 세로 스크롤은 계획 아래의 다음 행동을 위해 남는다. */
 .mealplan-days {
   margin-top: 24px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  display: flex;
   gap: 16px;
+  overflow-x: auto;
+  /* 끝까지 밀었을 때 브라우저의 "뒤로 가기" 제스처로 넘어가지 않게 막는다. */
+  overscroll-behavior-x: contain;
+  /* mandatory는 카드 중간을 못 보게 막아 답답하다. 가까울 때만 맞춰준다. */
+  scroll-snap-type: x proximity;
+  /* 스크롤바가 카드 테두리에 붙지 않도록 아래에 자리를 준다. */
+  padding-bottom: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
 }
 
+.mealplan-days::-webkit-scrollbar {
+  height: 8px;
+}
+
+.mealplan-days::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 999px;
+}
+
+.mealplan-days::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+/* 폭을 고정해 다음 카드가 늘 조금 걸쳐 보이게 한다 — 스크롤바를 보기 전에
+   "옆에 더 있다"를 알 수 있어야 한다. 좁은 화면에서는 화면 폭에 맞춰 줄인다. */
 .mealplan-day-card {
+  flex: none;
+  width: min(280px, 78vw);
+  /* flex 항목의 기본값(min-width:auto)은 안쪽 내용이 길면 카드를 늘려버린다.
+     긴 메뉴 이름 하나 때문에 그 날짜만 폭이 달라지지 않게 막는다. */
+  min-width: 0;
+  scroll-snap-align: start;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);

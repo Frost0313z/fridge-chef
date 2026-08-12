@@ -361,7 +361,12 @@ function renderPlan() {
   const resultEl = document.getElementById("mealplan-result");
   if (!resultEl) return;
 
-  resultEl.innerHTML = `<div class="mealplan-days${editMode ? " is-editing" : ""}">${dayLabels()
+  /* 가로로 미는 영역은 초점을 받을 수 있어야 키보드에서도 화살표로 밀 수 있다(WCAG 2.1.1).
+     읽기 모드에서 메뉴가 다 비어 있으면 안에 초점 갈 요소가 하나도 없어, 이게 없으면
+     키보드만 쓰는 사람은 2일차 뒤를 볼 방법이 사라진다. */
+  const days = dayLabels();
+  resultEl.innerHTML = `<div class="mealplan-days${editMode ? " is-editing" : ""}"
+    tabindex="0" role="group" aria-label="날짜별 식단 ${days.length}일치 (좌우로 밀어서 보기)">${days
     .map(
       (day) => `
       <article class="mealplan-day-card">
