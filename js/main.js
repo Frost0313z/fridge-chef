@@ -46,7 +46,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const current = document.documentElement.getAttribute("data-theme");
       const next = current === "dark" ? "light" : "dark";
       document.documentElement.setAttribute("data-theme", next);
-      localStorage.setItem(THEME_KEY, next);
+      /* 시크릿 모드에서는 setItem이 예외를 던진다. 막지 않으면 아이콘 갱신까지 같이 죽어
+         화면은 어두워졌는데 버튼은 그대로인 상태가 된다. 저장만 포기하고 전환은 살린다. */
+      try {
+        localStorage.setItem(THEME_KEY, next);
+      } catch {}
       updateThemeIcon(themeToggle);
     });
   }

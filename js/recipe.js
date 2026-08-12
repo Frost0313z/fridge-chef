@@ -30,9 +30,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function restorePreferences() {
     const prefs = loadPrefs();
-    if (prefs.portion) portionEl.value = prefs.portion;
+    setSelectValue(portionEl, prefs.portion);
+    setSelectValue(timeLimitEl, prefs.timeLimit);
     healthyEl.checked = Boolean(prefs.healthy);
-    if (prefs.timeLimit) timeLimitEl.value = prefs.timeLimit;
   }
 
   /* 오류 문구가 "잠시 후 다시 시도해주세요"로 끝나면 지금 저녁을 정해야 하는 사람에게는
@@ -40,8 +40,16 @@ document.addEventListener("DOMContentLoaded", () => {
   fallbackBtn.addEventListener("click", () => scrollToEl(document.querySelector(".history")));
 
   /* 추천 3개가 다 안 당기는 건 정상이다. 폼까지 되돌아가지 않고 바로 다시 받게 한다.
-     requestSubmit()이면 아래 submit 핸들러를 그대로 탄다. */
-  rerecommendBtn.addEventListener("click", () => form.requestSubmit());
+     requestSubmit()이면 아래 submit 핸들러를 그대로 탄다.
+
+     이때만 최근 추천 요리를 제외 목록으로 보낸다 — 같은 요청을 그대로 다시 보내면 AI가
+     같은 요리를 다시 줄 이유가 충분해서, 버튼 문구("다른 요리")가 거짓이 된다.
+     반대로 폼을 직접 제출하는 건 조건을 바꿔 새로 묻는 것이므로 제외하지 않는다. */
+  let excludeRecent = false;
+  rerecommendBtn.addEventListener("click", () => {
+    excludeRecent = true;
+    form.requestSubmit();
+  });
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -60,6 +68,9 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const exclude = excludeRecent ? historyItems.map((h) => h.name) : [];
+    excludeRecent = false;
+
     status.setLoading(true);
     const result = await postJson(
       "/api/recommend",
@@ -68,6 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
         portion: portionEl.value,
         timeLimit: timeLimitEl.value,
         healthy: healthyEl.checked,
+        exclude,
       },
       REQUEST_TIMEOUT_MS
     );
@@ -139,9 +151,16 @@ function recipeCardHtml(r, pantryNames = []) {
    (initHistory 안의 지역 변수로 두면 새 추천 후 화면만 바뀌고 배열은 옛 순서로 남아 클릭이 어긋난다) */
 let historyItems = [];
 
+/* 이름 없는 항목이 하나라도 섞이면 아래 비교와 렌더에서 예외가 나고,
+   그 예외가 추천 결과 렌더를 중간에 끊어버린다. 읽을 때 한 번 걸러둔다. */
 function loadHistory() {
   const saved = loadJson(HISTORY_KEY, []);
-  return Array.isArray(saved) ? saved : [];
+  return Array.isArray(saved) ? saved.filter((r) => r && r.name) : [];
+}
+
+/* 서버의 dedupe_key와 같은 규칙 — "김치볶음밥"과 "김치 볶음밥"을 같은 요리로 본다. */
+function recipeKey(name) {
+  return String(name || "").replace(/\s/g, "");
 }
 
 function setHistory(items) {
@@ -154,7 +173,7 @@ function addToHistory(recipes) {
   let next = historyItems;
   recipes.forEach((r) => {
     if (!r || !r.name) return;
-    next = next.filter((h) => h.name !== r.name);
+    next = next.filter((h) => recipeKey(h.name) !== recipeKey(r.name));
     next.unshift(r);
   });
   setHistory(next);

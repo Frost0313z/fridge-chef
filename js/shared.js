@@ -17,8 +17,16 @@ function loadJson(key, fallback) {
   }
 }
 
+/* 읽기만 막아두면 반쪽이다. 시크릿 모드나 저장 공간이 꽉 찬 브라우저에서는 setItem 자체가 예외를
+   던지는데, 그대로 두면 재료 추가·삭제가 화면 반응 없이 죽는다. 성공 여부를 돌려줘서
+   부르는 쪽이 사용자에게 알릴 수 있게 한다. */
 function saveJson(key, value) {
-  localStorage.setItem(key, JSON.stringify(value));
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function loadPantry() {
@@ -27,7 +35,7 @@ function loadPantry() {
 }
 
 function savePantry(items) {
-  saveJson(PANTRY_KEY, items);
+  return saveJson(PANTRY_KEY, items);
 }
 
 function loadPrefs() {
@@ -36,7 +44,13 @@ function loadPrefs() {
 }
 
 function savePrefs(partial) {
-  saveJson(PREFS_KEY, { ...loadPrefs(), ...partial });
+  return saveJson(PREFS_KEY, { ...loadPrefs(), ...partial });
+}
+
+/* select에 목록에 없는 값을 대입하면 조용히 선택이 비고(value === "") 그 상태로 제출된다.
+   저장된 설정은 사용자가 고칠 수 있는 localStorage에서 오므로 값이 실제 선택지인지 확인한다. */
+function setSelectValue(el, value) {
+  if (el && value && Array.from(el.options).some((o) => o.value === value)) el.value = value;
 }
 
 /* textContent -> innerHTML 방식은 & < > 만 바꾸고 따옴표는 그대로 두기 때문에,
@@ -246,8 +260,13 @@ function initPantry() {
     });
 
     if (added.length) {
-      savePantry(pantry);
+      const stored = savePantry(pantry);
       render();
+      /* 저장에 실패했는데 "넣었어요"라고 하면 거짓말이 된다. 새로고침하면 사라질 것을 미리 알린다. */
+      if (!stored) {
+        setStatus("브라우저에 저장하지 못했어요. 시크릿 창이라면 일반 창에서 다시 열어주세요.");
+        return;
+      }
     }
 
     if (added.length && duplicated.length) {
@@ -289,11 +308,15 @@ function initPantry() {
     if (!btn) return;
     const index = Number(btn.dataset.index);
     const [removed] = pantry.splice(index, 1);
-    savePantry(pantry);
+    const stored = savePantry(pantry);
     render();
     /* 칩이 사라지는 것 자체가 반응이지만, 직전 "추가했어요" 문구가 남아 있으면
        방금 한 일과 어긋나 보인다. 마지막 조작으로 갱신한다. */
-    setStatus(`${removed}을(를) 냉장고에서 뺐어요.`);
+    setStatus(
+      stored
+        ? `${removed}을(를) 냉장고에서 뺐어요.`
+        : "브라우저에 저장하지 못했어요. 시크릿 창이라면 일반 창에서 다시 열어주세요."
+    );
   });
 
   render();

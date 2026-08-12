@@ -24,9 +24,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function restorePreferences() {
     const prefs = loadPrefs();
-    if (prefs.portion) portionEl.value = prefs.portion;
+    setSelectValue(portionEl, prefs.portion);
+    setSelectValue(daysEl, prefs.days);
     healthyEl.checked = Boolean(prefs.healthy);
-    if (prefs.days) daysEl.value = prefs.days;
   }
 
   const emptyEl = document.getElementById("mealplan-empty");
