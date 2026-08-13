@@ -134,6 +134,14 @@ def test_plan_capped_by_days():
     assert len(mealplan.sanitize_plan(raw, days=2)) == 6
 
 
+def test_plan_variety_instruction():
+    """shoppingList를 응답에서 뺐더니 AI가 그걸 "살 것을 만들지 말라"로 읽어서,
+    7일 21끼를 계란·양파·대파로만 채웠다(배포본 실측, 장보기 4종). 다양성 지시가
+    사라지면 조용히 그 상태로 돌아가므로 여기서 붙잡는다."""
+    assert "최소 15가지" in mealplan.SYSTEM_PROMPT, "재료 가짓수 하한이 빠졌다"
+    assert "출력 형식에 대한 이야기일 뿐" in mealplan.SYSTEM_PROMPT, "필드를 빼는 것과 재료를 줄이는 것을 구분해야 한다"
+
+
 def test_ingredient_rules_are_shared():
     """식단을 짤 때와 빠진 재료를 채울 때가 같은 기준으로 재료를 적어야 한다.
     한쪽만 고치면 같은 요리인데 표기가 달라져 합산이 어긋난다."""
