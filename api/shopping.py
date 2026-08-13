@@ -114,22 +114,38 @@ def format_amount(value, unit):
     return f"{rounded}{unit}" if unit else str(rounded)
 
 
-def _collect(lines):
-    """재료 줄들을 이름별로 모은다.
+def _collect(entries):
+    """재료 줄들을 이름별로 모은다. entries는 (줄, 출처) 쌍이고, 출처는 냉장고면 None이다.
 
-    {정규화 이름: {"label": 처음 본 이름, "amounts": {단위: 합계}}}
+    {정규화 이름: {"label": 처음 본 이름, "amounts": {단위: 합계}, "uses": [...]}}
     수량을 못 읽은 줄은 합계에 넣을 수 없지만 이름은 등록된다 — "있는지"와 "얼마나
     있는지"는 다른 질문이고, 둘을 구분해야 뺄 수 있는지 없는지를 판단할 수 있다.
+
+    uses는 "이 재료가 어느 끼니에 얼마나 쓰이는가"다. 목록에 왜 이 재료가 이 수량으로
+    올라왔는지를 화면이 그대로 펼쳐 보여주기 위해 여기서 함께 모은다 — 계산한 자리에서
+    같이 만들어야 합계와 근거가 어긋나지 않는다.
     """
     collected = {}
-    for raw in lines:
+    for raw, source in entries:
         name, quantity, unit = parse_line(raw)
         if not name:
             continue
-        entry = collected.setdefault(normalize_name(name), {"label": name, "amounts": {}})
+        entry = collected.setdefault(
+            normalize_name(name), {"label": name, "amounts": {}, "uses": []}
+        )
         if quantity is not None:
             entry["amounts"][unit] = entry["amounts"].get(unit, 0.0) + quantity
+        if source is not None:
+            # 수량을 못 읽었으면 빈 문자열이다. 근거 목록에서는 빠지지 않아야 한다 —
+            # 그 끼니에 쓰이는 것은 사실이고, 다만 얼마나인지를 모를 뿐이다.
+            amount = format_amount(quantity, unit) if quantity is not None else ""
+            entry["uses"].append({**source, "amount": amount})
     return collected
+
+
+def _format_amounts(amounts):
+    """{단위: 합계}를 사람이 읽는 한 줄로. 단위가 섞여 있으면 나란히 적는다."""
+    return ", ".join(format_amount(total, unit) for unit, total in amounts.items())
 
 
 def _find_owned(target, owned_keys):
@@ -148,15 +164,26 @@ def _find_owned(target, owned_keys):
 def build_shopping_list(plan, pantry):
     """계획이 쓰는 재료를 전부 더하고 냉장고에 있는 만큼 빼서 살 것만 남긴다.
 
-    plan: [{"ingredients": ["계란 2개", ...]}, ...]   pantry: ["계란 4개", ...]
-    반환: [{"name": "계란", "amount": "6개"}, ...]  (amount는 비어 있을 수 있다)
+    plan: [{"day","meal","menu","ingredients": ["계란 2개", ...]}, ...]   pantry: ["계란 4개", ...]
+    반환: [{"name": "계란", "amount": "6개", "need": "10개", "have": "4개", "subtracted": True,
+            "uses": [{"day","meal","menu","amount"}, ...]}, ...]
+
+    amount 말고 나머지는 **왜 이 수량이 나왔는지**를 화면이 그대로 펼쳐 보이기 위한 것이다.
+    숫자만 던지면 사용자는 맞는지 틀리는지 판단할 방법이 없다. 특히 "냉장고에 있는데 왜
+    또 사라고 하지?"는 근거를 봐야만 풀린다(단위가 달라 못 뺐다는 것이 답인 경우가 있다).
     """
     lines = []
     for item in plan:
-        lines.extend(item.get("ingredients") or [])
+        source = {
+            "day": str(item.get("day") or ""),
+            "meal": str(item.get("meal") or ""),
+            "menu": str(item.get("menu") or ""),
+        }
+        for raw in item.get("ingredients") or []:
+            lines.append((raw, source))
 
     needs = _collect(lines)
-    owned = _collect(pantry)
+    owned = _collect([(raw, None) for raw in pantry])
     owned_keys = list(owned.keys())
 
     shopping_list = []
@@ -166,24 +193,43 @@ def build_shopping_list(plan, pantry):
 
         owned_key = _find_owned(key, owned_keys)
         have = owned[owned_key]["amounts"] if owned_key else {}
+        # 냉장고에 있긴 한데 뺄 수 없었던 경우를 화면이 구분해 말할 수 있어야 한다.
+        # (수량을 안 적었거나 단위가 달라서 — 사용자 눈에는 "있는데 또 사라네"로만 보인다)
+        have_text = _format_amounts(have) if owned_key else ""
 
         if not need["amounts"]:
             # 얼마나 필요한지를 모르는 재료(수량 없이 저장된 옛 계획). 부족한 양을 계산할
             # 수 없으니 냉장고에 있으면 있는 대로 두고, 없으면 이름만 올린다.
             if owned_key is None:
-                shopping_list.append({"name": need["label"], "amount": ""})
+                shopping_list.append(
+                    {"name": need["label"], "amount": "", "need": "", "have": "",
+                     "subtracted": False, "uses": need["uses"]}
+                )
             continue
 
         parts = []
+        subtracted = False
         for unit, total in need["amounts"].items():
             # 냉장고에 같은 단위로 적혀 있을 때만 뺄 수 있다. 수량을 안 적었거나("계란")
             # 단위가 다르면(150g 필요한데 "1팩") 뺄 근거가 없으므로 필요한 만큼을 그대로
             # 올린다 — 이미 있는 걸 또 사는 쪽이, 필요한 걸 안 사서 못 만드는 쪽보다 낫다.
-            short = total - have.get(unit, 0.0)
+            covered = have.get(unit, 0.0)
+            if covered > 0:
+                subtracted = True
+            short = total - covered
             if short > 0:
                 parts.append(format_amount(short, unit))
 
         if parts:
-            shopping_list.append({"name": need["label"], "amount": ", ".join(parts)})
+            shopping_list.append(
+                {
+                    "name": need["label"],
+                    "amount": ", ".join(parts),
+                    "need": _format_amounts(need["amounts"]),
+                    "have": have_text,
+                    "subtracted": subtracted,
+                    "uses": need["uses"],
+                }
+            )
 
     return shopping_list[:MAX_SHOPPING_ITEMS]

@@ -742,6 +742,54 @@ function initPantry() {
   render();
 }
 
+/* ── 식단 날짜 이름 ────────────────────────────────────────────────────────────
+   식단 계획과 장보기가 함께 쓴다. 장보기의 "왜 사야 하나요?"가 어느 끼니에 쓰이는지를
+   말할 때 같은 표기여야 한다 — 한쪽만 "1일차"로 남으면 없앤 혼란이 되살아난다. */
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+
+/* 저장된 시각(UTC ISO)에서 그 자리의 날짜만 꺼낸다.
+   toISOString()은 UTC라 한국에서 자정 무렵 하루가 어긋난다. 스웨덴 로캘이 마침
+   YYYY-MM-DD라 로컬 날짜를 그대로 얻는 데 쓴다 (todayISO와 같은 이유). */
+function localDateOf(iso) {
+  const at = new Date(iso);
+  return isNaN(at.getTime()) ? null : at.toLocaleDateString("sv-SE");
+}
+
+/* 계획의 1일차(startDate)로부터 n일 뒤. 시작일을 모르는 옛 계획은 null이다. */
+function dayDate(startDate, offset) {
+  if (!startDate) return null;
+  const date = new Date(`${startDate}T00:00:00`);
+  if (isNaN(date.getTime())) return null;
+  date.setDate(date.getDate() + offset);
+  return date;
+}
+
+/* 오늘·내일에만 배지를 붙인다. 달력을 역산하지 않고 곧바로 읽히는 것이 이 둘뿐이고,
+   모든 칸에 배지를 달면 7칸이 배지로 뒤덮여 정작 오늘이 묻힌다.
+   지난주에 짠 계획이면 아무 칸에도 안 붙는데, 그 자체가 "묵은 계획"이라는 신호다. */
+function nearBadge(date) {
+  const days = Math.round((date - new Date(`${todayISO()}T00:00:00`)) / 86400000);
+  if (days === 0) return "오늘";
+  if (days === 1) return "내일";
+  return "";
+}
+
+/* "1일차"는 자리를 가리키는 **열쇠**다 — 저장분·서버 프롬프트·편집이 모두 이 값으로 칸을
+   찾는다. 열쇠를 실제 날짜로 바꾸면 저장해둔 계획이 통째로 어긋나고, 날짜가 지날 때마다
+   열쇠까지 따라 바뀌어야 한다. 그래서 열쇠는 그대로 두고 화면에 붙는 이름만 날짜로 만든다.
+
+   사람은 "3일차 저녁"으로 기억하지 않는다. "목요일 저녁"으로 기억한다.
+   요일만 적으면 다음 주 목요일과 헷갈리므로 날짜를 함께 적는다. */
+function dayInfo(key, startDate) {
+  const date = dayDate(startDate, (parseInt(key, 10) || 1) - 1);
+  if (!date) return { key, label: key, badge: "", aria: key };
+
+  const label = `${date.getMonth() + 1}/${date.getDate()} (${WEEKDAYS[date.getDay()]})`;
+  const badge = nearBadge(date);
+  /* 스크린리더는 배지를 따로 읽지 못하고 지나칠 수 있어, 읽어줄 이름에는 먼저 넣는다. */
+  return { key, label, badge, aria: badge ? `${badge} ${label}` : label };
+}
+
 function loadSavedPlan() {
   const saved = loadJson(MEALPLAN_KEY, null);
   return saved && Array.isArray(saved.plan) ? saved : null;

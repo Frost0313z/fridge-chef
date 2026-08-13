@@ -160,7 +160,7 @@ async function refreshShoppingList() {
    대조하면, 원래 갖고 있던 양까지 "방금 샀다"로 세어 필요한 재료를 목록에서 지워버린다. */
 function remainingAmount(item, pantryLines, pantryAt) {
   const amount = item.amount || "";
-  if (!Array.isArray(pantryAt)) return amount;
+  if (!Array.isArray(pantryAt)) return { amount, filled: "" };
 
   const need = parseAmount(amount);
   /* 수량을 모르거나("두부") 단위가 둘 이상이면("150g, 2개") 뺄셈을 할 수 없다.
@@ -168,15 +168,22 @@ function remainingAmount(item, pantryLines, pantryAt) {
   if (!need || amount.includes(",")) {
     const key = normalizeIngredient(item.name);
     const has = (lines) => lines.some((l) => normalizeIngredient(splitIngredient(l).name) === key);
-    return has(pantryLines) && !has(pantryAt) ? null : amount;
+    return has(pantryLines) && !has(pantryAt) ? null : { amount, filled: "" };
   }
 
   /* 줄어든 경우(냉장고에서 재료를 빼면 음수가 된다)까지 필요량에 더하지는 않는다.
      장보기 목록은 그때의 계획이 기준이고, 그 뒤에 먹어 없앤 양까지 여기서 다시 세면
      같은 재료를 두 번 사게 된다. */
-  const gained = amountIn(pantryLines, item.name, need.unit) - amountIn(pantryAt, item.name, need.unit);
-  const left = need.value - Math.max(0, gained);
-  return left > 0 ? formatAmount(left, need.unit) : null;
+  const gained = Math.max(
+    0,
+    amountIn(pantryLines, item.name, need.unit) - amountIn(pantryAt, item.name, need.unit)
+  );
+  const left = need.value - gained;
+  if (left <= 0) return null;
+
+  /* 그 뒤로 얼마나 채웠는지도 함께 돌려준다. 근거 칸에서 "계획 21개 − 냉장고 4개"만
+     보여주면 17개가 나와야 하는데 줄에는 15개가 적혀 있어 셈이 안 맞아 보인다. */
+  return { amount: formatAmount(left, need.unit), filled: gained > 0 ? formatAmount(gained, need.unit) : "" };
 }
 
 function renderShoppingList(saved, pantry) {
@@ -201,12 +208,13 @@ function renderShoppingList(saved, pantry) {
   const pantryLines = pantry.map(pantryText);
   const shoppingList = saved.shoppingList
     .filter((i) => i && i.name)
-    .map((i) => ({ name: i.name, amount: remainingAmount(i, pantryLines, saved.pantryAt) }))
-    .filter((i) => i.amount !== null)
-    .map((i) => ({
-      label: [i.name, i.amount].filter(Boolean).join(" "),
-      query: i.name,
-      amount: i.amount,
+    .map((i) => ({ item: i, left: remainingAmount(i, pantryLines, saved.pantryAt) }))
+    .filter((row) => row.left !== null)
+    .map(({ item, left }) => ({
+      label: [item.name, left.amount].filter(Boolean).join(" "),
+      query: item.name,
+      amount: left.amount,
+      why: whyHtml(item, left.filled, saved.startDate),
     }));
 
   if (!shoppingList.length) {
@@ -225,14 +233,58 @@ function renderShoppingList(saved, pantry) {
     .map(
       (item) => `
     <li class="shopping-item">
-      <span>${escapeHtml(item.label)}</span>
-      <span class="shopping-item-actions">
-        <a href="${escapeHtml(coupangSearchUrl(item.query))}" target="_blank" rel="noopener" aria-label="${escapeHtml(item.query)} 쿠팡에서 검색">쿠팡에서 검색 →</a>
-        <button type="button" class="shopping-bought-btn" data-name="${escapeHtml(item.query)}"
-          data-amount="${escapeHtml(item.amount)}" aria-label="${escapeHtml(item.label)} 샀어요 - 냉장고에 넣기">샀어요</button>
-      </span>
+      <div class="shopping-item-row">
+        <span>${escapeHtml(item.label)}</span>
+        <span class="shopping-item-actions">
+          <a href="${escapeHtml(coupangSearchUrl(item.query))}" target="_blank" rel="noopener" aria-label="${escapeHtml(item.query)} 쿠팡에서 검색">쿠팡에서 검색 →</a>
+          <button type="button" class="shopping-bought-btn" data-name="${escapeHtml(item.query)}"
+            data-amount="${escapeHtml(item.amount)}" aria-label="${escapeHtml(item.label)} 샀어요 - 냉장고에 넣기">샀어요</button>
+        </span>
+      </div>
+      ${item.why}
     </li>
   `
     )
     .join("");
+}
+
+/* "왜 이걸 사야 하나요?" — 이 줄이 나온 계산을 그대로 펼쳐 보인다.
+
+   숫자만 던지면 사용자는 맞는지 틀리는지 판단할 방법이 없다. 특히 "냉장고에 있는데 왜
+   또 사라고 하지?"는 근거를 봐야만 풀린다 — 단위가 달라 뺄 수 없었다는 것이 답인 경우가 있다.
+   접어두는 이유는 평소에 필요한 답은 "무엇을 살까" 하나뿐이기 때문이다([C2], [C10]).
+   근거는 의심이 들 때만 펼치면 된다.
+
+   숫자는 서버가 계산한 그대로 쓴다. 화면에서 다시 세면 목록의 수량과 근거가 어긋날 수 있고,
+   그러면 근거가 오히려 불신을 만든다. */
+function whyHtml(item, filled, startDate) {
+  const uses = Array.isArray(item.uses) ? item.uses.filter((u) => u && u.menu) : [];
+  if (!uses.length && !item.need) return "";
+
+  const lines = [];
+  if (item.need) lines.push(`계획 전체에 <strong>${escapeHtml(item.need)}</strong> 필요해요.`);
+  if (item.have && item.subtracted) {
+    lines.push(`냉장고에 ${escapeHtml(item.have)} 있어서 뺐어요.`);
+  } else if (item.have) {
+    /* 있는데 못 뺀 경우. 이 한 줄이 없으면 "있는데 왜 또 사라고 해?"로 끝난다. */
+    lines.push(`냉장고에 ${escapeHtml(item.have)} 있지만 단위가 달라 빼지 못했어요.`);
+  } else {
+    lines.push("냉장고에는 없어요.");
+  }
+  if (filled) lines.push(`그 뒤로 ${escapeHtml(filled)}를 채웠어요.`);
+
+  const useList = uses
+    .map((use) => {
+      const day = dayInfo(String(use.day || ""), startDate).label;
+      const when = [day, use.meal].filter(Boolean).join(" ");
+      const amount = use.amount ? ` — ${escapeHtml(use.amount)}` : "";
+      return `<li>${escapeHtml(when)} · ${escapeHtml(use.menu)}${amount}</li>`;
+    })
+    .join("");
+
+  return `<details class="shopping-why">
+    <summary>왜 사야 하나요?</summary>
+    <p class="shopping-why-sum">${lines.join(" ")}</p>
+    ${useList ? `<ul class="shopping-why-uses">${useList}</ul>` : ""}
+  </details>`;
 }

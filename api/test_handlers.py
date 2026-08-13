@@ -1,4 +1,4 @@
-"""서버 쪽 자체 점검. 실행: python api/test_handlers.py
+﻿"""서버 쪽 자체 점검. 실행: python api/test_handlers.py
 
 OpenAI를 실제로 부르지 않는다 — 클라이언트를 가짜로 바꿔치기해서 응답 처리만 확인한다.
 프레임워크 없이 assert만 쓴다. 실패하면 그 자리에서 멈춘다.
@@ -200,7 +200,7 @@ def test_shopping_handler_needs_no_ai():
         )
         assert status == 200
         # 계란은 4개 필요한데 1개뿐이라 3개, 두부는 없으니 1모. "밥"은 사러 갈 일이 없다.
-        assert body["shoppingList"] == [
+        assert brief(body["shoppingList"]) == [
             {"name": "계란", "amount": "3개"},
             {"name": "두부", "amount": "1모"},
         ], body
@@ -232,12 +232,44 @@ def test_manual_menu_ingredients_are_filled():
         # 재료를 모르는 메뉴만 묻는다 — 이미 아는 "덮밥"까지 물으면 느려지고 답이 흔들린다.
         assert "제육볶음" in seen["user"] and "덮밥" not in seen["user"], seen["user"]
         # 양파는 냉장고에 3개가 있어 안 사도 된다. 채워 넣은 재료가 계산에 실제로 반영된다.
-        assert body["shoppingList"] == [
+        assert brief(body["shoppingList"]) == [
             {"name": "돼지고기", "amount": "150g"},
             {"name": "계란", "amount": "2개"},
         ], body
     finally:
         mealplan.call_openai = original
+
+
+def brief(items):
+    """이름과 살 양만 뽑는다. 근거 필드(need/have/uses)까지 매번 적으면 무엇을 확인하는
+    테스트인지가 안 읽힌다 — 근거는 test_shopping_shows_why가 따로 본다."""
+    return [{"name": i["name"], "amount": i["amount"]} for i in items]
+
+
+def test_shopping_shows_why():
+    """목록의 각 줄은 "왜 이 수량인지"를 함께 들고 나와야 한다.
+    숫자만 던지면 사용자는 맞는지 틀리는지 판단할 방법이 없다."""
+    plan = [
+        {"day": "1일차", "meal": "아침", "menu": "계란 스크램블", "ingredients": ["계란 2개"]},
+        {"day": "1일차", "meal": "저녁", "menu": "계란국", "ingredients": ["계란 3개"]},
+    ]
+    [egg] = shopping.build_shopping_list(plan, ["계란 1개"])
+    assert egg["amount"] == "4개" and egg["need"] == "5개" and egg["have"] == "1개"
+    assert egg["subtracted"] is True
+    assert egg["uses"] == [
+        {"day": "1일차", "meal": "아침", "menu": "계란 스크램블", "amount": "2개"},
+        {"day": "1일차", "meal": "저녁", "menu": "계란국", "amount": "3개"},
+    ], egg["uses"]
+
+
+def test_shopping_says_it_could_not_subtract():
+    """"냉장고에 있는데 왜 또 사라고 하지?"는 근거를 봐야 풀린다.
+    단위가 달라 못 뺐다는 사실을 화면이 말할 수 있도록 구분해서 내보낸다."""
+    plan = [{"day": "1일차", "meal": "저녁", "menu": "제육", "ingredients": ["돼지고기 150g"]}]
+    [pork] = shopping.build_shopping_list(plan, ["돼지고기 1팩"])
+    assert pork["amount"] == "150g", pork
+    assert pork["have"] == "1팩", "냉장고에 있다는 사실 자체는 알려야 한다"
+    assert pork["subtracted"] is False, "뺀 것처럼 보이면 안 된다"
 
 
 def test_parse_line():
@@ -260,7 +292,7 @@ def test_shopping_sums_across_meals():
         {"ingredients": ["계란 3개"]},
         {"ingredients": ["계란 1알", "대파 1/2대"]},
     ]
-    assert shopping.build_shopping_list(plan, []) == [
+    assert brief(shopping.build_shopping_list(plan, [])) == [
         {"name": "계란", "amount": "6개"},
         {"name": "대파", "amount": "1대"},
     ]
@@ -269,7 +301,7 @@ def test_shopping_sums_across_meals():
 def test_shopping_subtracts_pantry():
     """냉장고에 있는 만큼만 뺀다. "조금이라도 있으면 넘어가는" 것이 원래의 버그였다."""
     plan = [{"ingredients": ["계란 6개", "우유 300ml"]}, {"ingredients": ["계란 4개"]}]
-    assert shopping.build_shopping_list(plan, ["계란 4개", "우유 1l"]) == [
+    assert brief(shopping.build_shopping_list(plan, ["계란 4개", "우유 1l"])) == [
         {"name": "계란", "amount": "6개"},  # 10개 필요, 4개 보유
     ]  # 우유는 1리터가 있어 300ml는 덮인다
 
@@ -278,26 +310,26 @@ def test_shopping_without_pantry_quantity():
     """냉장고에 수량이 안 적혀 있으면 뺄 근거가 없다. 필요한 만큼을 그대로 올린다 —
     이미 있는 걸 또 사는 쪽이, 필요한 걸 안 사서 못 만드는 쪽보다 낫다."""
     plan = [{"ingredients": ["계란 6개"]}]
-    assert shopping.build_shopping_list(plan, ["계란"]) == [{"name": "계란", "amount": "6개"}]
+    assert brief(shopping.build_shopping_list(plan, ["계란"])) == [{"name": "계란", "amount": "6개"}]
 
 
 def test_shopping_without_plan_quantity():
     """수량 없이 저장된 옛 계획. 얼마나 부족한지 계산할 수 없으므로 냉장고에 있으면 두고,
     없으면 이름만 올린다. 여기서 수량을 지어내면 틀린 숫자를 믿게 만든다."""
     plan = [{"ingredients": ["두부", "애호박"]}]
-    assert shopping.build_shopping_list(plan, ["두부 1모"]) == [{"name": "애호박", "amount": ""}]
+    assert brief(shopping.build_shopping_list(plan, ["두부 1모"])) == [{"name": "애호박", "amount": ""}]
 
 
 def test_shopping_rounds_up():
     """0.5모가 필요해도 반 모는 못 산다. 살 수 있는 단위로 올린다."""
     plan = [{"ingredients": ["두부 1/4모"]}, {"ingredients": ["두부 1/4모"]}]
-    assert shopping.build_shopping_list(plan, []) == [{"name": "두부", "amount": "1모"}]
+    assert brief(shopping.build_shopping_list(plan, [])) == [{"name": "두부", "amount": "1모"}]
 
 
 def test_shopping_excludes_staples():
     """소금·밥처럼 사러 갈 일이 없는 것은 재료로 적혀 있어도 목록에서 뺀다."""
     plan = [{"ingredients": ["소금 1작은술", "밥 1공기", "고춧가루 1큰술", "계란 1개"]}]
-    assert shopping.build_shopping_list(plan, []) == [{"name": "계란", "amount": "1개"}]
+    assert brief(shopping.build_shopping_list(plan, [])) == [{"name": "계란", "amount": "1개"}]
 
 
 def test_shopping_full_week_regression():

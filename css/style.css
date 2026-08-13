@@ -1264,15 +1264,54 @@ a {
   gap: 8px;
 }
 
+/* 한 줄이 [이름·수량][검색·샀어요] 한 행이었는데, 그 아래 "왜 사야 하나요?"가 접혀 붙었다.
+   가로 정렬은 안쪽 행이 그대로 맡고, 바깥은 위아래로 쌓기만 한다. */
 .shopping-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  flex-direction: column;
+  gap: 8px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 12px 16px;
+}
+
+.shopping-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* 평소에 필요한 답은 "무엇을 살까" 하나뿐이라 근거는 접어둔다([C2], [C10]).
+   의심이 들 때 — "이거 냉장고에 있는데?" — 펼치면 계산이 그대로 나온다. */
+.shopping-why > summary {
+  cursor: pointer;
+  width: fit-content;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+/* 펼친 내용은 요약보다 안쪽으로 들여, 어디까지가 근거인지 눈으로 끊기게 한다. */
+.shopping-why-sum {
+  margin: 8px 0 0;
+  padding-left: 14px;
+  border-left: 2px solid var(--color-border);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.shopping-why-uses {
+  margin: 6px 0 0;
+  padding-left: 14px;
+  border-left: 2px solid var(--color-border);
+  list-style: none;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.shopping-why-uses li {
+  padding: 2px 0;
 }
 
 .shopping-item-actions {

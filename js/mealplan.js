@@ -1,4 +1,4 @@
-/* MEALPLAN_KEY와 loadSavedPlan()은 장보기 페이지도 읽으므로 shared.js에 있다.
+﻿/* MEALPLAN_KEY와 loadSavedPlan()은 장보기 페이지도 읽으므로 shared.js에 있다.
    장보기 리스트 렌더는 js/shopping.js로 옮겼다. */
 const MP_REQUEST_TIMEOUT_MS = 30000;
 
@@ -322,7 +322,7 @@ function renderEditStatus() {
       `"${picked.menu}"을(를) 들었어요. 옮길 자리를 누르세요. ` +
       `이미 메뉴가 있는 자리를 누르면 서로 바뀌고, 색이 칠해진 "${picked.menu}"을(를) 다시 누르면 취소됩니다.`;
   } else if (addingSlot) {
-    el.textContent = `${dayInfo(addingSlot.day).label} ${addingSlot.meal}에 넣을 메뉴를 적거나, 최근 추천받은 요리에서 고르세요.`;
+    el.textContent = `${dayInfo(addingSlot.day, planStartDate).label} ${addingSlot.meal}에 넣을 메뉴를 적거나, 최근 추천받은 요리에서 고르세요.`;
   } else {
     el.textContent =
       "옮길 메뉴를 누르세요. 빈 자리를 누르면 메뉴를 직접 넣고, 옆의 × 를 누르면 지웁니다.";
@@ -384,53 +384,11 @@ function deleteMeal(index) {
    (planDays를 적어두기 전에 저장된 계획은 0이라, 예전처럼 메뉴에서 역산한 값이 이긴다) */
 function dayLabels() {
   const last = Math.max(planDays, 0, ...planItems.map((i) => parseInt(i.day, 10) || 0));
-  return Array.from({ length: last }, (_, n) => dayInfo(`${n + 1}일차`));
+  return Array.from({ length: last }, (_, n) => dayInfo(`${n + 1}일차`, planStartDate));
 }
 
-const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
-
-/* 저장된 시각(UTC ISO)에서 그 자리의 날짜만 꺼낸다.
-   toISOString()은 UTC라 한국에서 자정 무렵 하루가 어긋난다. 스웨덴 로캘이 마침
-   YYYY-MM-DD라 로컬 날짜를 그대로 얻는 데 쓴다 (shared.js의 todayISO와 같은 이유). */
-function localDateOf(iso) {
-  const at = new Date(iso);
-  return isNaN(at.getTime()) ? null : at.toLocaleDateString("sv-SE");
-}
-
-/* 1일차로부터 n일 뒤. 시작일을 모르는 옛 계획은 null이다. */
-function dayDate(offset) {
-  if (!planStartDate) return null;
-  const date = new Date(`${planStartDate}T00:00:00`);
-  if (isNaN(date.getTime())) return null;
-  date.setDate(date.getDate() + offset);
-  return date;
-}
-
-/* 오늘·내일에만 배지를 붙인다. 달력을 역산하지 않고 곧바로 읽히는 것이 이 둘뿐이고,
-   모든 칸에 배지를 달면 7칸이 배지로 뒤덮여 정작 오늘이 묻힌다.
-   지난주에 짠 계획이면 아무 칸에도 안 붙는데, 그 자체가 "묵은 계획"이라는 신호다. */
-function nearBadge(date) {
-  const days = Math.round((date - new Date(`${todayISO()}T00:00:00`)) / 86400000);
-  if (days === 0) return "오늘";
-  if (days === 1) return "내일";
-  return "";
-}
-
-/* "1일차"는 자리를 가리키는 **열쇠**다 — 저장분·서버 프롬프트·편집이 모두 이 값으로 칸을
-   찾는다. 열쇠를 실제 날짜로 바꾸면 저장해둔 계획이 통째로 어긋나고, 날짜가 지날 때마다
-   열쇠까지 따라 바뀌어야 한다. 그래서 열쇠는 그대로 두고 화면에 붙는 이름만 날짜로 만든다.
-
-   사람은 "3일차 저녁"으로 기억하지 않는다. "목요일 저녁"으로 기억한다.
-   요일만 적으면 다음 주 목요일과 헷갈리므로 날짜를 함께 적는다. */
-function dayInfo(key) {
-  const date = dayDate((parseInt(key, 10) || 1) - 1);
-  if (!date) return { key, label: key, badge: "", aria: key };
-
-  const label = `${date.getMonth() + 1}/${date.getDate()} (${WEEKDAYS[date.getDay()]})`;
-  const badge = nearBadge(date);
-  /* 스크린리더는 배지를 따로 읽지 못하고 지나칠 수 있어, 읽어줄 이름에는 먼저 넣는다. */
-  return { key, label, badge, aria: badge ? `${badge} ${label}` : label };
-}
+/* 날짜 이름을 만드는 일은 shared.js가 한다 — 장보기 화면도 "이 재료가 언제 쓰이는지"를
+   같은 말로 적어야 하기 때문이다. 한쪽만 "1일차"로 남으면 방금 없앤 혼란이 되살아난다. */
 
 function renderPlan() {
   const resultEl = document.getElementById("mealplan-result");
@@ -474,7 +432,7 @@ function renderStaleNotice(days) {
   const el = document.getElementById("mealplan-stale");
   if (!el) return;
 
-  const last = days.length ? dayDate(days.length - 1) : null;
+  const last = days.length ? dayDate(planStartDate, days.length - 1) : null;
   el.hidden = !last || last >= new Date(`${todayISO()}T00:00:00`);
 }
 

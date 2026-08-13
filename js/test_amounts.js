@@ -33,7 +33,7 @@ for (const file of ["js/shared.js", "js/shopping.js"]) {
 }
 
 const {
-  parseAmount, addAmounts, amountIn, formatAmount, splitIngredient,
+  parseAmount, addAmounts, amountIn, formatAmount, splitIngredient, dayInfo,
   remainingAmount, buyIntoPantry, loadPantry,
 } = sandbox;
 
@@ -76,14 +76,23 @@ check("살 수 있는 단위로 올린다", formatAmount(8.5, "개"), "9개");
 
 // 목록이 냉장고를 따라가는가 — 원래 "지워지지도 않는다"가 문제였다.
 const before = ["계란 4개", "양파 2개"];
-check("아직 안 샀으면 그대로", remainingAmount({ name: "계란", amount: "6개" }, before, before), "6개");
-check("일부만 채우면 남은 만큼", remainingAmount({ name: "계란", amount: "6개" }, ["계란 6개"], before), "4개");
-check("다 채우면 사라진다", remainingAmount({ name: "계란", amount: "6개" }, ["계란 10개"], before), null);
-check("더 채워도 사라진다", remainingAmount({ name: "계란", amount: "6개" }, ["계란 20개"], before), null);
-check("먹어서 줄어든 것은 더 사라고 하지 않는다", remainingAmount({ name: "계란", amount: "6개" }, ["계란 1개"], before), "6개");
-check("스냅샷 없는 옛 계획은 손대지 않는다", remainingAmount({ name: "계란", amount: "6개" }, ["계란 99개"], undefined), "6개");
-check("수량 모르는 줄은 새로 생기면 사라진다", remainingAmount({ name: "두부", amount: "" }, ["두부"], []), null);
-check("수량 모르는 줄은 없으면 남는다", remainingAmount({ name: "두부", amount: "" }, [], []), "");
+const egg = { name: "계란", amount: "6개" };
+/* 남은 양과 "그 뒤로 채운 양"을 함께 돌려준다. 뒤엣것이 없으면 근거 칸에서
+   "계획 - 냉장고"가 줄에 적힌 수량과 안 맞아 보인다. */
+const left = (item, now, at) => remainingAmount(item, now, at);
+
+check("아직 안 샀으면 그대로", left(egg, before, before), { amount: "6개", filled: "" });
+check("일부만 채우면 남은 만큼", left(egg, ["계란 6개"], before), { amount: "4개", filled: "2개" });
+check("다 채우면 사라진다", left(egg, ["계란 10개"], before), null);
+check("더 채워도 사라진다", left(egg, ["계란 20개"], before), null);
+check("먹어서 줄어든 것은 더 사라고 하지 않는다", left(egg, ["계란 1개"], before), { amount: "6개", filled: "" });
+check("스냅샷 없는 옛 계획은 손대지 않는다", left(egg, ["계란 99개"], undefined), { amount: "6개", filled: "" });
+check("수량 모르는 줄은 새로 생기면 사라진다", left({ name: "두부", amount: "" }, ["두부"], []), null);
+check("수량 모르는 줄은 없으면 남는다", left({ name: "두부", amount: "" }, [], []), { amount: "", filled: "" });
+
+// 날짜 이름은 두 화면이 같은 말을 써야 한다 (식단 카드 제목 = 장보기 근거의 "언제")
+check("시작일이 있으면 날짜와 요일", dayInfo("3일차", "2026-08-13").label, "8/15 (토)");
+check("시작일을 모르면 예전 이름", dayInfo("3일차", null).label, "3일차");
 
 // 샀어요 — 이 넷이 전부 고장 나 있었다.
 setPantry([{ name: "계란", amount: "4개", addedAt: "2026-08-01" }]);
