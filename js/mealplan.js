@@ -21,6 +21,10 @@ let planPantryAt = null;
    마지막 날 세 끼를 다 지우면 그 날짜 칸이 통째로 사라져서, 거기에 다시 넣을 수가 없었다. */
 let planDays = 0;
 
+/* 1일차가 며칠이었는지(YYYY-MM-DD). 화면에 실제 날짜와 요일을 적기 위한 기준점이다.
+   모르면 null이고, 그때는 예전처럼 "1일차"로 보여준다. */
+let planStartDate = null;
+
 /* 평소에는 읽는 화면이다. 21칸마다 조작 버튼을 띄워두면 정작 "이번 주 뭐 먹지"가 안 읽힌다.
    고치는 동안에만 조작을 꺼낸다. */
 let editMode = false;
@@ -84,6 +88,11 @@ document.addEventListener("DOMContentLoaded", () => {
     planPantryAt = Array.isArray(saved.pantryAt) ? saved.pantryAt : null;
     /* 일수를 적어두기 전에 저장된 계획은 0이 된다 — 그때는 예전처럼 메뉴에서 역산한다. */
     planDays = Number(saved.days) || 0;
+    /* 시작일을 적어두기 전에 저장된 계획은 마지막 저장 시각으로 대신한다. 계획을 만든 날과
+       정확히 같지는 않지만, "1일차"만 덩그러니 두는 것보다 낫다. 다음 저장 때 startDate로
+       굳으므로 그 뒤로는 흔들리지 않는다. */
+    planStartDate =
+      typeof saved.startDate === "string" ? saved.startDate : localDateOf(saved.savedAt);
   }
   setPlanVisible(Boolean(saved));
   if (saved) renderPlan();
@@ -130,6 +139,8 @@ document.addEventListener("DOMContentLoaded", () => {
     planShoppingList = Array.isArray(result.data.shoppingList) ? result.data.shoppingList : [];
     planPantryAt = pantrySnapshot;
     planDays = Number(daysEl.value) || 0;
+    /* 방금 만든 계획의 1일차는 오늘이다. */
+    planStartDate = todayISO();
     savePlan(false);
     renderPlan();
     setPlanVisible(true);
@@ -142,6 +153,7 @@ document.addEventListener("DOMContentLoaded", () => {
     planShoppingList = [];
     planPantryAt = null;
     planDays = 0;
+    planStartDate = null;
     resultEl.innerHTML = "";
     setPlanVisible(false);
   });
@@ -310,7 +322,7 @@ function renderEditStatus() {
       `"${picked.menu}"을(를) 들었어요. 옮길 자리를 누르세요. ` +
       `이미 메뉴가 있는 자리를 누르면 서로 바뀌고, 색이 칠해진 "${picked.menu}"을(를) 다시 누르면 취소됩니다.`;
   } else if (addingSlot) {
-    el.textContent = `${addingSlot.day} ${addingSlot.meal}에 넣을 메뉴를 적거나, 최근 추천받은 요리에서 고르세요.`;
+    el.textContent = `${dayInfo(addingSlot.day).label} ${addingSlot.meal}에 넣을 메뉴를 적거나, 최근 추천받은 요리에서 고르세요.`;
   } else {
     el.textContent =
       "옮길 메뉴를 누르세요. 빈 자리를 누르면 메뉴를 직접 넣고, 옆의 × 를 누르면 지웁니다.";
@@ -329,6 +341,8 @@ function savePlan(edited) {
     pantryAt: planPantryAt,
     /* 메뉴를 다 지워도 며칠치였는지는 남겨야 그 날짜 칸에 다시 넣을 수 있다. */
     days: planDays,
+    /* 1일차가 며칠이었는지. 고칠 때마다 오늘로 새로 찍으면 계획이 매일 하루씩 밀린다. */
+    startDate: planStartDate,
     edited: Boolean(edited),
     savedAt: new Date().toISOString(),
   });
@@ -370,7 +384,52 @@ function deleteMeal(index) {
    (planDays를 적어두기 전에 저장된 계획은 0이라, 예전처럼 메뉴에서 역산한 값이 이긴다) */
 function dayLabels() {
   const last = Math.max(planDays, 0, ...planItems.map((i) => parseInt(i.day, 10) || 0));
-  return Array.from({ length: last }, (_, n) => `${n + 1}일차`);
+  return Array.from({ length: last }, (_, n) => dayInfo(`${n + 1}일차`));
+}
+
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+
+/* 저장된 시각(UTC ISO)에서 그 자리의 날짜만 꺼낸다.
+   toISOString()은 UTC라 한국에서 자정 무렵 하루가 어긋난다. 스웨덴 로캘이 마침
+   YYYY-MM-DD라 로컬 날짜를 그대로 얻는 데 쓴다 (shared.js의 todayISO와 같은 이유). */
+function localDateOf(iso) {
+  const at = new Date(iso);
+  return isNaN(at.getTime()) ? null : at.toLocaleDateString("sv-SE");
+}
+
+/* 1일차로부터 n일 뒤. 시작일을 모르는 옛 계획은 null이다. */
+function dayDate(offset) {
+  if (!planStartDate) return null;
+  const date = new Date(`${planStartDate}T00:00:00`);
+  if (isNaN(date.getTime())) return null;
+  date.setDate(date.getDate() + offset);
+  return date;
+}
+
+/* 오늘·내일에만 배지를 붙인다. 달력을 역산하지 않고 곧바로 읽히는 것이 이 둘뿐이고,
+   모든 칸에 배지를 달면 7칸이 배지로 뒤덮여 정작 오늘이 묻힌다.
+   지난주에 짠 계획이면 아무 칸에도 안 붙는데, 그 자체가 "묵은 계획"이라는 신호다. */
+function nearBadge(date) {
+  const days = Math.round((date - new Date(`${todayISO()}T00:00:00`)) / 86400000);
+  if (days === 0) return "오늘";
+  if (days === 1) return "내일";
+  return "";
+}
+
+/* "1일차"는 자리를 가리키는 **열쇠**다 — 저장분·서버 프롬프트·편집이 모두 이 값으로 칸을
+   찾는다. 열쇠를 실제 날짜로 바꾸면 저장해둔 계획이 통째로 어긋나고, 날짜가 지날 때마다
+   열쇠까지 따라 바뀌어야 한다. 그래서 열쇠는 그대로 두고 화면에 붙는 이름만 날짜로 만든다.
+
+   사람은 "3일차 저녁"으로 기억하지 않는다. "목요일 저녁"으로 기억한다.
+   요일만 적으면 다음 주 목요일과 헷갈리므로 날짜를 함께 적는다. */
+function dayInfo(key) {
+  const date = dayDate((parseInt(key, 10) || 1) - 1);
+  if (!date) return { key, label: key, badge: "", aria: key };
+
+  const label = `${date.getMonth() + 1}/${date.getDate()} (${WEEKDAYS[date.getDay()]})`;
+  const badge = nearBadge(date);
+  /* 스크린리더는 배지를 따로 읽지 못하고 지나칠 수 있어, 읽어줄 이름에는 먼저 넣는다. */
+  return { key, label, badge, aria: badge ? `${badge} ${label}` : label };
 }
 
 function renderPlan() {
@@ -392,7 +451,9 @@ function renderPlan() {
     .map(
       (day) => `
       <article class="mealplan-day-card">
-        <h3>${escapeHtml(day)}</h3>
+        <h3>${escapeHtml(day.label)}${
+        day.badge ? `<span class="mealplan-day-badge">${day.badge}</span>` : ""
+      }</h3>
         ${MEALS.map((meal) => mealSlotHtml(day, meal)).join("")}
       </article>`
     )
@@ -402,7 +463,19 @@ function renderPlan() {
   daysEl.scrollLeft = keptScroll;
   enableDragScroll(daysEl);
 
+  renderStaleNotice(days);
   renderEditStatus();
+}
+
+/* 날짜를 적고 나니 "지난 계획"이 눈에 보이게 됐다. "1일차"였을 때는 언제 짠 것인지 알 길이
+   없어서 묵은 계획도 새것처럼 보였는데, 이제는 지난주 날짜가 그대로 드러난다.
+   보이는 이상 왜 그런지도 말해주는 편이 낫다 — 아니면 "날짜가 왜 이래?"가 된다. */
+function renderStaleNotice(days) {
+  const el = document.getElementById("mealplan-stale");
+  if (!el) return;
+
+  const last = days.length ? dayDate(days.length - 1) : null;
+  el.hidden = !last || last >= new Date(`${todayISO()}T00:00:00`);
 }
 
 /* 클릭할 때도 손은 몇 px 흔들린다. 이 문턱을 넘기 전에는 아무 일도 일어나지 않아야
@@ -510,7 +583,7 @@ function addRecentHtml() {
 
 function mealAddFormHtml(day, meal) {
   return `<div class="meal-slot meal-slot-add">
-    <label class="meal-add-label" for="meal-add-input">${escapeHtml(day)} ${meal}에 넣을 메뉴</label>
+    <label class="meal-add-label" for="meal-add-input">${escapeHtml(day.label)} ${meal}에 넣을 메뉴</label>
     <input type="text" id="meal-add-input" class="meal-add-input" autocomplete="off"
       placeholder="예: 김치볶음밥" />
     <div class="meal-add-actions">
@@ -521,12 +594,14 @@ function mealAddFormHtml(day, meal) {
   </div>`;
 }
 
+/* day는 dayInfo가 만든 { key, label, badge, aria }다. 칸을 찾고 되돌려 보낼 때는 언제나
+   key("1일차")를 쓰고, 사람에게 읽히는 자리에만 label/aria("8/13 (수)")를 쓴다. */
 function mealSlotHtml(day, meal) {
-  const index = planItems.findIndex((i) => i.day === day && i.meal === meal);
+  const index = planItems.findIndex((i) => i.day === day.key && i.meal === meal);
   const label = `<span class="meal-label meal-label-${MEAL_CLASS[meal] || "night"}">${meal}</span>`;
 
   if (index < 0) {
-    if (addingSlot && addingSlot.day === day && addingSlot.meal === meal) {
+    if (addingSlot && addingSlot.day === day.key && addingSlot.meal === meal) {
       return mealAddFormHtml(day, meal);
     }
     /* 메뉴를 고른 상태에서는 옮길 자리로만 쓴다 — 옮기기와 넣기를 한 자리에 같이 두면
@@ -539,15 +614,15 @@ function mealSlotHtml(day, meal) {
        21칸에서 표적이 너무 작다. 눌렀을 때 무슨 일이 생기는지는 상단 안내가 말한다. */
     if (editMode && selectedIndex !== null) {
       return `<div class="meal-slot meal-slot-edit">
-        <button type="button" class="meal-drop" data-day="${escapeHtml(day)}" data-meal="${meal}"
-          aria-label="${escapeHtml(day)} ${meal}으로 옮기기">${blank}</button></div>`;
+        <button type="button" class="meal-drop" data-day="${escapeHtml(day.key)}" data-meal="${meal}"
+          aria-label="${escapeHtml(day.aria)} ${meal}으로 옮기기">${blank}</button></div>`;
     }
 
     if (editMode) {
       return `<div class="meal-slot meal-slot-edit">
         <div class="meal-blank">${blank}</div>
-        <button type="button" class="meal-add" data-day="${escapeHtml(day)}" data-meal="${meal}"
-          aria-label="${escapeHtml(day)} ${meal}에 메뉴 넣기">+</button>
+        <button type="button" class="meal-add" data-day="${escapeHtml(day.key)}" data-meal="${meal}"
+          aria-label="${escapeHtml(day.aria)} ${meal}에 메뉴 넣기">+</button>
       </div>`;
     }
 
