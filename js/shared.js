@@ -347,13 +347,70 @@ async function postJson(url, body, timeoutMs) {
   }
 }
 
+/* 20초를 아무 표시 없이 기다리게 하면 "멈춘 건가"를 의심하게 된다.
+
+   진행률은 지어내지 않는다 — AI가 어디까지 했는지 알 방법이 없고, 가짜 막대는 한 번 들키면
+   그다음부터 어떤 표시도 믿기지 않게 만든다. 대신 확실히 아는 두 가지만 말한다:
+   얼마나 지났는지, 그리고 언제 포기하는지. 막대가 차는 것은 작업량이 아니라 그 마감까지다.
+
+   경과 표시를 loadingEl 안에 넣으면 그 요소의 aria-live 때문에 1초마다 읽힌다.
+   형제로 두고 숫자·막대는 aria-hidden으로 감춘 뒤, 화면을 보지 못하는 사용자에게는
+   따로 둔 status로 "오래 걸리고 있다"만 한 번 알린다. */
+function createWaitIndicator(loadingEl, timeoutMs) {
+  const limitSec = Math.round(timeoutMs / 1000);
+  const slowAtSec = Math.round(limitSec * 0.75);
+
+  const wrap = document.createElement("p");
+  wrap.className = "loading-wait";
+  wrap.hidden = true;
+  wrap.innerHTML = `<span class="loading-elapsed" aria-hidden="true"></span>
+    <span class="loading-bar" aria-hidden="true"><i></i></span>
+    <span class="loading-slow" role="status" aria-live="polite"></span>`;
+  loadingEl.insertAdjacentElement("afterend", wrap);
+
+  const elapsedEl = wrap.querySelector(".loading-elapsed");
+  const barEl = wrap.querySelector(".loading-bar > i");
+  const slowEl = wrap.querySelector(".loading-slow");
+  let timerId = null;
+
+  return {
+    start() {
+      const startedAt = Date.now();
+      slowEl.textContent = "";
+      wrap.hidden = false;
+
+      const tick = () => {
+        const sec = Math.min(limitSec, Math.round((Date.now() - startedAt) / 1000));
+        elapsedEl.textContent = `${sec}초 지남 · 최대 ${limitSec}초`;
+        barEl.style.width = `${(sec / limitSec) * 100}%`;
+        if (sec >= slowAtSec && !slowEl.textContent) {
+          slowEl.textContent = `${limitSec}초까지 기다린 뒤에도 답이 없으면 알려드릴게요.`;
+        }
+      };
+
+      tick();
+      timerId = setInterval(tick, 1000);
+    },
+    stop() {
+      clearInterval(timerId);
+      timerId = null;
+      wrap.hidden = true;
+      barEl.style.width = "0%";
+    },
+  };
+}
+
 /* 로딩 표시 / 에러 문구 / 제출 버튼 잠금 — 두 폼이 쓰는 세트를 한 번에 만들어준다.
    빈 문구를 넣는 것이 곧 지우는 것이다 — 숨기기를 따로 두면 "문구는 남았는데 숨김"이 가능해진다. */
-function createFormStatus({ loadingEl, errorEl, submitBtn }) {
+function createFormStatus({ loadingEl, errorEl, submitBtn, timeoutMs }) {
+  const wait = createWaitIndicator(loadingEl, timeoutMs);
+
   return {
     setLoading(isLoading) {
       loadingEl.hidden = !isLoading;
       submitBtn.disabled = isLoading;
+      if (isLoading) wait.start();
+      else wait.stop();
     },
     setError(message) {
       errorEl.textContent = message || "";

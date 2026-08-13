@@ -10,6 +10,7 @@ function coupangSearchUrl(keyword) {
 }
 
 const REFRESH_TIMEOUT_MS = 25000;
+let waitIndicator = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   const listEl = document.getElementById("shopping-list");
@@ -117,8 +118,13 @@ async function refreshShoppingList() {
   const saved = loadSavedPlan();
   if (!saved) return;
 
+  /* 여기서 만들되 한 번만 만든다 — 부를 때마다 만들면 새로고침할 때마다 표시가 하나씩 늘어난다.
+     추천·식단 화면과 같은 것을 쓴다. 기다림의 모양이 화면마다 다르면 그때마다 다시 읽어야 한다. */
+  waitIndicator = waitIndicator || createWaitIndicator(loadingEl, REFRESH_TIMEOUT_MS);
+
   btn.disabled = true;
   loadingEl.hidden = false;
+  waitIndicator.start();
   errorEl.hidden = true;
 
   /* 보낸 냉장고와 스냅샷이 같은 순간의 것이어야 한다. 응답을 기다리는 사이에
@@ -131,6 +137,7 @@ async function refreshShoppingList() {
   );
 
   loadingEl.hidden = true;
+  waitIndicator.stop();
   btn.disabled = false;
 
   if (!result.ok) {

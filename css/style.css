@@ -1647,6 +1647,45 @@ body:has(.pantry-bar) {
   color: var(--color-text-muted);
 }
 
+/* 기다리는 동안의 경과·마감 표시. 본문보다 작고 흐리게 둔다 —
+   기다리는 사람이 읽어야 할 것은 위의 "무엇을 하고 있는지"가 먼저다. */
+.loading-wait {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.loading-elapsed {
+  font-variant-numeric: tabular-nums; /* 초가 바뀔 때 글자 폭이 흔들리지 않게 */
+}
+
+.loading-bar {
+  flex: 0 1 160px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+/* 차오르는 것은 작업 진행률이 아니라 "포기까지 남은 시간"이다.
+   1초마다 값이 바뀌므로 그 사이를 이어 붙인다. 모션 최소화 설정에서는
+   위쪽 prefers-reduced-motion 블록이 전역으로 끊어 계단식으로 움직인다. */
+.loading-bar > i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--color-primary);
+  transition: width 1s linear;
+}
+
+.loading-slow {
+  flex-basis: 100%;
+}
+
 .error-message {
   margin-top: 20px;
   background: var(--color-danger-bg);

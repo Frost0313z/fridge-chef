@@ -18,7 +18,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const rerecommendBtn = document.getElementById("rerecommend-btn");
 
   const REQUEST_TIMEOUT_MS = 20000;
-  const status = createFormStatus({ loadingEl, errorEl, submitBtn });
+  /* 기다리는 화면이 "최대 몇 초"를 말하려면 실제로 포기하는 시각을 알아야 한다.
+     여기서 넘기지 않으면 화면과 AbortController가 서로 다른 마감을 갖게 된다. */
+  const status = createFormStatus({ loadingEl, errorEl, submitBtn, timeoutMs: REQUEST_TIMEOUT_MS });
 
   restorePreferences();
 

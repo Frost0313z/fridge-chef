@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const loadingEl = document.getElementById("mealplan-loading");
   const errorEl = document.getElementById("mealplan-error");
   const resultEl = document.getElementById("mealplan-result");
-  const status = createFormStatus({ loadingEl, errorEl, submitBtn });
+  const status = createFormStatus({ loadingEl, errorEl, submitBtn, timeoutMs: MP_REQUEST_TIMEOUT_MS });
 
   restorePreferences();
 
