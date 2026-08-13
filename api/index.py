@@ -26,6 +26,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mealplan  # noqa: E402
 import recommend  # noqa: E402
 
+INVALID_REQUEST_MESSAGE = "요청이 제대로 전달되지 않았어요. 페이지를 새로고침한 뒤 다시 시도해주세요."
+
 ROUTES = {
     "recommend": recommend.handle,
     "mealplan": mealplan.handle,
@@ -48,12 +50,14 @@ class handler(BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", 0))
             raw_body = self.rfile.read(length) if length else b"{}"
             payload = json.loads(raw_body or b"{}")
+        # "요청 형식"은 사용자가 이해할 수도, 고칠 수도 없는 말이다. 실제로 이 오류는
+        # 전송이 중간에 깨졌거나 오래된 화면이 남아 있을 때 나므로, 새로고침이 진짜 조치다.
         except (ValueError, json.JSONDecodeError):
-            self._send(400, {"error": "invalid_request", "message": "요청 형식이 올바르지 않아요."})
+            self._send(400, {"error": "invalid_request", "message": INVALID_REQUEST_MESSAGE})
             return
 
         if not isinstance(payload, dict):
-            self._send(400, {"error": "invalid_request", "message": "요청 형식이 올바르지 않아요."})
+            self._send(400, {"error": "invalid_request", "message": INVALID_REQUEST_MESSAGE})
             return
 
         # 여기서 막지 않으면 예외가 그대로 올라가 응답 자체를 못 보낸다.

@@ -30,7 +30,10 @@ def call_openai(system_prompt, user_prompt, timeout, temperature):
     """
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
-        return None, (500, {"error": "server_misconfigured", "message": "서버에 API 키가 설정되어 있지 않아요."})
+        # 사용자에게 "API 키"를 말하면 자기가 뭘 잘못했나 찾게 된다. 원인이 우리 쪽이라는
+        # 사실만 알리고, 무엇을 하면 되는지로 끝낸다. 개발자는 error 코드로 구분하면 된다.
+        # 이 함수는 추천·식단·장보기가 함께 쓰므로 특정 화면 이름을 넣지 않는다.
+        return None, (500, {"error": "server_misconfigured", "message": "지금은 AI가 답을 만들지 못해요. 사용자 잘못이 아니라 저희 쪽 문제예요. 조금 뒤에 다시 시도해주세요."})
 
     client = OpenAI(api_key=api_key, timeout=timeout)
 
@@ -54,4 +57,6 @@ def call_openai(system_prompt, user_prompt, timeout, temperature):
     # TypeError는 AI가 거부 응답을 줘서 content가 None일 때 json.loads가 던진다.
     # 잡지 않으면 예외가 그대로 올라가 응답을 못 보내고, 프론트가 네트워크 오류로 오해한다.
     except (ValueError, TypeError, AttributeError, KeyError, IndexError):
-        return None, (502, {"error": "bad_ai_response", "message": "AI 응답을 해석하지 못했어요. 다시 시도해주세요."})
+        # "해석"은 개발자 말이다. 사용자가 알아야 할 것은 "AI가 답을 제대로 못 만들었고,
+        # 한 번 더 하면 대개 된다"는 것뿐이다 — 실제로 이 오류는 재시도로 거의 풀린다.
+        return None, (502, {"error": "bad_ai_response", "message": "AI가 답을 제대로 만들지 못했어요. 한 번 더 시도하면 대개 잘 나와요."})
