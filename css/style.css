@@ -230,21 +230,83 @@ a {
    사이드바가 아니라 전체 폭 바인 이유: 단일 컬럼을 유지해야 본문 왼쪽 끝이
    헤더 로고와 계속 맞는다(A7). sticky도 쓰지 않는다 — 헤더까지 고정하면
    모바일에서 화면을 과하게 먹는다. */
+/* 냉장고 조회 바는 화면 **아래**에 붙는 시트다.
+   위쪽 헤더 밑에 있을 때는, 가장 자주 여는 것이 모바일에서 손가락이 가장 닿기 어려운
+   자리에 있었다. 엄지가 놓이는 곳으로 내리고, 아래에서 위로 끌어 올려 연다([C9] — 지도
+   앱·음악 앱의 시트에서 이미 익숙한 조작).
+
+   bottom: 0에 붙여두면 내용이 늘어난 만큼 **위로** 자란다 — "아래에서 올라온다"가
+   위치만으로 자연히 나온다. */
 .pantry-bar {
-  border-bottom: 1px solid var(--color-border);
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  border-top: 1px solid var(--color-border);
+  border-radius: 16px 16px 0 0;
   background: var(--color-surface);
+  box-shadow: 0 -6px 24px rgb(0 0 0 / 12%);
 }
 
+/* 끌어서 놓은 뒤 제자리를 찾아가는 동안에만 건다. 끄는 중에는 손을 그대로 따라와야 하므로
+   전환이 있으면 안 된다 — 손가락보다 늦게 따라오면 붙잡고 있다는 느낌이 깨진다. */
+.pantry-bar.is-settling {
+  transition: transform 0.22s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pantry-bar.is-settling {
+    transition: none;
+  }
+}
+
+/* 시트 손잡이. 여기서 시작하는 제스처는 페이지 스크롤이 아니라 시트 조작이므로
+   touch-action으로 브라우저에게 넘기지 않는다. */
 .pantry-bar > summary {
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: 10px 20px;
+  padding: 8px 20px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: grab;
+  font-size: 0.9rem;
+  touch-action: none;
+  /* 기본 삼각형 대신 손잡이 막대를 쓴다. 여닫힘은 <details>가 스크린리더에 그대로 알린다. */
+  list-style: none;
+}
+
+.pantry-bar > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* 잡아 끌 수 있다는 표시. 식단 카드에서 스크롤바를 없애고 grab 커서를 둔 것과 같은 규칙이다. */
+.pantry-bar > summary::before {
+  content: "";
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-border);
+}
+
+.pantry-bar.is-dragging > summary {
+  cursor: grabbing;
+}
+
+.pantry-bar-head {
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
-  cursor: pointer;
-  font-size: 0.9rem;
+}
+
+/* 시트가 늘 화면 아래를 덮고 있으므로, 그만큼 자리를 비워야 마지막 내용이 가리지 않는다.
+   :has를 쓰는 이유는 조회 바가 있는 페이지에만 걸기 위해서다(홈·냉장고에는 없다). */
+body:has(.pantry-bar) {
+  padding-bottom: 76px;
 }
 
 .pantry-bar-title {
@@ -255,10 +317,15 @@ a {
   color: var(--color-text-muted);
 }
 
+/* 재료가 30개면 시트가 화면을 다 덮는다. 높이를 묶고 안쪽에서 굴린다.
+   overscroll-behavior는 목록 끝까지 굴렸을 때 그 힘이 뒤 페이지로 넘어가지 않게 막는다. */
 .pantry-bar-body {
   max-width: var(--max-width);
   margin: 0 auto;
   padding: 0 20px 16px;
+  max-height: min(56vh, 420px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .pantry-bar-empty {

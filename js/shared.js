@@ -568,9 +568,114 @@ function renderPantryBar() {
     )}</p>`;
 }
 
+/* 손이 몇 px 흔들리는 것과 끌어 올리는 것을 가른다 (js/mealplan.js의 가로 밀기와 같은 값). */
+const SHEET_DRAG_THRESHOLD_PX = 6;
+
+/* 아래에서 위로 끌어 여는 시트.
+
+   탭으로 여닫는 것은 <details>의 기본 동작 그대로 둔다 — 키보드(Enter/Space)와 스크린리더
+   모두 그 위에서 이미 동작하고, 여닫힘 상태도 알아서 알려준다. 끌기는 그 위에 얹기만 한다.
+
+   끄는 동안 손을 따라오게 하려면 내용이 실제로 그려져 있어야 하므로, 문턱을 넘는 순간
+   details를 먼저 열고 시트를 그만큼 아래로 내려둔다(열렸지만 화면 밖). 그 상태에서
+   translateY를 줄여가면 아래에서 올라오는 것으로 보인다. */
+function initPantryBarDrag(barEl) {
+  const summaryEl = barEl.querySelector("summary");
+  const bodyEl = barEl.querySelector(".pantry-bar-body");
+  if (!summaryEl || !bodyEl) return;
+
+  let pointerId = null;
+  let startY = 0;
+  let height = 0;
+  let openedAtStart = false;
+  let dragged = false;
+
+  function settle(open) {
+    barEl.classList.add("is-settling");
+    barEl.style.transform = open ? "translateY(0)" : `translateY(${height}px)`;
+
+    const finish = () => {
+      barEl.classList.remove("is-settling");
+      barEl.style.transform = "";
+      if (!open) barEl.open = false;
+    };
+
+    /* 모션을 줄이도록 설정한 사용자에게는 전환이 걸리지 않아 transitionend가 오지 않는다.
+       그 경우를 기다리면 시트가 열린 채로 굳는다. */
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) finish();
+    else barEl.addEventListener("transitionend", finish, { once: true });
+  }
+
+  summaryEl.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    pointerId = e.pointerId;
+    startY = e.clientY;
+    openedAtStart = barEl.open;
+    dragged = false;
+  });
+
+  summaryEl.addEventListener("pointermove", (e) => {
+    if (e.pointerId !== pointerId) return;
+
+    const movedUp = startY - e.clientY;
+    if (!dragged) {
+      if (Math.abs(movedUp) < SHEET_DRAG_THRESHOLD_PX) return;
+      dragged = true;
+      barEl.classList.remove("is-settling");
+      barEl.classList.add("is-dragging");
+      if (!barEl.open) barEl.open = true;
+      height = bodyEl.offsetHeight;
+      summaryEl.setPointerCapture(pointerId);
+    }
+
+    /* 열려 있었으면 내리는 방향으로, 닫혀 있었으면 올리는 방향으로 따라온다.
+       0(다 열림)과 height(다 닫힘) 사이를 벗어나지 않게 묶는다. */
+    const offset = openedAtStart ? -movedUp : height - movedUp;
+    barEl.style.transform = `translateY(${Math.min(Math.max(offset, 0), height)}px)`;
+  });
+
+  function endDrag(e) {
+    if (e.pointerId !== pointerId) return;
+    if (summaryEl.hasPointerCapture(pointerId)) summaryEl.releasePointerCapture(pointerId);
+    pointerId = null;
+    if (!dragged) return;
+
+    barEl.classList.remove("is-dragging");
+    /* 손을 뗀 자리가 곧 의도다. 절반을 넘겨 올렸으면 열고, 아니면 되돌린다 —
+       조금 끌었다 놓았을 때 열려버리면 실수로 여는 일이 잦아진다. */
+    const offset = parseFloat(barEl.style.transform.replace(/[^\d.-]/g, "")) || 0;
+    settle(offset < height / 2);
+  }
+
+  summaryEl.addEventListener("pointerup", endDrag);
+  summaryEl.addEventListener("pointercancel", endDrag);
+
+  /* 끌고 손을 떼면 click이 따라 나오고, summary의 click은 <details>를 도로 토글한다.
+     끌어서 연 시트가 그 자리에서 닫혀버리므로 막는다. 그냥 탭이면(문턱 아래) 손대지 않는다.
+     dragged는 다음 pointerdown이 false로 시작하므로 여기서 되돌리지 않는다. */
+  summaryEl.addEventListener("click", (e) => {
+    if (dragged) e.preventDefault();
+  });
+
+  /* iOS는 키보드가 올라와도 fixed 요소를 밀어 올려주지 않아, 시트 안의 입력칸이 키보드
+     뒤로 숨는다. 재료를 적는 것이 이 시트의 본래 목적이므로 그러면 기능이 없는 것과 같다.
+     보이는 영역이 줄어든 만큼 시트를 올린다. */
+  if (window.visualViewport) {
+    const lift = () => {
+      const view = window.visualViewport;
+      const hidden = window.innerHeight - view.height - view.offsetTop;
+      barEl.style.bottom = hidden > 0 ? `${hidden}px` : "";
+    };
+    window.visualViewport.addEventListener("resize", lift);
+    window.visualViewport.addEventListener("scroll", lift);
+  }
+}
+
 function initPantryBar() {
   const barEl = document.getElementById("pantry-bar");
   if (!barEl) return;
+
+  initPantryBarDrag(barEl);
 
   /* 바 안쪽은 다시 그릴 때마다 통째로 바뀌므로, 남아 있는 바깥에 한 번만 건다. */
   barEl.addEventListener("click", (e) => {
