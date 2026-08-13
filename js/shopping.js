@@ -229,7 +229,7 @@ function renderShoppingList(saved, pantry) {
        그 상태에서 "다 있어요"라고 하면 사실과 다르므로, 왜 비었는지를 알려준다. */
     const hasQuantity = pantry.some((p) => /\d/.test(p.amount));
     listEl.innerHTML = hasQuantity
-      ? `<li class="shopping-item-none">냉장고에 다 있어요! 따로 살 재료가 없어요 🎉</li>`
+      ? `<li class="shopping-item-none">${escapeHtml(COPY.UI.shoppingListEmpty)}</li>`
       : `<li class="shopping-item-none">살 게 없다고 나왔어요.
            냉장고에 "계란 2개"처럼 수량을 적으면 모자란 재료를 더 정확히 찾아드려요.
            <a href="pantry.html">냉장고 수정 →</a></li>`;
@@ -245,7 +245,7 @@ function renderShoppingList(saved, pantry) {
         <span class="shopping-item-actions">
           <a href="${escapeHtml(coupangSearchUrl(item.query))}" target="_blank" rel="noopener" aria-label="${escapeHtml(item.query)} 쿠팡에서 검색">쿠팡에서 검색 →</a>
           <button type="button" class="shopping-bought-btn" data-name="${escapeHtml(item.query)}"
-            data-amount="${escapeHtml(item.amount)}" aria-label="${escapeHtml(item.label)} 샀어요 - 냉장고에 넣기">샀어요</button>
+            data-amount="${escapeHtml(item.amount)}" aria-label="${escapeHtml(item.label)} ${escapeHtml(COPY.UI.boughtButton)} - 냉장고에 넣기">${escapeHtml(COPY.UI.boughtButton)}</button>
         </span>
       </div>
       ${item.why}

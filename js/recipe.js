@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const ingredients = [pantryIngredients, extraIngredients].filter(Boolean).join(", ");
 
     if (!ingredients) {
-      status.setError("냉장고에 재료를 넣거나, 오늘 있는 재료를 1개 이상 입력해주세요.");
+      status.setError(COPY.UI.emptyIngredients);
       ingredientsEl.focus();
       return;
     }

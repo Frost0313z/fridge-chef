@@ -27,7 +27,7 @@
   <link rel="stylesheet" href="css/tokens.css" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
-<body>
+<body data-page="recipe">
   <a href="#main" class="skip-link">본문 바로가기</a>
   <header class="site-header">
     <div class="nav-wrap">
@@ -55,8 +55,8 @@
   </header>
   <main id="main" class="page">
     <section class="page-intro">
-      <h1>오늘 뭐 해먹을까요?</h1>
-      <p>냉장고에 있는 재료는 자동으로 반영돼요. 오늘만 있는 재료가 있다면 아래에 따로 적어주세요.</p>
+      <h1 data-copy="UI.recipeFormTitle">오늘 뭐 해먹을까요?</h1>
+      <p data-copy="UI.recipeFormIntro">냉장고에 있는 재료는 자동으로 반영돼요. 오늘만 있는 재료가 있다면 아래에 따로 적어주세요.</p>
     </section>
 
     <section class="recipe-form-section">
@@ -93,30 +93,29 @@
           건강 관리 중이에요 (기름지지 않고 칼로리 낮은 요리로)
         </label>
 
-        <button type="submit" id="submit-btn" class="cta-button">AI에게 추천받기</button>
+        <button type="submit" id="submit-btn" class="cta-button" data-copy="UI.submitRecipe">오늘 뭐 해먹지?</button>
       </form>
 
-      <p id="loading" class="loading" role="status" aria-live="polite" hidden>🍳 재료를 살펴보고 요리를 고민하고 있어요...</p>
+      <p id="loading" class="loading" role="status" aria-live="polite" data-copy="UI.loading" hidden>있는 재료로 뭘 만들 수 있을지 찾고 있어요…</p>
       <p id="error" class="error-message" role="alert" hidden></p>
       <p id="error-fallback" class="error-fallback" hidden>
-        지금 추천을 못 받아도 괜찮아요.
-        <button type="button" id="error-history-btn" class="link-button">최근 추천 받은 요리 보기</button>
+        <span data-copy="UI.errorFallbackIntro">지금 추천을 못 받아도 괜찮아요.</span>
+        <button type="button" id="error-history-btn" class="link-button" data-copy="UI.errorFallbackAction">최근 받은 요리 보기</button>
       </p>
 
-      <p id="result-empty" class="result-empty">아직 추천받은 요리가 없어요. 재료를 확인하고 위 버튼을 눌러보세요.</p>
+      <p id="result-empty" class="result-empty" data-copy="UI.emptyRecipeStart">아직 받은 추천이 없어요. 재료를 확인하고 위 버튼을 눌러보세요.</p>
       <div id="result" class="result-grid" aria-live="polite"></div>
 
-      <button type="button" id="rerecommend-btn" class="cta-button cta-button-secondary rerecommend-btn" hidden>
-        다른 요리 추천받기
-      </button>
+      <button type="button" id="rerecommend-btn" class="cta-button cta-button-secondary rerecommend-btn"
+        data-copy="UI.rerecommend" hidden>다른 요리 보기</button>
     </section>
 
     <section class="history">
       <div class="history-header">
-        <h2>🕘 최근 추천 받은 요리</h2>
-        <button type="button" id="history-clear-btn" class="link-button link-button-muted">전체 지우기</button>
+        <h2 data-copy="UI.historyTitle">최근 받은 요리</h2>
+        <button type="button" id="history-clear-btn" class="link-button link-button-muted" data-copy="UI.clearAll">전체 지우기</button>
       </div>
-      <p id="history-empty" class="history-empty">아직 추천받은 요리가 없어요.</p>
+      <p id="history-empty" class="history-empty" data-copy="UI.emptyHistory">아직 받은 추천이 없어요.</p>
       <div id="history-list" class="history-list"></div>
     </section>
   </main>
@@ -132,6 +131,7 @@
     <div id="pantry-bar-body" class="pantry-bar-body"></div>
   </details>
 
+  <script src="js/copy.js"></script>
   <script src="js/main.js"></script>
   <script src="js/shared.js"></script>
   <script src="js/recipe.js"></script>

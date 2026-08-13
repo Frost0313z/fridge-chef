@@ -331,7 +331,7 @@ async function postJson(url, body, timeoutMs) {
     const data = await response.json().catch(() => null);
 
     if (!response.ok) {
-      return { ok: false, message: (data && data.message) || "오류가 발생했어요. 잠시 후 다시 시도해주세요." };
+      return { ok: false, message: (data && data.message) || COPY.UI.error };
     }
     return { ok: true, data: data || {} };
   } catch (err) {
@@ -339,8 +339,8 @@ async function postJson(url, body, timeoutMs) {
       ok: false,
       message:
         err.name === "AbortError"
-          ? "응답이 지연되고 있어요. 잠시 후 다시 시도해주세요."
-          : "네트워크 연결을 확인하고 다시 시도해주세요.",
+          ? COPY.UI.errorTimeout
+          : COPY.UI.errorNetwork,
     };
   } finally {
     clearTimeout(timeoutId);
@@ -381,10 +381,10 @@ function createWaitIndicator(loadingEl, timeoutMs) {
 
       const tick = () => {
         const sec = Math.min(limitSec, Math.round((Date.now() - startedAt) / 1000));
-        elapsedEl.textContent = `${sec}초 지남 · 최대 ${limitSec}초`;
+        elapsedEl.textContent = COPY.UI.waitElapsed(sec, limitSec);
         barEl.style.width = `${(sec / limitSec) * 100}%`;
         if (sec >= slowAtSec && !slowEl.textContent) {
-          slowEl.textContent = `${limitSec}초까지 기다린 뒤에도 답이 없으면 알려드릴게요.`;
+          slowEl.textContent = COPY.UI.waitSlow(limitSec);
         }
       };
 
@@ -611,12 +611,12 @@ function renderPantryBar() {
     ${
       pantry.length
         ? `<div class="pantry-chips">${pantryChipsHtml(pantry, showDetails())}</div>`
-        : `<p class="pantry-bar-empty">아직 등록된 재료가 없어요. 아래에 적으면 바로 들어가요.</p>`
+        : `<p class="pantry-bar-empty">${escapeHtml(COPY.PANTRY.barEmpty)}</p>`
     }
     ${pantryLimitNoticeHtml(pantry)}
     <div class="pantry-bar-add">
       <input type="text" id="pantry-bar-input" autocomplete="off"
-        placeholder="재료 추가 (쉼표로 여러 개)" aria-label="냉장고에 추가할 재료" />
+        placeholder="${escapeHtml(COPY.PANTRY.barPlaceholder)}" aria-label="${escapeHtml(COPY.PANTRY.barInputLabel)}" />
       <button type="button" id="pantry-bar-add-btn">추가</button>
     </div>
     <p class="pantry-bar-status" role="status"${status ? "" : " hidden"}>${statusHtml(
@@ -893,7 +893,7 @@ function initPantry() {
   function syncAmountToggle() {
     if (!amountToggle) return;
     const on = showDetails();
-    amountToggle.textContent = on ? "간단히" : "자세히";
+    amountToggle.textContent = on ? COPY.PANTRY.detailOff : COPY.PANTRY.detailOn;
     amountToggle.setAttribute("aria-pressed", String(on));
     amountToggle.classList.toggle("is-on", on);
   }

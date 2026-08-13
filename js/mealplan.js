@@ -131,7 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const plan = result.data.plan || [];
     if (!plan.length) {
-      status.setError("식단을 만들지 못했어요. 잠시 후 다시 시도해보세요.");
+      status.setError(COPY.UI.errorMealplan);
       return;
     }
 
@@ -285,7 +285,7 @@ function setEditMode(on) {
 
   const btn = document.getElementById("mealplan-edit-btn");
   if (btn) {
-    btn.textContent = on ? "다 바꿨어요" : "메뉴 바꾸기";
+    btn.textContent = on ? COPY.UI.editMenuDone : COPY.UI.editMenu;
     btn.setAttribute("aria-pressed", String(on));
     btn.classList.toggle("is-on", on);
   }

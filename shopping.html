@@ -27,7 +27,7 @@
   <link rel="stylesheet" href="css/tokens.css" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
-<body>
+<body data-page="shopping">
   <a href="#main" class="skip-link">본문 바로가기</a>
   <header class="site-header">
     <div class="nav-wrap">
@@ -56,28 +56,25 @@
 
   <main id="main" class="page">
     <section class="page-intro">
-      <h1>뭘 사야 할까요?</h1>
-      <p>식단에 필요한 양에서 냉장고에 있는 만큼을 뺀 <strong>부족한 만큼만</strong> 모았어요. 사고 나면 "샀어요"를 눌러 냉장고에 넣어주세요.</p>
+      <h1 data-copy="UI.shoppingTitle">뭘 사야 할까요?</h1>
+      <p data-copy="UI.shoppingIntro">식단에 필요한 양에서 냉장고에 있는 만큼을 뺀 부족한 만큼만 모았어요. 사고 나면 "샀어요"를 눌러 냉장고에 넣어주세요.</p>
     </section>
 
     <section class="shopping-page">
-      <p id="shopping-empty" class="shopping-empty" hidden>
-        아직 식단 계획이 없어요. 식단을 먼저 세우면 살 것만 골라드려요.
-      </p>
+      <p id="shopping-empty" class="shopping-empty" data-copy="UI.emptyShopping" hidden>아직 식단이 없어요. 식단을 먼저 짜면 살 것만 골라드릴게요.</p>
       <p id="shopping-empty-cta" class="page-next-inline" hidden>
-        <a href="mealplan.html" class="cta-button">식단 계획하러 가기 →</a>
+        <a href="mealplan.html" class="cta-button" data-copy="UI.shoppingEmptyCta">식단 짜러 가기 →</a>
       </p>
 
       <div id="shopping-result" hidden>
-        <h2>🛒 장보기 리스트</h2>
+        <h2 data-copy="UI.shoppingListTitle">이것만 사면 돼요</h2>
         <p id="shopping-stale" class="shopping-stale" role="status" hidden>
-          식단을 수정해서 이 목록이 지금 계획과 다를 수 있어요.
-          <button type="button" id="shopping-refresh-btn" class="link-button">장보기 다시 뽑기</button>
+          <span data-copy="UI.shoppingStale">식단을 고쳐서 이 목록이 지금 계획과 다를 수 있어요.</span>
+          <button type="button" id="shopping-refresh-btn" class="link-button" data-copy="UI.shoppingRefresh">장보기 다시 뽑기</button>
         </p>
-        <p id="shopping-refresh-loading" class="loading" role="status" hidden>🛒 바뀐 식단으로 다시 계산하고 있어요...</p>
+        <p id="shopping-refresh-loading" class="loading" role="status" data-copy="UI.loadingShopping" hidden>바뀐 식단으로 다시 계산하고 있어요…</p>
         <p id="shopping-refresh-error" class="error-message" role="alert" hidden></p>
-        <p id="shopping-list-hint" class="shopping-list-hint">식단에 필요한 양에서 냉장고에 있는 만큼을 빼고 남은 것만 모았어요.
-          자동으로 담기지는 않고, 클릭하면 쿠팡 검색 결과가 새 탭에서 열려요.</p>
+        <p id="shopping-list-hint" class="shopping-list-hint" data-copy="UI.shoppingHint">자동으로 담기지는 않아요. 누르면 쿠팡 검색 결과가 새 탭에서 열려요.</p>
         <ul id="shopping-list" class="shopping-list" aria-live="polite"></ul>
         <p id="shopping-status" class="shopping-status" role="status" hidden></p>
       </div>
@@ -95,6 +92,7 @@
     <div id="pantry-bar-body" class="pantry-bar-body"></div>
   </details>
 
+  <script src="js/copy.js"></script>
   <script src="js/main.js"></script>
   <script src="js/shared.js"></script>
   <script src="js/shopping.js"></script>

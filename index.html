@@ -27,7 +27,7 @@
   <link rel="stylesheet" href="css/tokens.css" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
-<body>
+<body data-page="index">
   <a href="#main" class="skip-link">본문 바로가기</a>
   <header class="site-header">
     <div class="nav-wrap">
@@ -60,35 +60,32 @@
     </div>
 
     <section class="hero">
-      <h1>냉장고 속 애매한 재료,<br />오늘은 뭘 해먹을 수 있을까요?</h1>
-      <p class="hero-sub">
-        있는 재료만 입력하면 AI가 지금 바로 만들 수 있는 요리를 추천해드려요.
-        이번 주 저녁을 미리 계획하고, 부족한 재료만 골라 담을 수도 있어요.
-      </p>
+      <h1 data-copy="HERO.headline">냉장고에 있는 대로,<br />오늘 한끼 완성</h1>
+      <p class="hero-sub" data-copy="HERO.subhead">애매하게 남은 재료만 적어주세요. 지금 바로 만들 수 있는 요리를 찾아드려요.</p>
       <div class="hero-actions">
-        <a href="pantry.html" class="cta-button">냉장고 채우고 시작하기 →</a>
-        <a href="recipe.html" class="cta-button cta-button-secondary">바로 추천받기</a>
+        <a href="pantry.html" class="cta-button" data-copy="HERO.ctaPrimary">냉장고 채우고 시작하기 →</a>
+        <a href="recipe.html" class="cta-button cta-button-secondary" data-copy="HERO.ctaSecondary">바로 추천받기</a>
       </div>
-      <p class="hero-note">있는 재료로, 없는 요리 없어요.</p>
+      <p class="hero-note" data-copy="HERO.note">있는 재료로, 없는 요리 없어요.</p>
     </section>
 
     <section class="home-section">
       <h2>이렇게 쓰면 돼요</h2>
       <div class="features">
         <article class="feature-card">
-          <span class="step-num">1</span>
-          <h3>냉장고에 재료를 넣어요</h3>
-          <p>쉼표로 구분해서 적기만 하면 됩니다. 정확한 계량은 필요 없어요. 한 번 넣어두면 다음부터 다시 적지 않아도 되고, 아래 세 기능에 자동으로 반영돼요.</p>
+          <span class="step-num" data-copy="STEPS.0.num">1</span>
+          <h3 data-copy="STEPS.0.title">냉장고에 재료를 넣어요</h3>
+          <p data-copy="STEPS.0.body">쉼표로 구분해서 적기만 하면 돼요. 정확한 계량은 필요 없어요.</p>
         </article>
         <article class="feature-card">
-          <span class="step-num">2</span>
-          <h3>오늘 뭐 먹을지 고르거나, 이번 주를 계획해요</h3>
-          <p>지금 있는 재료로 만들 수 있는 요리를 AI가 골라줘요. 며칠치 저녁을 미리 계획할 수도 있고, 냉장고에 없는 재료는 "사야 해요"로 표시됩니다.</p>
+          <span class="step-num" data-copy="STEPS.1.num">2</span>
+          <h3 data-copy="STEPS.1.title">오늘 뭐 먹을지 고르거나, 이번 주를 계획해요</h3>
+          <p data-copy="STEPS.1.body">지금 있는 재료로 만들 수 있는 요리를 골라드려요.</p>
         </article>
         <article class="feature-card">
-          <span class="step-num">3</span>
-          <h3>부족한 재료만 사요</h3>
-          <p>계획에 필요한 재료 중 냉장고에 없는 것만 모아 장보기 리스트로 만들어드려요. 사고 나면 "샀어요"를 눌러 바로 냉장고에 넣을 수 있어요.</p>
+          <span class="step-num" data-copy="STEPS.2.num">3</span>
+          <h3 data-copy="STEPS.2.title">부족한 재료만 사요</h3>
+          <p data-copy="STEPS.2.body">계획에 필요한 재료 중 냉장고에 없는 것만 모아드려요.</p>
         </article>
       </div>
     </section>
@@ -121,6 +118,7 @@
   </main>
 
 
+  <script src="js/copy.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

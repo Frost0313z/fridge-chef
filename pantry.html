@@ -27,7 +27,7 @@
   <link rel="stylesheet" href="css/tokens.css" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
-<body>
+<body data-page="pantry">
   <a href="#main" class="skip-link">본문 바로가기</a>
   <header class="site-header">
     <div class="nav-wrap">
@@ -56,30 +56,29 @@
 
   <main id="main" class="page">
     <section class="page-intro">
-      <h1>내 냉장고</h1>
-      <p>여기에 등록한 재료는 이 브라우저에 저장되어, 레시피 추천·식단 계획·장보기에 자동으로 반영돼요.</p>
+      <h1 data-copy="PANTRY.pageTitle">내 냉장고</h1>
+      <p data-copy="PANTRY.pageIntro">여기에 넣어둔 재료는 이 브라우저에만 저장되고, 추천·식단·장보기에 자동으로 반영돼요.</p>
     </section>
 
     <section class="pantry-page">
-      <h2>🥕 재료 넣기</h2>
-      <p class="pantry-hint">쉼표로 구분하면 여러 개를 한 번에 넣을 수 있어요. <strong>"계란 2개"처럼 수량을 함께 적으면</strong> 식단을 짤 때 모자란 재료를 더 정확히 골라드려요.</p>
+      <h2 data-copy="PANTRY.addSectionTitle">재료 넣기</h2>
+      <p class="pantry-hint"><span data-copy="PANTRY.amountHint">쉼표로 구분하면 여러 개를 한 번에 넣을 수 있어요.</span> <strong data-copy="PANTRY.amountHintStrong">"계란 2개"처럼 수량을 함께 적으면</strong> <span data-copy="PANTRY.amountHintTail">식단을 짤 때 모자란 재료를 더 정확히 골라드려요.</span></p>
       <div class="pantry-input-row">
-        <input type="text" id="pantry-input" placeholder="재료와 수량 입력 후 Enter (쉼표로 여러 개, 예: 계란 2개, 두부 1모, 김치 조금)" />
-        <button type="button" id="pantry-add-btn">넣기</button>
+        <input type="text" id="pantry-input" data-copy="PANTRY.inputPlaceholder" data-copy-attr="placeholder" placeholder="예) 계란, 대파, 김치, 두부" />
+        <button type="button" id="pantry-add-btn" data-copy="PANTRY.addButton">넣기</button>
       </div>
       <p id="pantry-status" class="pantry-status" role="status" aria-live="polite" hidden></p>
 
       <div class="pantry-list-head">
-        <h2 class="pantry-list-title">지금 들어있는 재료</h2>
-        <button type="button" id="pantry-amount-toggle" class="pill-toggle pantry-amount-toggle" aria-pressed="false">
-          자세히
-        </button>
+        <h2 class="pantry-list-title" data-copy="PANTRY.listTitle">지금 들어있는 재료</h2>
+        <button type="button" id="pantry-amount-toggle" class="pill-toggle pantry-amount-toggle"
+          aria-pressed="false" data-copy="PANTRY.detailOn">자세히</button>
       </div>
       <div id="pantry-chips" class="pantry-chips"></div>
       <div id="pantry-limit-note" hidden></div>
       <div id="pantry-empty" class="pantry-empty">
-        <p>아직 등록된 재료가 없어요. 자주 쓰는 재료부터 넣어보세요.</p>
-        <p class="pantry-example-label">눌러서 바로 넣기</p>
+        <p data-copy="PANTRY.empty">아직 넣어둔 재료가 없어요. 두세 개만 적어도 충분해요.</p>
+        <p class="pantry-example-label" data-copy="PANTRY.exampleLabel">눌러서 바로 넣기</p>
         <div class="pantry-examples">
           <button type="button" class="pantry-example" data-name="계란">계란</button>
           <button type="button" class="pantry-example" data-name="대파">대파</button>
@@ -91,15 +90,16 @@
     </section>
 
     <section class="page-next">
-      <p>재료를 다 넣었다면</p>
+      <p data-copy="PANTRY.nextLabel">재료를 다 넣었다면</p>
       <div class="hero-actions">
-        <a href="recipe.html" class="cta-button">이 재료로 추천받기 →</a>
-        <a href="mealplan.html" class="cta-button cta-button-secondary">이번 주 식단 짜기</a>
+        <a href="recipe.html" class="cta-button" data-copy="UI.goRecipe">이 재료로 추천받기 →</a>
+        <a href="mealplan.html" class="cta-button cta-button-secondary" data-copy="UI.goMealplan">이번 주 식단 짜기</a>
       </div>
     </section>
   </main>
 
 
+  <script src="js/copy.js"></script>
   <script src="js/main.js"></script>
   <script src="js/shared.js"></script>
 </body>
