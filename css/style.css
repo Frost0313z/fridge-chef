@@ -4,8 +4,41 @@
    색·타이포·반지름·그림자는 전부 css/tokens.css가 단일 진실 공급원이다.
    여기에는 색이 아닌, 이 사이트의 골격 치수만 둔다. */
 :root {
-  --max-width: 1080px;
+  /* 헤더·본문·시트가 공유하는 바깥 컨테이너 폭 */
+  --max-width: 1200px;
+  /* 컨테이너 좌우 여백. 헤더 로고와 본문 왼쪽 끝을 같은 x에 세우는 값이라 한 곳에서만 정한다 */
+  --gutter: 20px;
+  /* 컨테이너 안 콘텐츠의 단일 폭. 폭이 두 종류로 갈리면 같은 화면에서
+     오른쪽 끝이 들쭉날쭉해 보이므로 하나로 통일한다 */
+  --content-width: 860px;
   --header-height: 64px;
+}
+
+/* ==========================================================================
+   공용 컨테이너 — 이 값을 개별 규칙에서 다시 정의하지 않는다
+   ==========================================================================
+   헤더·홈 섹션·본문 페이지·냉장고 시트가 모두 이 규칙 하나로 같은 축에 선다.
+   전에는 같은 세 줄이 7곳에 흩어져 있어서, 한 곳만 고치면 조용히 어긋날 수 있었다. */
+.nav-wrap,
+.theme-bar,
+.pantry-bar > summary,
+.pantry-bar-body,
+.hero,
+.home-section,
+.page {
+  max-width: var(--max-width);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+/* 컨테이너 안의 콘텐츠는 모두 같은 폭·같은 왼쪽 끝에 선다.
+   히어로도 예외가 아니다 — 가운데로 띄우면 아래 섹션들과 왼쪽 끝이 어긋나 보인다.
+   히어로 안 글자가 가운데 정렬인 것은 .hero의 text-align이 이미 하고 있고,
+   그 가운데는 이 열의 가운데다. */
+.page > *,
+.home-section > *,
+.hero > * {
+  max-width: var(--content-width);
 }
 
 * {
@@ -90,10 +123,7 @@ a {
    다크 모드 버튼이 헤더 한가운데 떠 버린다. 로고만 왼쪽에 붙이고 나머지는
    order로 오른쪽에 순서대로 모은다. */
 .nav-wrap {
-  max-width: var(--max-width);
-  margin: 0 auto;
   height: var(--header-height);
-  padding: 0 20px;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -149,9 +179,7 @@ a {
    내비게이션은 "어디로 갈지"만 담고, 한 번 정하면 계속 유지되는 설정은 홈에서 고른다.
    (버튼은 index.html에만 있으므로 main.js의 테마 코드는 없을 때를 이미 건너뛴다) */
 .theme-bar {
-  max-width: var(--max-width);
-  margin: 0 auto;
-  padding: 20px 20px 0;
+  padding-block: 20px 0;
   display: flex;
   justify-content: flex-end;
 }
@@ -249,9 +277,7 @@ a {
    ① 눈에 띄는 손잡이 막대 ② 위를 가리키는 화살표 ③ 눌리는 것처럼 보이는 반응.
    하나만으로는 라벨처럼 읽히고 만다. */
 .pantry-bar > summary {
-  max-width: var(--max-width);
-  margin: 0 auto;
-  padding: 14px 20px 18px;
+  padding-block: 14px 18px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -363,9 +389,7 @@ body:has(.pantry-bar) {
 /* 재료가 30개면 시트가 화면을 다 덮는다. 높이를 묶고 안쪽에서 굴린다.
    overscroll-behavior는 목록 끝까지 굴렸을 때 그 힘이 뒤 페이지로 넘어가지 않게 막는다. */
 .pantry-bar-body {
-  max-width: var(--max-width);
-  margin: 0 auto;
-  padding: 0 20px 16px;
+  padding-block: 0 16px;
   max-height: min(56vh, 420px);
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -442,20 +466,19 @@ body:has(.pantry-bar) {
    히어로
    ========================================================================== */
 .hero {
-  max-width: var(--max-width);
-  margin: 0 auto;
-  padding: 72px 20px 56px;
+  padding-block: 72px 56px;
   text-align: center;
 }
 
 .hero h1 {
   font-size: clamp(1.6rem, 4vw, 2.6rem);
-  margin: 0 0 18px;
+  /* margin 단축 속성을 쓰면 위 .hero > * 의 margin-inline: auto 가 0으로 덮여
+     가운데 정렬이 풀린다. 세로 여백만 건드린다. */
+  margin-block: 0 18px;
 }
 
 .hero-sub {
-  max-width: 560px;
-  margin: 0 auto 32px;
+  margin-block: 0 32px;
   color: var(--text-muted);
   font-size: 1.05rem;
 }
@@ -498,7 +521,7 @@ body:has(.pantry-bar) {
 }
 
 .hero-note {
-  margin: 18px 0 0;
+  margin-block: 18px 0; /* 위와 같은 이유 — margin 단축 속성은 가운데 정렬을 지운다 */
   color: var(--text-muted);
   font-size: 0.88rem;
 }
@@ -507,9 +530,7 @@ body:has(.pantry-bar) {
    홈 본문 (이용 방법 / FAQ)
    ========================================================================== */
 .home-section {
-  max-width: var(--max-width);
-  margin: 0 auto;
-  padding: 0 20px 64px;
+  padding-block: 0 64px;
 }
 
 .home-section > h2 {
@@ -585,23 +606,7 @@ body:has(.pantry-bar) {
    내부 페이지 공통 (소개 / 레시피 추천)
    ========================================================================== */
 .page {
-  max-width: var(--max-width);
-  margin: 0 auto;
-  padding: 56px 20px 80px;
-}
-
-/* 헤더(1080px)와 좌우 정렬을 맞추기 위해 .page 전체는 넓게 두되,
-   글줄이 너무 길어지면 읽기 어려운 요소(문단/폼/입력줄 등)만 별도로 좁힌다.
-   margin:auto로 다시 가운데 정렬하지 않는 것이 핵심 — 그러면 .page의 왼쪽 끝과 어긋난다. */
-.page-intro,
-#recipe-form,
-#mealplan-form,
-.pantry-input-row,
-.error-message,
-.loading,
-.shopping-list,
-.faq {
-  max-width: 680px;
+  padding-block: 56px 80px;
 }
 
 .page-intro h1 {
@@ -1840,7 +1845,7 @@ body:has(.pantry-bar) {
   }
 
   .hero {
-    padding: 48px 20px 40px;
+    padding-block: 48px 40px;
   }
 
   .form-row {
