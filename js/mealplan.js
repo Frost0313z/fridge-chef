@@ -377,12 +377,18 @@ function renderPlan() {
   const resultEl = document.getElementById("mealplan-result");
   if (!resultEl) return;
 
+  /* 다시 그리면 안쪽이 통째로 교체돼 스크롤이 1일차로 돌아간다. 편집은 조작할 때마다
+     다시 그리기를 부르므로, 5일차를 고치는 동안 화면이 매번 맨 앞으로 튀어버린다.
+     밀어둔 위치를 넘겨받아 되돌린다. */
+  const previous = resultEl.querySelector(".mealplan-days");
+  const keptScroll = previous ? previous.scrollLeft : 0;
+
   /* 가로로 미는 영역은 초점을 받을 수 있어야 키보드에서도 화살표로 밀 수 있다(WCAG 2.1.1).
      읽기 모드에서 메뉴가 다 비어 있으면 안에 초점 갈 요소가 하나도 없어, 이게 없으면
      키보드만 쓰는 사람은 2일차 뒤를 볼 방법이 사라진다. */
   const days = dayLabels();
   resultEl.innerHTML = `<div class="mealplan-days${editMode ? " is-editing" : ""}"
-    tabindex="0" role="group" aria-label="날짜별 식단 ${days.length}일치 (좌우로 밀어서 보기)">${days
+    tabindex="0" role="group" aria-label="날짜별 식단 ${days.length}일치 (좌우로 끌어서 보기)">${days
     .map(
       (day) => `
       <article class="mealplan-day-card">
@@ -392,7 +398,78 @@ function renderPlan() {
     )
     .join("")}</div>`;
 
+  const daysEl = resultEl.querySelector(".mealplan-days");
+  daysEl.scrollLeft = keptScroll;
+  enableDragScroll(daysEl);
+
   renderEditStatus();
+}
+
+/* 클릭할 때도 손은 몇 px 흔들린다. 이 문턱을 넘기 전에는 아무 일도 일어나지 않아야
+   메뉴 링크와 편집 버튼이 평소대로 눌린다. */
+const DRAG_THRESHOLD_PX = 5;
+
+/* 가로 영역을 마우스로 붙잡아 끌 수 있게 한다. 스크롤바를 감춘 자리를 이 조작이 대신한다.
+
+   터치·펜은 일부러 손대지 않는다 — 미는 것이 이미 기본 동작이고, 관성과 고무줄 반동까지
+   브라우저가 공짜로 해준다. JS로 흉내 내면 반드시 더 나빠진다.
+   요소가 다시 그려질 때마다 새로 걸린다(안쪽이 통째로 교체되므로 이전 것은 함께 사라진다). */
+function enableDragScroll(el) {
+  let pointerId = null;
+  let startX = 0;
+  let startScroll = 0;
+  let dragged = false;
+
+  el.addEventListener("pointerdown", (e) => {
+    if (e.pointerType !== "mouse" || e.button !== 0) return;
+    pointerId = e.pointerId;
+    startX = e.clientX;
+    startScroll = el.scrollLeft;
+    dragged = false;
+  });
+
+  el.addEventListener("pointermove", (e) => {
+    if (e.pointerId !== pointerId) return;
+
+    const moved = e.clientX - startX;
+    if (!dragged) {
+      if (Math.abs(moved) < DRAG_THRESHOLD_PX) return;
+      dragged = true;
+      el.classList.add("is-dragging");
+      /* 문턱을 넘는 순간 글자가 파랗게 잡히기 시작한다. 미는 동작에 선택은 방해일 뿐이다. */
+      const selection = document.getSelection();
+      if (selection) selection.removeAllRanges();
+      /* 포인터를 붙잡아 두면 커서가 카드 밖으로 나가도 계속 따라온다.
+         없으면 영역을 벗어나는 순간 멈춰서 화면 끝까지 끌 수가 없다. */
+      el.setPointerCapture(pointerId);
+    }
+    el.scrollLeft = startScroll - moved;
+  });
+
+  function endDrag(e) {
+    if (e.pointerId !== pointerId) return;
+    if (el.hasPointerCapture(pointerId)) el.releasePointerCapture(pointerId);
+    pointerId = null;
+    el.classList.remove("is-dragging");
+  }
+
+  el.addEventListener("pointerup", endDrag);
+  el.addEventListener("pointercancel", endDrag);
+
+  /* 끌고 손을 떼면 click이 따라 나온다. 그대로 두면 카드를 밀었을 뿐인데 레시피 링크가
+     새 탭으로 열리거나, 편집 모드에서 지나간 메뉴가 집힌다.
+     capture 단계에서 잡아야 안쪽 링크·버튼의 처리보다 먼저 막을 수 있다.
+     dragged를 여기서 되돌리지 않는 이유는 다음 pointerdown이 어차피 false로 시작하기
+     때문이다 — 클릭은 언제나 pointerdown 뒤에 오므로 남은 값이 다음 클릭을 먹지 않는다. */
+  el.addEventListener(
+    "click",
+    (e) => {
+      if (!dragged) return;
+      e.preventDefault();
+      e.stopPropagation();
+    },
+    true
+  );
 }
 
 /* 읽을 때는 끼니·메뉴·레시피 링크만 보여준다.

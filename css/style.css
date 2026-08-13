@@ -827,6 +827,47 @@ a {
   background: var(--color-primary);
 }
 
+/* 마우스가 있는 화면에서는 스크롤바 대신 **붙잡아 끌어서** 민다.
+   달력처럼 생긴 것을 아래쪽 얇은 막대로 조작하는 것은 손이 가는 곳과 눈이 보는 곳이
+   따로 노는 일이다. 카드를 직접 미는 편이 훨씬 짧은 동선이다(원칙 9 — 지도·보드에서
+   이미 익숙한 조작).
+
+   손가락이 있는 화면은 건드리지 않는다. 터치는 이미 미는 것이 기본 동작이고,
+   브라우저의 관성·고무줄 반동을 JS로 흉내 내면 오히려 나빠진다.
+   키보드 화살표와 휠은 `overflow-x: auto`가 그대로 들고 있으므로 영향받지 않는다. */
+@media (hover: hover) and (pointer: fine) {
+  .mealplan-days {
+    cursor: grab;
+    scrollbar-width: none;
+    /* 스크롤바가 사라졌으니 그만큼 자리를 돌려준다. 0으로 두지 않는 이유는
+       카드 그림자와 초점 테두리가 아래쪽에서 잘리기 때문이다. */
+    padding-bottom: 4px;
+  }
+
+  .mealplan-days::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* cursor는 상속되므로 안쪽 링크·버튼까지 grab이 된다. 누를 수 있는 것 위에서는
+     "누를 수 있다"가 먼저 읽혀야 한다. */
+  .mealplan-days a,
+  .mealplan-days button {
+    cursor: pointer;
+  }
+
+  /* 끄는 동안에는 어디에 있든 손이 쥐고 있는 상태로 보여야 한다. */
+  .mealplan-days.is-dragging,
+  .mealplan-days.is-dragging * {
+    cursor: grabbing;
+  }
+
+  .mealplan-days.is-dragging {
+    user-select: none;
+    /* 끄는 도중에 스냅이 걸리면 카드가 손을 따라오지 않고 튄다. 놓을 때 다시 맞춘다. */
+    scroll-snap-type: none;
+  }
+}
+
 /* 폭을 고정해 다음 카드가 늘 조금 걸쳐 보이게 한다 — 스크롤바를 보기 전에
    "옆에 더 있다"를 알 수 있어야 한다. 좁은 화면에서는 화면 폭에 맞춰 줄인다. */
 .mealplan-day-card {
