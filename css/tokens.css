@@ -57,6 +57,25 @@
   --on-brand:  #FFFFFF;
   --on-accent: #FFFFFF;
 
+  /* ---- 위험/오류: 되돌릴 수 없는 조작과 실패 안내 ----
+     감빛(--accent)과 색상이 가까워 보이지만 역할이 다르다 — 감빛은 "하세요",
+     이쪽은 "잘못됐어요"다. 강조색 하나 규칙은 액션 색에 대한 것이고 오류는 별개다.
+     실측: 텍스트 vs bg 6.1:1, vs surface 5.65:1 */
+  --danger:        #B32D2D;
+  --danger-bg:     #FDECEC;
+  --danger-border: #F4C2C2;
+
+  /* ---- 끼니 라벨 ----
+     해가 뜨고(호박) 한낮이고(초록) 해가 지는(남보라) 순서로 읽히게 고른 색이다.
+     색은 거들 뿐 의미는 글자("아침"·"점심"·"저녁")가 지므로, 색을 구분하지 못해도
+     정보가 사라지지 않는다(WCAG 1.4.1). 모든 잉크/배경 쌍이 4.5:1을 넘는다. */
+  --meal-morning-ink: #7D4F08;
+  --meal-morning-bg:  #FFECCC;
+  --meal-noon-ink:    #41661F;
+  --meal-noon-bg:     #E9F3E0;
+  --meal-night-ink:   #4B3F92;
+  --meal-night-bg:    #EAE7F7;
+
   /* ---- 반지름: 과한 pill 금지. 카드 12, 버튼 10 ---- */
   --r-sm: 6px;
   --r-md: 10px;
@@ -67,6 +86,8 @@
   --shadow-sm: 0 1px 2px rgba(60, 45, 30, .06);
   --shadow-md: 0 2px 8px rgba(60, 45, 30, .07), 0 1px 2px rgba(60, 45, 30, .05);
   --shadow-lg: 0 8px 24px rgba(60, 45, 30, .09);
+  /* 화면 아래에 붙는 시트는 그림자가 위로 떠야 한다 — 아래로 지면 화면 밖이라 안 보인다 */
+  --shadow-sheet: 0 -6px 24px rgba(60, 45, 30, .12);
 
   /* ---- 타이포 ----
      본문/UI는 Pretendard(고딕), 제목은 마루 부리(명조).
@@ -129,9 +150,22 @@
   --on-brand:  #0F1D15;      /* 밝은 브랜드색 위에는 어두운 글씨 */
   --on-accent: #26120A;
 
+  /* 어두운 배경에서는 같은 색조를 밝은 쪽으로 뒤집는다. 오류 텍스트 7.7:1 */
+  --danger:        #FF8080;
+  --danger-bg:     #3A2323;
+  --danger-border: #5C3535;
+
+  --meal-morning-ink: #F0C674;
+  --meal-morning-bg:  #3D2F16;
+  --meal-noon-ink:    #A8D08D;
+  --meal-noon-bg:     #25331F;
+  --meal-night-ink:   #BDB4EE;
+  --meal-night-bg:    #2B2742;
+
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4);
   --shadow-md: 0 2px 8px rgba(0, 0, 0, .45);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, .5);
+  --shadow-sheet: 0 -6px 24px rgba(0, 0, 0, .5);
 }
 
 /* ============================================================
