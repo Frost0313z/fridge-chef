@@ -1,0 +1,234 @@
+/* ============================================================
+   있는대로 — Design Tokens
+   냉장고에 있는 대로, 오늘 한끼 완성
+
+   컨셉: 차가운 냉장고(그린)와 따뜻한 밥상(감빛)의 대비.
+   배경은 순백 대신 아이보리를 써서 '집밥' 온도를 유지한다.
+
+   접근성: 아래 값은 WCAG 대비를 실측해 고른 것.
+   - 본문 텍스트는 4.5:1 이상, 큰 텍스트는 3:1 이상 확보
+   - 흰 글씨 버튼은 --brand-hover(5.11:1) 이상만 사용
+     --accent(3.69:1)는 18px+ 굵은 글씨나 아이콘 배경에만
+   ============================================================ */
+
+:root {
+  /* ---- 중립: 아이보리 (배경/표면/보더) ---- */
+  --ivory-50:  #FDFBF7;  /* 페이지 배경 */
+  --ivory-100: #F7F2E8;  /* 카드/입력창 표면 */
+  --ivory-200: #EDE5D6;  /* 보더, 구분선 (장식용) */
+  --ivory-300: #888278;  /* 강한 보더 — 입력창 등 상호작용 요소 전용.
+                             bg(#FDFBF7) 대비 3.69:1, surface(#F7F2E8) 대비 3.42:1 — 둘 다 WCAG 1.4.11 통과.
+                             주의: 입력창은 배경/카드 어느 쪽 위에 있어도 이 값이어야 3:1을 넘긴다.
+                             원래 #DED3BE였는데 두 배경 모두에서 1.3~1.4:1로 기준 미달이라 교체함. */
+
+  /* ---- 잉크: 텍스트 (따뜻한 회색 — 순검정 금지) ---- */
+  --ink-900: #1C1917;  /* 제목, 본문        16.9:1 */
+  --ink-600: #57534E;  /* 보조 설명         7.4:1  */
+  --ink-400: #A8A29E;  /* placeholder, 비활성 2.4:1 — 텍스트 금지, 아이콘만 */
+
+  /* ---- 브랜드 그린: 신선함 / 냉장고 ---- */
+  --green-50:  #EAF3EE;  /* 태그, 선택 배경 */
+  --green-100: #D3E6DC;
+  --green-600: #3F7A5A;  /* 브랜드 기본     4.9:1 */
+  --green-700: #2F5C44;  /* hover, 진한 텍스트 7.4:1 */
+
+  /* ---- 감빛(persimmon): 식욕 / 주요 액션 ---- */
+  --persimmon-50:  #FCEEE9;
+  --persimmon-500: #D9603C;  /* 포인트 채움 (작은 텍스트 금지) */
+  --persimmon-600: #B94B2C;  /* CTA 버튼, 텍스트 5.0:1 */
+
+  /* ---- 시맨틱 별칭: 컴포넌트는 이 이름만 참조 ---- */
+  --bg:            var(--ivory-50);
+  --surface:       var(--ivory-100);
+  --border:        var(--ivory-200);
+  --border-strong: var(--ivory-300);
+  --text:          var(--ink-900);
+  --text-muted:    var(--ink-600);
+  --text-subtle:   var(--ink-400);
+
+  --brand:         var(--green-600);
+  --brand-hover:   var(--green-700);
+  --brand-tint:    var(--green-50);
+
+  --accent:        var(--persimmon-500);
+  --accent-strong: var(--persimmon-600);  /* 흰 글씨 CTA는 이걸 쓴다 */
+  --accent-tint:   var(--persimmon-50);
+
+  --on-brand:  #FFFFFF;
+  --on-accent: #FFFFFF;
+
+  /* ---- 반지름: 과한 pill 금지. 카드 12, 버튼 10 ---- */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+
+  /* ---- 그림자: 흑색 대신 갈색 기반 + 낮은 불투명도 ---- */
+  --shadow-sm: 0 1px 2px rgba(60, 45, 30, .06);
+  --shadow-md: 0 2px 8px rgba(60, 45, 30, .07), 0 1px 2px rgba(60, 45, 30, .05);
+  --shadow-lg: 0 8px 24px rgba(60, 45, 30, .09);
+
+  /* ---- 타이포 ----
+     본문/UI는 Pretendard(고딕), 제목은 마루 부리(명조).
+     둘 다 웹폰트 임베딩 + 로고 사용까지 무료 허용.
+
+     <head>에 아래 두 줄 추가:
+     <link rel="stylesheet" as="style" crossorigin
+       href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+     <link rel="stylesheet" as="style" crossorigin
+       href="https://cdn.jsdelivr.net/gh/fonts-archive/MaruBuri/MaruBuri.css">
+  */
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system,
+               BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo",
+               "Malgun Gothic", sans-serif;
+  --font-display: "Maru Buri", "MaruBuri", ui-serif,
+                  "Apple SD Gothic Neo", serif;
+  --font-num: var(--font-sans);
+
+  --fs-display: clamp(1.9rem, 1.2rem + 2.6vw, 3rem);
+  --fs-h1: clamp(1.5rem, 1.1rem + 1.4vw, 2rem);
+  --fs-h2: 1.25rem;
+  --fs-body: 1rem;
+  --fs-sm: .875rem;
+  --fs-xs: .8125rem;
+
+  --lh-tight: 1.25;   /* 헤드라인 */
+  --lh-body: 1.7;     /* 한글 본문은 넉넉하게 */
+
+  /* 한글은 자간을 살짝 좁혀야 정돈돼 보인다 */
+  --ls-tight: -.03em;
+  --ls-normal: -.01em;
+
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --dur: 160ms;
+}
+
+/* ============================================================
+   다크 모드 — 검정이 아니라 '어두운 갈색'
+   ============================================================ */
+:root[data-theme="dark"] {
+  --bg:            #14120F;
+  --surface:       #1F1C18;
+  --border:        #33302A;  /* 카드/구분선 — 장식용, 3:1 미달이어도 무방 */
+  --border-strong: #757068;  /* 입력창 등 상호작용 요소 — bg 대비 3.81:1, surface 대비 3.45:1 — 둘 다 통과.
+                                 이전 값 #6A6255는 bg 대비로만 3.11:1을 확인했는데, 입력창이 surface(카드) 위에
+                                 있으면 2.82:1로 미달이었다. 입력창이 어느 배경 위에 있는지와 무관하게 통과하도록 재조정. */
+
+  --text:          #F5F1E8;  /* 16.6:1 */
+  --text-muted:    #C9C2B4;  /* 10.6:1 */
+  --text-subtle:   #8F887A;  /*  5.3:1 */
+
+  --brand:         #6FB58C;  /* 7.7:1 — 다크에선 밝은 톤으로 반전 */
+  --brand-hover:   #8FCBA6;
+  --brand-tint:    #1E2E25;
+
+  --accent:        #F08256;  /* 7.2:1 */
+  --accent-strong: #F5A183;
+  --accent-tint:   #32211A;
+
+  --on-brand:  #0F1D15;      /* 밝은 브랜드색 위에는 어두운 글씨 */
+  --on-accent: #26120A;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, .45);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, .5);
+}
+
+/* ============================================================
+   기본 적용 예시
+   ============================================================ */
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  letter-spacing: var(--ls-normal);
+  -webkit-font-smoothing: antialiased;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+/* 명조(마루 부리)는 h1과 로고에만. 24px 미만에는 쓰지 않는다 — 작은 크기에서 가독성이 떨어진다.
+   h2는 실제 화면에서 17.6~19.2px(섹션 제목)로 쓰이고 있어 명조 대상에서 제외했다.
+   섹션 제목까지 명조로 키우고 싶으면 font-size를 24px 이상으로 올리는 게 먼저다 — 그 결정 전까지는 고딕 유지. */
+.logo, .brand, h1 {
+  font-family: var(--font-display);
+  line-height: 1.28;
+  letter-spacing: var(--ls-tight);
+  font-weight: 700;
+  text-wrap: balance;      /* 헤드라인 줄바꿈이 예뻐진다 */
+}
+
+/* h2 이하는 고딕 유지 */
+h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-tight);
+  font-weight: 700;
+}
+
+/* UI 요소는 반드시 고딕 — 명조는 버튼·입력창에 부적합 */
+button, input, textarea, select, label, .chip, .btn-primary, .btn-secondary {
+  font-family: var(--font-sans);
+}
+
+p { text-wrap: pretty; }
+
+/* 주요 CTA — 흰 글씨는 accent-strong에만 */
+.btn-primary {
+  background: var(--accent-strong);
+  color: var(--on-accent);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  padding: .75rem 1.25rem;
+  font-weight: 600;
+  font-size: var(--fs-body);
+  letter-spacing: var(--ls-normal);
+  cursor: pointer;
+  transition: transform var(--dur) var(--ease),
+              box-shadow var(--dur) var(--ease),
+              filter var(--dur) var(--ease);
+}
+.btn-primary:hover { filter: brightness(1.07); box-shadow: var(--shadow-md); }
+.btn-primary:active { transform: translateY(1px); }
+
+/* 보조 액션 */
+.btn-secondary {
+  background: transparent;
+  color: var(--brand-hover);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  padding: .75rem 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-secondary:hover { background: var(--brand-tint); border-color: var(--brand); }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 재료 태그 */
+.chip {
+  background: var(--brand-tint);
+  color: var(--brand-hover);
+  border: 1px solid var(--green-100);
+  border-radius: var(--r-sm);
+  padding: .25rem .5rem;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+
+/* 포커스 링 — 접근성상 반드시 남길 것 */
+:where(a, button, input, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}

@@ -5,13 +5,42 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>주간 식단 계획 · 냉털 셰프</title>
   <meta name="description" content="냉장고를 활용해 일주일 저녁 식단을 계획하고, 부족한 재료만 장보기 리스트로 확인하세요." />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+  <!-- 공유 카드. og:image는 절대 URL이어야 하고, SVG를 받지 않는 곳이 있어 PNG를 쓴다.
+       원본은 assets/og.html — 문구가 바뀌면 그 페이지를 1200x630으로 다시 구우면 된다. -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="있는대로" />
+  <meta property="og:url" content="https://fridge-chef-gamma.vercel.app/mealplan.html" />
+  <meta property="og:title" content="있는대로 — 오늘 뭐 해먹지?" />
+  <meta property="og:description" content="애매하게 남은 재료로도 한 끼는 나와요. 있는 재료만 적으면 요리와 장보기 리스트를 만들어드려요." />
+  <meta property="og:image" content="https://fridge-chef-gamma.vercel.app/assets/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="stylesheet" as="style" crossorigin
+    href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+  <link rel="stylesheet" as="style" crossorigin
+    href="https://cdn.jsdelivr.net/gh/fonts-archive/MaruBuri/MaruBuri.css" />
+  <link rel="stylesheet" href="css/tokens.css" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <a href="#main" class="skip-link">본문 바로가기</a>
   <header class="site-header">
     <div class="nav-wrap">
-      <a href="index.html" class="brand">🧊 냉털 셰프</a>
+      <a href="index.html" class="brand" aria-label="있는대로 홈으로">
+        <svg class="brand-mark" width="26" height="26" viewBox="0 0 26 26" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          aria-hidden="true" focusable="false">
+          <rect x="5" y="2" width="16" height="22" rx="3.5" />
+          <path d="M5 10.5h16" />
+          <path d="M9 6v2.5M9 13.5v3" />
+        </svg>
+        <span class="brand-name">있는대로</span>
+      </a>
       <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="메뉴 열기">
         <span></span><span></span><span></span>
       </button>

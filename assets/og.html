@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>있는대로 — OG 이미지 원본</title>
+  <!--
+    assets/og.png의 원본이다. 이 페이지를 1200x630 뷰포트로 열어 캡처하면 og.png가 나온다.
+    OG 이미지는 SVG를 받지 않는 플랫폼(카카오톡·페이스북 등)이 있어 PNG로 굽는다.
+    다시 구울 때: 1200x630 뷰포트로 열고 전체 화면 캡처 → assets/og.png 덮어쓰기.
+  -->
+  <link rel="stylesheet" as="style" crossorigin
+    href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+  <link rel="stylesheet" as="style" crossorigin
+    href="https://cdn.jsdelivr.net/gh/fonts-archive/MaruBuri/MaruBuri.css" />
+  <link rel="stylesheet" href="../css/tokens.css" />
+  <style>
+    /* 캡처용 페이지라 토큰만 빌려 쓰고 레이아웃은 여기서 끝낸다 */
+    html, body { margin: 0; padding: 0; }
+    body {
+      width: 1200px;
+      height: 630px;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0 96px;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    /* 아이보리 배경 위 감빛 띠 하나. 그라데이션 대신 단색 면으로 온도를 만든다 */
+    .band {
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 12px;
+      background: var(--accent-strong);
+    }
+
+    .mark-row {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      color: var(--brand);
+      margin-bottom: 40px;
+    }
+
+    .mark-row svg { width: 76px; height: 76px; }
+
+    .wordmark {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 64px;
+      letter-spacing: var(--ls-tight);
+      color: var(--text);
+    }
+
+    .slogan {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 76px;
+      line-height: 1.3;
+      letter-spacing: var(--ls-tight);
+      color: var(--text);
+      margin: 0 0 28px;
+    }
+
+    .sub {
+      font-family: var(--font-sans);
+      font-size: 30px;
+      line-height: 1.5;
+      color: var(--text-muted);
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="band"></div>
+
+  <div class="mark-row">
+    <svg viewBox="0 0 26 26" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" aria-hidden="true">
+      <rect x="5" y="2" width="16" height="22" rx="3.5" />
+      <path d="M5 10.5h16" />
+      <path d="M9 6v2.5M9 13.5v3" />
+    </svg>
+    <span class="wordmark">있는대로</span>
+  </div>
+
+  <p class="slogan">냉장고에 있는 대로,<br />오늘 한끼 완성</p>
+  <p class="sub">애매하게 남은 재료만 적어주세요. 지금 바로 만들 수 있는 요리를 찾아드려요.</p>
+</body>
+</html>

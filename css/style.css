@@ -155,10 +155,31 @@ a {
   gap: 4px;
 }
 
+/* 워드마크 = 심벌(냉장고 문) + 이름. 이모지 로고를 단색 SVG로 바꾼 자리다 —
+   이모지는 기기마다 그림이 달라서 브랜드가 될 수 없다.
+   심벌은 stroke를 currentColor로 두어 링크 색·다크 모드·hover를 그대로 따라간다. */
 .brand {
   margin-right: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 1.15rem;
   font-weight: 700;
+}
+
+/* 글자와 함께 커지고 작아지도록 rem이 아니라 em으로 잡는다 */
+.brand-mark {
+  width: 1.4em;
+  height: 1.4em;
+  flex: none;
+}
+
+/* 이름만 명조(마루 부리). 로고는 24px 미만이어도 명조를 쓰는 유일한 예외이며,
+   얇은 획이 번지지 않도록 Bold(700)로만 쓴다. */
+.brand-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: var(--ls-tight);
 }
 
 .nav-menu {
