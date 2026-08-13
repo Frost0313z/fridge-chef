@@ -579,6 +579,23 @@ const SHEET_DRAG_THRESHOLD_PX = 6;
    끄는 동안 손을 따라오게 하려면 내용이 실제로 그려져 있어야 하므로, 문턱을 넘는 순간
    details를 먼저 열고 시트를 그만큼 아래로 내려둔다(열렸지만 화면 밖). 그 상태에서
    translateY를 줄여가면 아래에서 올라오는 것으로 보인다. */
+/* 처음 온 사람에게 딱 한 번, 시트가 살짝 올라왔다 내려간다.
+   "아래에 잡을 것이 있다"를 문장으로 설명하는 대신 한 번 보여준다 — 튜토리얼을 읽는
+   사용자는 없다. 본 적이 있으면 다시 하지 않는다. 이미 아는 사람에게 반복되는 움직임은
+   방해일 뿐이고, 이 서비스는 "의미 있는 움직임만" 보여주기로 했다.
+
+   저장에 실패해도(시크릿 창 등) 안내는 한 번 보여준다 — 매번 보이는 편이
+   한 번도 못 보는 편보다 낫다. */
+function hintOnce(barEl) {
+  if (loadPrefs().sheetHintSeen) return;
+
+  savePrefs({ sheetHintSeen: true });
+  barEl.classList.add("is-hinting");
+  barEl.addEventListener("animationend", () => barEl.classList.remove("is-hinting"), {
+    once: true,
+  });
+}
+
 function initPantryBarDrag(barEl) {
   const summaryEl = barEl.querySelector("summary");
   const bodyEl = barEl.querySelector(".pantry-bar-body");
@@ -606,8 +623,13 @@ function initPantryBarDrag(barEl) {
     else barEl.addEventListener("transitionend", finish, { once: true });
   }
 
+  hintOnce(barEl);
+
   summaryEl.addEventListener("pointerdown", (e) => {
     if (e.button !== 0) return;
+    /* 손을 대는 순간 안내 동작은 끝난다. 애니메이션이 transform을 쥐고 있으면
+       끄는 동안 시트가 손을 따라오지 못한다. */
+    barEl.classList.remove("is-hinting");
     pointerId = e.pointerId;
     startY = e.clientY;
     openedAtStart = barEl.open;
