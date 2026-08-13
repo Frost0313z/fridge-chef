@@ -180,6 +180,22 @@ a {
   border-bottom-color: var(--color-primary);
 }
 
+/* 테마 전환은 상단 내비게이션에서 빼서 홈 화면 우측 상단에만 둔다.
+   내비게이션은 "어디로 갈지"만 담고, 한 번 정하면 계속 유지되는 설정은 홈에서 고른다.
+   (버튼은 index.html에만 있으므로 main.js의 테마 코드는 없을 때를 이미 건너뛴다) */
+.theme-bar {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 20px 20px 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* 위에 줄이 하나 생긴 만큼 히어로의 윗 여백을 덜어, 첫 화면의 높이가 전과 비슷하게 유지된다. */
+.theme-bar + .hero {
+  padding-top: 32px;
+}
+
 .theme-toggle {
   order: 3;
   flex: none;
