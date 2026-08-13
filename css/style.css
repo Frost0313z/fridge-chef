@@ -200,6 +200,9 @@ a {
   border-radius: 50%;
   border: 1px solid var(--border);
   background: var(--surface);
+  /* 버튼은 글자색을 물려받지 않는다(브라우저 기본값이 검정이다). 지정해두지 않으면
+     지금은 내용이 이모지라 티가 안 나지만, 단색 아이콘으로 바꾸는 순간 다크에서 묻힌다. */
+  color: var(--text);
   font-size: 1.1rem;
   cursor: pointer;
   margin-left: 12px;
