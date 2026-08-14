@@ -589,7 +589,7 @@ function cookedHtml(ingredients, pantryNames) {
               )
               .join("")}
           </ul>
-          <button type="button" class="cta-button cooked-confirm">${escapeHtml(
+          <button type="button" class="cta-button cta-button-secondary cooked-confirm">${escapeHtml(
             COPY.COOKED.confirm
           )}</button>
           <p class="cooked-status" role="status" aria-live="polite" hidden></p>

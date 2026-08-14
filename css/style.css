@@ -1824,11 +1824,14 @@ body:has(.pantry-bar) {
 }
 
 /* "이거 해먹었어요" — 요리한 뒤 재료를 빼는 확인 단계.
-   카드의 주 행동(레시피 보러 가기)보다 뒤에 오므로 선을 하나 긋고 아래에 둔다. */
+   카드 안에 한 겹 들어간 상자로 둔다. 선 하나만 그으면 어디까지가 이 확인 단계인지
+   경계가 없어서 카드 본문과 섞여 읽힌다. 한 단 낮은 --bg로 깔고 테두리를 둘렀다. */
 .cooked {
   margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg); /* 카드 12px */
+  background: var(--bg);
 }
 
 /* summary는 button이 아니라서 전역 button:active에 걸리지 않는다. 세 상태를 직접 만든다. */
