@@ -49,6 +49,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const resultEl = document.getElementById("mealplan-result");
   const status = createFormStatus({ loadingEl, errorEl, submitBtn, timeoutMs: MP_REQUEST_TIMEOUT_MS });
 
+  /* 냉장고가 바뀐 뒤 이 화면에서 따로 다시 그릴 것은 없다 — 식단 칸은 재료의 보유 여부를
+     표시하지 않고, 조회 바는 공용 initCooked이 이미 갱신한다. 여기서 renderPlan()을 부르면
+     칸이 통째로 교체되면서 방금 띄운 결과 문구와 되돌리기 버튼까지 사라진다. */
+  initCooked(resultEl);
+
   restorePreferences();
 
   daysEl.addEventListener("change", () => savePrefs({ days: daysEl.value }));
@@ -404,6 +409,9 @@ function renderPlan() {
      읽기 모드에서 메뉴가 다 비어 있으면 안에 초점 갈 요소가 하나도 없어, 이게 없으면
      키보드만 쓰는 사람은 2일차 뒤를 볼 방법이 사라진다. */
   const days = dayLabels();
+  /* "이거 해먹었어요"가 물을 재료를 고르는 기준. 그릴 때마다 다시 읽어 항상 지금의 냉장고를 쓴다
+     — 추천 카드의 보유 표시와 같은 규칙이다. */
+  const pantryNames = pantryNamesFor(loadPantry());
   resultEl.innerHTML = `<div class="mealplan-days${editMode ? " is-editing" : ""}"
     tabindex="0" role="group" aria-label="날짜별 식단 ${days.length}일치 (좌우로 끌어서 보기)">${days
     .map(
@@ -412,7 +420,7 @@ function renderPlan() {
         <h3>${escapeHtml(day.label)}${
         day.badge ? `<span class="mealplan-day-badge">${day.badge}</span>` : ""
       }</h3>
-        ${MEALS.map((meal) => mealSlotHtml(day, meal)).join("")}
+        ${MEALS.map((meal) => mealSlotHtml(day, meal, pantryNames)).join("")}
       </article>`
     )
     .join("")}</div>`;
@@ -554,7 +562,7 @@ function mealAddFormHtml(day, meal) {
 
 /* day는 dayInfo가 만든 { key, label, badge, aria }다. 칸을 찾고 되돌려 보낼 때는 언제나
    key("1일차")를 쓰고, 사람에게 읽히는 자리에만 label/aria("8/13 (수)")를 쓴다. */
-function mealSlotHtml(day, meal) {
+function mealSlotHtml(day, meal, pantryNames = []) {
   const index = planItems.findIndex((i) => i.day === day.key && i.meal === meal);
   const label = `<span class="meal-label meal-label-${MEAL_CLASS[meal] || "night"}">${meal}</span>`;
 
@@ -590,8 +598,13 @@ function mealSlotHtml(day, meal) {
   const item = planItems[index];
   const name = escapeHtml(item.menu || "");
 
+  /* 편집 모드에서는 붙이지 않는다. 그때 칸은 고르고 옮기는 표적이라, 안에 또 누를 것을 두면
+     무엇을 누르는 건지 알 수 없어진다(빈 칸의 넣기·옮기기를 한 자리에 두지 않는 것과 같은 이유).
+     계획에 있던 요리든 임의로 넣은 요리든 똑같이 붙는다 — 이 칸에 메뉴가 있으면 그것으로 끝이다. */
   if (!editMode) {
-    return `<div class="meal-slot"><div class="meal-head">${label}${menuLinkHtml(item)}</div></div>`;
+    return `<div class="meal-slot"><div class="meal-head">${label}${menuLinkHtml(
+      item
+    )}</div>${cookedHtml(item.ingredients, pantryNames)}</div>`;
   }
 
   /* 칸에는 설명을 붙이지 않는다. 고른 상태는 색이, 다음에 무엇을 할지는 상단 안내가 말한다

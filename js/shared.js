@@ -555,6 +555,111 @@ function undoRemove() {
   return { name, stored };
 }
 
+/* ==========================================================================
+   "이거 해먹었어요" — 요리한 뒤 쓴 재료를 냉장고에서 빼는 확인 단계
+
+   레시피 추천 카드와 식단 계획 칸이 같은 것을 쓴다. 붙는 자리마다 새로 만들면 문구와
+   동작이 갈라지고, 냉장고에 쓰는 경로가 둘이 된다 — 단일 출처가 지키려는 것은
+   화면 수가 아니라 경로가 하나라는 점이다.
+   ========================================================================== */
+
+/* 묻는 대상은 지금 냉장고에 있는 재료뿐이다. 없는 재료까지 늘어놓으면 뺄 것도 없는 줄에
+   체크를 시키는 셈이고, 하나도 없으면 아무것도 그리지 않아 빈 상태 화면이 필요 없어진다
+   (냉장고에 등록 안 된 재료로 요리한 경우 — 그냥 무시하면 된다).
+
+   여닫기는 <details>에 맡긴다. 열고 닫는 자바스크립트도, 초점 가두기도 필요 없다 —
+   조회 바와 자주 묻는 질문이 이미 쓰는 방식이다. */
+function cookedHtml(ingredients, pantryNames) {
+  const mine = (ingredients || []).filter((i) => isCovered(normalizeIngredient(i), pantryNames));
+  if (!mine.length) return "";
+
+  return `
+      <details class="cooked">
+        <summary>${escapeHtml(COPY.COOKED.button)}</summary>
+        <div class="cooked-body">
+          <p class="cooked-question">${escapeHtml(COPY.COOKED.question)}</p>
+          <p class="cooked-hint">${escapeHtml(COPY.COOKED.hint)}</p>
+          <ul class="cooked-list">
+            ${mine
+              .map(
+                (i) => `<li><label class="form-check">
+              <input type="checkbox" checked data-name="${escapeHtml(i)}" />
+              <span>${escapeHtml(i)}</span>
+            </label></li>`
+              )
+              .join("")}
+          </ul>
+          <button type="button" class="cta-button cooked-confirm">${escapeHtml(
+            COPY.COOKED.confirm
+          )}</button>
+          <p class="cooked-status" role="status" aria-live="polite" hidden></p>
+        </div>
+      </details>`;
+}
+
+function setCookedStatus(root, message, canUndo) {
+  const el = root.querySelector(".cooked-status");
+  if (!el) return;
+  el.innerHTML = statusHtml(message, canUndo);
+  el.hidden = !message;
+}
+
+/* 결과 영역은 추천을 받거나 계획을 고칠 때마다 통째로 다시 그려진다. 칸마다 리스너를 달면
+   그릴 때마다 다시 달아야 하므로, 바깥 상자 하나에서 위임으로 받는다.
+   onChange는 냉장고가 바뀐 뒤 그 화면에서만 다시 그려야 하는 것을 부르는 자리다
+   (추천 카드는 재료의 보유 표시, 식단 칸은 아직 없음). */
+function initCooked(containerEl, onChange) {
+  if (!containerEl) return;
+
+  containerEl.addEventListener("click", (e) => {
+    /* 조회 바에도 되돌리기 버튼이 있다. 먼저 .cooked 안인지 확인해 서로를 건드리지 않게 한다. */
+    const root = e.target.closest(".cooked");
+    if (!root) return;
+
+    if (e.target.closest(".cooked-confirm")) {
+      const names = Array.from(
+        root.querySelectorAll(".cooked-list input:checked"),
+        (input) => input.dataset.name
+      );
+      /* 전부 체크를 풀고 눌렀을 때. 아무 말 없이 끝나면 버튼이 고장 난 것으로 읽힌다(C3). */
+      if (!names.length) {
+        setCookedStatus(root, COPY.COOKED.nothing, false);
+        return;
+      }
+
+      const result = consumeFromPantry(names);
+      if (!result.stored) {
+        setCookedStatus(root, COPY.COOKED.failed, false);
+        return;
+      }
+      /* 체크는 했는데 뺄 것이 없었던 경우 — 다른 칸에서 이미 뺐거나 냉장고에 없던 재료다.
+         목록은 그릴 때의 냉장고 기준이라 그 사이에 재고가 빠졌을 수 있다.
+         여기서 "뺐어요"라고 하면 거짓말이 되고, 되돌리기를 붙이면 이 확인과 무관한
+         직전 차감이 되살아난다. */
+      if (!result.removed.length) {
+        setCookedStatus(root, COPY.COOKED.already, false);
+        return;
+      }
+      setCookedStatus(root, COPY.COOKED.done(result.removed.join(", ")), true);
+      renderPantryBar();
+      if (onChange) onChange(root);
+      return;
+    }
+
+    if (e.target.closest(".undo-btn")) {
+      const undone = undoRemove();
+      if (!undone) return;
+      setCookedStatus(
+        root,
+        undone.stored ? COPY.COOKED.undone(undone.name) : COPY.COOKED.failed,
+        false
+      );
+      renderPantryBar();
+      if (onChange) onChange(root);
+    }
+  });
+}
+
 /* 평소에는 이름만 보여준다. 훑는 목적은 "뭐가 있는지"지 몇 개인지가 아니고,
    30개에 수량과 날짜까지 붙으면 화면이 곁가지로 뒤덮인다. 필요할 때 켜서 본다.
    (같은 재료가 한 줄로 합쳐지기 때문에 숨겨도 안전하다 — 합치기가 없으면

@@ -1869,12 +1869,15 @@ body:has(.pantry-bar) {
 }
 
 /* 재료 줄은 폼 체크박스와 같은 모양을 쓴다(.form-check). 여기서는 목록 기호만 걷어낸다.
-   .recipe-card로 한정하는 이유는 위쪽 `.recipe-card ul`의 padding-left를 이기기 위해서다 —
-   클래스 하나만으로는 우선순위가 낮아 들여쓰기가 그대로 남는다. */
-.recipe-card .cooked-list {
+   부모까지 적는 이유는 `.recipe-card ul`과 `.mealplan-day-card ul`의 padding-left를
+   둘 다 이기기 위해서다 — 클래스 하나만으로는 우선순위가 낮아 들여쓰기가 그대로 남는다. */
+.cooked .cooked-list {
   margin: 12px 0 0;
   padding-left: 0;
   list-style: none;
+  /* 식단 칸에서는 `.mealplan-day-card ul`의 흐린 글자색이 상속돼 추천 카드와 달라 보인다.
+     체크해서 고르는 대상이므로 두 화면 모두 본문 색으로 둔다. */
+  color: var(--text);
 }
 
 .cooked-list li + li {
