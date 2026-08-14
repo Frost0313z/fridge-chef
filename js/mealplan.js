@@ -49,10 +49,22 @@ document.addEventListener("DOMContentLoaded", () => {
   const resultEl = document.getElementById("mealplan-result");
   const status = createFormStatus({ loadingEl, errorEl, submitBtn, timeoutMs: MP_REQUEST_TIMEOUT_MS });
 
-  /* 냉장고가 바뀐 뒤 이 화면에서 따로 다시 그릴 것은 없다 — 식단 칸은 재료의 보유 여부를
-     표시하지 않고, 조회 바는 공용 initCooked이 이미 갱신한다. 여기서 renderPlan()을 부르면
-     칸이 통째로 교체되면서 방금 띄운 결과 문구와 되돌리기 버튼까지 사라진다. */
-  initCooked(resultEl);
+  /* 확인을 누르면 그 칸은 해먹은 것이 된다. 되돌리기를 누르면 차감도 표시도 함께 되돌아간다 —
+     재료는 돌아왔는데 "해먹었어요"만 남으면 둘이 어긋난다. */
+  initCooked(resultEl, (root, action) => {
+    const slot = root.closest(".meal-slot[data-plan-index]");
+    const item = slot && planItems[Number(slot.dataset.planIndex)];
+    if (item) {
+      if (action === "undo") delete item.done;
+      else item.done = true;
+      savePlanState();
+    }
+    refreshPlanStates();
+  });
+
+  /* 냉장고는 조회 바에서도 바뀐다(추가·삭제·되돌리기). 부족 여부를 저장하지 않고 그때그때
+     세므로, 바뀔 때 상태 줄만 다시 그리면 양쪽 방향이 모두 맞는다. */
+  onPantryChanged(refreshPlanStates);
 
   restorePreferences();
 
@@ -519,6 +531,43 @@ function enableDragScroll(el) {
    화면이 링크 문구로 뒤덮인다. 반복 자체가 이미 의미를 알려주므로 이름을 링크로 만들고
    화살표만 붙인다. 링크 텍스트가 요리 이름이 되어 스크린리더에도 더 정확해진다.
    (레시피 추천 화면은 카드가 1~3장뿐이고 이 링크가 화면의 결론이라 문장을 그대로 둔다) */
+/* 칸의 상태 한 줄. 세 가지뿐이다 — 해먹음 / 재료 부족 / 아무 말 없음.
+   저장된 것은 done 하나이고 부족은 지금 냉장고를 보고 그때그때 센다(shared.js의
+   missingIngredients). 그래서 장을 봐서 다시 채우면 따로 누를 것 없이 저절로 풀린다.
+
+   부족일 때도 빈 <p>를 남기는 이유는, 냉장고가 바뀌었을 때 이 줄만 제자리에서 갈아끼우기
+   위해서다 — 칸을 통째로 다시 그리면 열어둔 "해먹었어요"와 되돌리기 버튼이 사라진다. */
+function mealStateHtml(item, pantryNames) {
+  if (item.done) {
+    return `<p class="meal-state meal-state-done">${escapeHtml(COPY.MEALPLAN.done)}</p>`;
+  }
+
+  const missing = missingIngredients(item, pantryNames).map((i) => splitIngredient(i).name);
+  if (!missing.length) return `<p class="meal-state" hidden></p>`;
+
+  return `<p class="meal-state meal-state-short">${escapeHtml(
+    COPY.MEALPLAN.short(missing.join(", "))
+  )}</p>`;
+}
+
+/* 냉장고가 바뀌면 상태 줄만 지금 기준으로 갈아끼운다. renderPlan()을 부르지 않는 이유는
+   위와 같다 — 방금 띄운 결과 문구와 되돌리기가 같이 날아간다. */
+function refreshPlanStates() {
+  const pantryNames = pantryNamesFor(loadPantry());
+  document.querySelectorAll(".meal-slot[data-plan-index]").forEach((slot) => {
+    const item = planItems[Number(slot.dataset.planIndex)];
+    const stateEl = slot.querySelector(".meal-state");
+    if (item && stateEl) stateEl.outerHTML = mealStateHtml(item, pantryNames);
+  });
+}
+
+/* "해먹었어요" 표시는 메뉴를 고친 것이 아니므로 edited 값을 그대로 둔다 —
+   true로 만들면 장보기 화면이 "식단을 고쳤으니 목록을 다시 뽑으라"고 잘못 권한다. */
+function savePlanState() {
+  const saved = loadSavedPlan();
+  return savePlan(Boolean(saved && saved.edited));
+}
+
 function menuLinkHtml(item) {
   const name = escapeHtml(item.menu || "");
   const url = recipeSearchUrl(item.menu, item.searchKeyword);
@@ -600,11 +649,17 @@ function mealSlotHtml(day, meal, pantryNames = []) {
 
   /* 편집 모드에서는 붙이지 않는다. 그때 칸은 고르고 옮기는 표적이라, 안에 또 누를 것을 두면
      무엇을 누르는 건지 알 수 없어진다(빈 칸의 넣기·옮기기를 한 자리에 두지 않는 것과 같은 이유).
-     계획에 있던 요리든 임의로 넣은 요리든 똑같이 붙는다 — 이 칸에 메뉴가 있으면 그것으로 끝이다. */
+     계획에 있던 요리든 임의로 넣은 요리든 똑같이 붙는다 — 이 칸에 메뉴가 있으면 그것으로 끝이다.
+
+     data-plan-index는 "해먹었어요"를 누른 칸이 어느 항목인지 되찾는 데 쓴다. */
   if (!editMode) {
-    return `<div class="meal-slot"><div class="meal-head">${label}${menuLinkHtml(
+    /* 이미 해먹은 칸에는 "이거 해먹었어요"를 다시 띄우지 않는다 — "해먹었어요"라고 적어두고
+       바로 아래에 같은 걸 또 물으면 어느 쪽이 사실인지 알 수 없다.
+       잘못 눌렀을 때는 그 자리에 남는 되돌리기로 되돌린다. */
+    const cooked = item.done ? "" : cookedHtml(item.ingredients, pantryNames);
+    return `<div class="meal-slot" data-plan-index="${index}"><div class="meal-head">${label}${menuLinkHtml(
       item
-    )}</div>${cookedHtml(item.ingredients, pantryNames)}</div>`;
+    )}</div>${mealStateHtml(item, pantryNames)}${cooked}</div>`;
   }
 
   /* 칸에는 설명을 붙이지 않는다. 고른 상태는 색이, 다음에 무엇을 할지는 상단 안내가 말한다

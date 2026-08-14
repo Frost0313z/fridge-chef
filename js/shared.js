@@ -563,6 +563,45 @@ function undoRemove() {
    화면 수가 아니라 경로가 하나라는 점이다.
    ========================================================================== */
 
+/* 계획 항목에 모자란 재료만 추린다. 판정은 추천 카드의 "사야 해요"와 같은 isCovered다 —
+   다른 규칙을 쓰면 한 화면에서 "있음"인 재료가 다른 화면에서 부족으로 잡힌다.
+
+   부족 여부는 저장하지 않는다. 저장해두면 냉장고가 바뀔 때마다 맞춰줘야 하고(추가·삭제·
+   차감·되돌리기·"샀어요"까지 다섯 자리), 한 곳이라도 빠뜨리면 화면이 사실과 어긋난다.
+   그때그때 세면 장을 봐서 다시 채운 경우도 따로 처리할 것 없이 저절로 풀린다.
+   저장하는 상태는 사용자가 직접 누른 "해먹었어요"(done) 하나뿐이다. */
+function missingIngredients(item, pantryNames) {
+  if (!item || item.done) return [];
+  return (item.ingredients || []).filter((i) => !isCovered(normalizeIngredient(i), pantryNames));
+}
+
+/* 아직 해먹지 않은 계획 항목들이 필요로 하는데 냉장고에 없는 재료를, 이름 기준으로 합친다.
+   어느 끼니에 쓰이는지(uses)를 함께 들고 오는 것은 서버가 장보기 목록에 붙여주는 모양
+   (api/shopping.py의 uses)과 같게 맞추기 위해서다 — 장보기 화면이 근거를 같은 방식으로 편다. */
+function planShortages(plan, pantryNames) {
+  const byName = new Map();
+
+  (plan || []).forEach((item) => {
+    missingIngredients(item, pantryNames).forEach((raw) => {
+      const { name, amount } = splitIngredient(raw);
+      const key = normalizeIngredient(name);
+      if (!key) return;
+      if (!byName.has(key)) byName.set(key, { name, uses: [] });
+      byName.get(key).uses.push({ day: item.day, meal: item.meal, menu: item.menu, amount });
+    });
+  });
+
+  return [...byName.values()];
+}
+
+/* 냉장고가 바뀐 뒤 화면이 따라 그려야 할 것을 거는 자리. 식단 화면이 계획의 충족 상태를
+   다시 그리려고 쓴다. 안 걸면 아무 일도 하지 않는다. */
+let pantryChangeHandler = null;
+
+function onPantryChanged(fn) {
+  pantryChangeHandler = fn;
+}
+
 /* 묻는 대상은 지금 냉장고에 있는 재료뿐이다. 없는 재료까지 늘어놓으면 뺄 것도 없는 줄에
    체크를 시키는 셈이고, 하나도 없으면 아무것도 그리지 않아 빈 상태 화면이 필요 없어진다
    (냉장고에 등록 안 된 재료로 요리한 경우 — 그냥 무시하면 된다).
@@ -642,7 +681,7 @@ function initCooked(containerEl, onChange) {
       }
       setCookedStatus(root, COPY.COOKED.done(result.removed.join(", ")), true);
       renderPantryBar();
-      if (onChange) onChange(root);
+      if (onChange) onChange(root, "consume");
       return;
     }
 
@@ -655,7 +694,7 @@ function initCooked(containerEl, onChange) {
         false
       );
       renderPantryBar();
-      if (onChange) onChange(root);
+      if (onChange) onChange(root, "undo");
     }
   });
 }
@@ -764,6 +803,10 @@ function renderPantryBar() {
       status,
       Boolean(lastRemoved)
     )}</p>`;
+
+  /* 냉장고를 바꾸는 자리(추가·삭제·되돌리기·차감·"샀어요")는 모두 이 함수를 거쳐 조회 바를
+     다시 그린다. 그래서 알림도 여기 한 곳에서만 보내면 빠지는 곳이 없다. */
+  if (pantryChangeHandler) pantryChangeHandler();
 }
 
 /* 손이 몇 px 흔들리는 것과 끌어 올리는 것을 가른다 (js/mealplan.js의 가로 밀기와 같은 값). */

@@ -224,6 +224,26 @@ function renderShoppingList(saved, pantry) {
       why: whyHtml(item, left.filled, saved.startDate),
     }));
 
+  /* 계획을 짠 뒤에 냉장고에서 재료가 빠지면(해먹었거나 지웠거나) 그때 뽑아둔 목록에는
+     그 재료가 없다. 아직 해먹지 않은 항목이 필요로 하는데 지금 냉장고에 없는 재료를 여기서 더한다.
+
+     저장하지 않고 그릴 때마다 세는 이유는, 저장해두면 장을 봐서 다시 채웠을 때 지워줄 사람이
+     또 필요하기 때문이다. 세면 양쪽 방향이 저절로 맞는다. 이미 목록에 있는 재료는 더하지
+     않는다 — 서버가 뽑아준 줄이 수량과 근거까지 갖고 있어 그쪽이 낫다.
+     수량은 비워 둔다. 얼마나 모자란지는 계획의 수량 표기가 제각각이라 셀 수 없고,
+     없는 숫자를 지어내는 것보다 이름만 적는 편이 정직하다. */
+  const listed = new Set(shoppingList.map((row) => normalizeIngredient(row.query)));
+  planShortages(saved.plan, pantryNamesFor(pantry))
+    .filter((short) => !listed.has(normalizeIngredient(short.name)))
+    .forEach((short) => {
+      shoppingList.push({
+        label: short.name,
+        query: short.name,
+        amount: "",
+        why: whyHtml({ name: short.name, uses: short.uses }, "", saved.startDate),
+      });
+    });
+
   if (!shoppingList.length) {
     /* 수량을 안 적으면 AI가 "충분히 있다"고 보고 아무것도 안 내놓는다.
        그 상태에서 "다 있어요"라고 하면 사실과 다르므로, 왜 비었는지를 알려준다. */

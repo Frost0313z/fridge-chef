@@ -36,6 +36,7 @@ const {
   parseAmount, addAmounts, amountIn, formatAmount, splitIngredient, dayInfo,
   remainingAmount, buyIntoPantry, loadPantry,
   consumeFromPantry, undoRemove, removeFromPantry,
+  missingIngredients, planShortages, pantryNamesFor,
 } = sandbox;
 
 let failed = 0;
@@ -158,6 +159,38 @@ setPantry([
 removeFromPantry(0);
 check("칩 삭제도 같은 되돌리기를 쓴다", (undoRemove(), names()), ["계란", "대파"]);
 check("두 번 되돌릴 것은 없다", undoRemove(), null);
+
+// 계획 항목의 부족 판정 — 저장하지 않고 그때그때 센다. 완료 처리한 항목은 세지 않는다.
+const asNames = (list) => pantryNamesFor(list.map((n) => ({ name: n })));
+const fridge = asNames(["계란", "대파"]);
+
+check("있는 재료는 안 센다", missingIngredients({ ingredients: ["계란 2개"] }, fridge), []);
+check("없는 재료만 센다",
+  missingIngredients({ ingredients: ["계란 2개", "연어 200g"] }, fridge), ["연어 200g"]);
+check("해먹은 항목은 통째로 뺀다",
+  missingIngredients({ ingredients: ["연어 200g"], done: true }, fridge), []);
+check("냉장고가 비면 전부 부족",
+  missingIngredients({ ingredients: ["계란 2개"] }, []), ["계란 2개"]);
+
+const plan = [
+  { day: "1일차", meal: "아침", menu: "계란말이", ingredients: ["계란 2개"] },
+  { day: "1일차", meal: "저녁", menu: "연어구이", ingredients: ["연어 200g", "레몬 1개"] },
+  { day: "2일차", meal: "점심", menu: "연어덮밥", ingredients: ["연어 100g", "밥 1공기"] },
+  { day: "2일차", meal: "저녁", menu: "다 먹은 것", ingredients: ["가리비 3개"], done: true },
+];
+const shortages = planShortages(plan, fridge);
+
+check("부족 재료를 이름으로 합친다", shortages.map((s) => s.name), ["연어", "레몬", "밥"]);
+check("같은 재료는 한 줄로", shortages.filter((s) => s.name === "연어").length, 1);
+check("어느 끼니에 쓰이는지 모은다",
+  shortages.find((s) => s.name === "연어").uses.map((u) => u.menu), ["연어구이", "연어덮밥"]);
+check("수량도 끼니별로 들고 온다",
+  shortages.find((s) => s.name === "연어").uses.map((u) => u.amount), ["200g", "100g"]);
+check("해먹은 항목의 재료는 안 올라온다", shortages.some((s) => s.name === "가리비"), false);
+check("냉장고를 채우면 그 줄이 사라진다",
+  planShortages(plan, asNames(["계란", "대파", "연어", "레몬", "밥"])).map((s) => s.name), []);
+check("옛 저장분처럼 done이 없어도 미완료로 본다",
+  planShortages([{ menu: "x", ingredients: ["연어 200g"] }], fridge).map((s) => s.name), ["연어"]);
 
 console.log(failed ? `\n${failed}개 실패` : "\nall passed");
 process.exit(failed ? 1 : 0);
