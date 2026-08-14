@@ -1,6 +1,7 @@
 /* HISTORY_KEY · HISTORY_LIMIT · loadHistory()는 식단 계획 화면도 읽으므로 shared.js에 있다. */
 document.addEventListener("DOMContentLoaded", () => {
   initHistory();
+  initCooked();
 
   const form = document.getElementById("recipe-form");
   if (!form) return;
@@ -124,13 +125,52 @@ document.addEventListener("DOMContentLoaded", () => {
    사용자가 "양파가 나한테 있었나"를 직접 기억해야 했다. 서비스가 아는 걸 다시 묻지 않도록
    장보기 리스트와 같은 판정(isCovered)으로 표시한다.
    재료함이 비어 있으면 전부 "사야 해요"가 되어 정보가 아니라 노이즈이므로 표시하지 않는다. */
+/* data-name을 달아두는 이유는 재료를 뺀 뒤 이 목록만 다시 그리기 위해서다.
+   원문(수량 포함)이 그대로 필요하고, 화면 글자에서 되읽으면 "사야 해요" 꼬리표가 섞인다. */
 function ingredientLiHtml(name, pantryNames) {
   const safe = escapeHtml(name);
-  if (!pantryNames.length) return `<li>${safe}</li>`;
+  if (!pantryNames.length) return `<li data-name="${safe}">${safe}</li>`;
 
   return isCovered(normalizeIngredient(name), pantryNames)
-    ? `<li class="ing-has">${safe}</li>`
-    : `<li class="ing-missing">${safe} <span class="ing-tag">사야 해요</span></li>`;
+    ? `<li class="ing-has" data-name="${safe}">${safe}</li>`
+    : `<li class="ing-missing" data-name="${safe}">${safe} <span class="ing-tag">${escapeHtml(
+        COPY.UI.needToBuyBadge
+      )}</span></li>`;
+}
+
+/* 요리한 뒤 재료를 빼는 확인 단계.
+
+   묻는 대상은 지금 냉장고에 있는 재료뿐이다. 없는 재료까지 늘어놓으면 뺄 것도 없는 줄에
+   체크를 시키는 셈이고, 하나도 없으면 블록 자체를 그리지 않아 빈 상태 화면이 필요 없어진다.
+
+   여닫기는 <details>에 맡긴다. 열고 닫는 자바스크립트도, 초점 가두기도 필요 없다 —
+   조회 바와 자주 묻는 질문이 이미 쓰는 방식이다. */
+function cookedHtml(r, pantryNames) {
+  const mine = (r.ingredients || []).filter((i) => isCovered(normalizeIngredient(i), pantryNames));
+  if (!mine.length) return "";
+
+  return `
+      <details class="cooked">
+        <summary>${escapeHtml(COPY.COOKED.button)}</summary>
+        <div class="cooked-body">
+          <p class="cooked-question">${escapeHtml(COPY.COOKED.question)}</p>
+          <p class="cooked-hint">${escapeHtml(COPY.COOKED.hint)}</p>
+          <ul class="cooked-list">
+            ${mine
+              .map(
+                (i) => `<li><label class="form-check">
+              <input type="checkbox" checked data-name="${escapeHtml(i)}" />
+              <span>${escapeHtml(i)}</span>
+            </label></li>`
+              )
+              .join("")}
+          </ul>
+          <button type="button" class="cta-button cooked-confirm">${escapeHtml(
+            COPY.COOKED.confirm
+          )}</button>
+          <p class="cooked-status" role="status" aria-live="polite" hidden></p>
+        </div>
+      </details>`;
 }
 
 function recipeCardHtml(r, pantryNames = []) {
@@ -139,12 +179,83 @@ function recipeCardHtml(r, pantryNames = []) {
       <h3>${escapeHtml(r.name)}</h3>
       <p class="recipe-time">⏱ ${escapeHtml(r.time || "")}</p>
       <h4>재료</h4>
-      <ul>${(r.ingredients || []).map((i) => ingredientLiHtml(i, pantryNames)).join("")}</ul>
+      <ul class="recipe-ingredients">${(r.ingredients || [])
+        .map((i) => ingredientLiHtml(i, pantryNames))
+        .join("")}</ul>
       <h4>조리 순서</h4>
       <ol>${(r.steps || []).map((s) => `<li>${escapeHtml(s)}</li>`).join("")}</ol>
       ${recipeSearchLinkHtml(r.name, r.searchKeyword)}
+      ${cookedHtml(r, pantryNames)}
     </article>
   `;
+}
+
+/* 재료를 뺐으니 이 카드의 보유 표시도 지금 냉장고 기준으로 다시 그린다.
+   카드를 통째로 다시 그리지 않는 이유는, 방금 띄운 결과 문구와 되돌리기 버튼이
+   같이 사라지기 때문이다. */
+function refreshCardIngredients(card) {
+  const listEl = card.querySelector(".recipe-ingredients");
+  if (!listEl) return;
+  const names = Array.from(listEl.querySelectorAll("li"), (li) => li.dataset.name);
+  const pantryNames = pantryNamesFor(loadPantry());
+  listEl.innerHTML = names.map((n) => ingredientLiHtml(n, pantryNames)).join("");
+}
+
+function setCookedStatus(card, message, canUndo) {
+  const el = card.querySelector(".cooked-status");
+  if (!el) return;
+  el.innerHTML = statusHtml(message, canUndo);
+  el.hidden = !message;
+}
+
+/* 결과 영역은 추천을 받을 때마다 통째로 다시 그려진다. 카드마다 리스너를 달면
+   그릴 때마다 다시 달아야 하므로, 바깥 상자 하나에서 위임으로 받는다. */
+function initCooked() {
+  const resultEl = document.getElementById("result");
+  if (!resultEl) return;
+
+  resultEl.addEventListener("click", (e) => {
+    const card = e.target.closest(".recipe-card");
+    if (!card) return;
+
+    if (e.target.closest(".cooked-confirm")) {
+      const names = Array.from(
+        card.querySelectorAll(".cooked-list input:checked"),
+        (input) => input.dataset.name
+      );
+      /* 전부 체크를 풀고 눌렀을 때. 아무 말 없이 끝나면 버튼이 고장 난 것으로 읽힌다(C3). */
+      if (!names.length) {
+        setCookedStatus(card, COPY.COOKED.nothing, false);
+        return;
+      }
+
+      const result = consumeFromPantry(names);
+      if (!result.stored) {
+        setCookedStatus(card, COPY.COOKED.failed, false);
+        return;
+      }
+      setCookedStatus(card, COPY.COOKED.done(result.removed.join(", ")), true);
+      afterPantryChange(card);
+      return;
+    }
+
+    if (e.target.closest(".undo-btn")) {
+      const undone = undoRemove();
+      if (!undone) return;
+      setCookedStatus(
+        card,
+        undone.stored ? COPY.COOKED.undone(undone.name) : COPY.COOKED.failed,
+        false
+      );
+      afterPantryChange(card);
+    }
+  });
+}
+
+/* 냉장고가 바뀌면 이 화면에서 그것을 보여주는 곳이 둘이다 — 카드의 보유 표시와 조회 바. */
+function afterPantryChange(card) {
+  refreshCardIngredients(card);
+  renderPantryBar();
 }
 
 /* 이력 목록은 화면(버튼의 data-index)과 인덱스가 정확히 일치해야 클릭이 올바른 요리를 연다.

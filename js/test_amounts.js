@@ -35,6 +35,7 @@ for (const file of ["js/shared.js", "js/shopping.js"]) {
 const {
   parseAmount, addAmounts, amountIn, formatAmount, splitIngredient, dayInfo,
   remainingAmount, buyIntoPantry, loadPantry,
+  consumeFromPantry, undoRemove, removeFromPantry,
 } = sandbox;
 
 let failed = 0;
@@ -111,6 +112,52 @@ check("무엇을 고쳐야 하는지 말해준다", /합치지 못했어요/.tes
 setPantry([]);
 buyIntoPantry("대파", "1단");
 check("없던 재료는 수량까지 함께 넣는다", `${loadPantry()[0].name} ${loadPantry()[0].amount}`, "대파 1단");
+
+// 이거 해먹었어요 — 이름으로 통째로 빼고, 되돌리면 자리와 날짜까지 살아나야 한다.
+const names = () => loadPantry().map((p) => p.name);
+
+setPantry([
+  { name: "계란", amount: "4개", addedAt: "2026-08-01" },
+  { name: "대파", amount: "1단", addedAt: null },
+  { name: "두부", amount: "", addedAt: null },
+]);
+check("수량과 무관하게 이름으로 뺀다", consumeFromPantry(["계란 2개"]).removed, ["계란"]);
+check("뺀 뒤 냉장고", names(), ["대파", "두부"]);
+check("되돌리면 원래 자리로", (undoRemove(), names()), ["계란", "대파", "두부"]);
+check("넣은 날짜도 살아난다", loadPantry()[0].addedAt, "2026-08-01");
+
+// 요리 하나가 재료 여럿을 쓴다. 되돌리기가 그 전부를 한 번에 되살려야 한다.
+setPantry([
+  { name: "계란", amount: "4개", addedAt: null },
+  { name: "대파", amount: "1단", addedAt: null },
+  { name: "두부", amount: "1모", addedAt: null },
+  { name: "김치", amount: "", addedAt: null },
+]);
+check("여러 개를 한 번에", consumeFromPantry(["대파 1대", "김치 조금"]).removed, ["대파", "김치"]);
+check("가운데와 끝이 빠진다", names(), ["계란", "두부"]);
+check("되돌리면 둘 다 제자리", (undoRemove(), names()), ["계란", "대파", "두부", "김치"]);
+
+// 냉장고에 없는 재료로 요리한 경우 — 그냥 무시한다(스펙 엣지 케이스 2번).
+setPantry([{ name: "계란", amount: "4개", addedAt: null }]);
+check("없는 재료는 뺄 것이 없다", consumeFromPantry(["연어 200g"]).removed, []);
+check("냉장고는 그대로", names(), ["계란"]);
+
+// 두 재료가 같은 줄을 가리켜도 한 줄만 빠진다("대파"와 "대파 흰부분").
+setPantry([
+  { name: "대파", amount: "1단", addedAt: null },
+  { name: "계란", amount: "4개", addedAt: null },
+]);
+check("같은 줄은 한 번만", consumeFromPantry(["대파 1대", "대파 흰부분"]).removed, ["대파"]);
+check("나머지는 남는다", names(), ["계란"]);
+
+// 되돌리기 자리는 하나다 — 칩 삭제와 해먹었어요가 같은 곳을 쓴다.
+setPantry([
+  { name: "계란", amount: "4개", addedAt: null },
+  { name: "대파", amount: "1단", addedAt: null },
+]);
+removeFromPantry(0);
+check("칩 삭제도 같은 되돌리기를 쓴다", (undoRemove(), names()), ["계란", "대파"]);
+check("두 번 되돌릴 것은 없다", undoRemove(), null);
 
 console.log(failed ? `\n${failed}개 실패` : "\nall passed");
 process.exit(failed ? 1 : 0);

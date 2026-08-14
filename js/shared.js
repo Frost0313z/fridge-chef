@@ -489,9 +489,11 @@ function addToPantry(rawValue) {
   return { empty: false, added, updated, unchanged, stored: changed ? savePantry(pantry) : true };
 }
 
-/* 방금 뺀 재료. 되돌리기 버튼을 그릴지도 이 값으로 판단한다.
+/* 방금 뺀 재료들. 되돌리기 버튼을 그릴지도 이 값으로 판단한다.
+   한 번에 여러 개가 빠질 수 있어(요리 하나가 재료 여럿을 쓴다) 배열로 들고 있는다 —
+   되돌리기 자리를 둘로 나누면 어느 쪽이 되살아나는지 알 수 없어진다.
    페이지를 옮기면 사라진다 — 되돌리기는 "방금 한 일"에만 걸리는 게 맞다. */
-let lastRemoved = null;
+let lastRemoved = null; // [{ item, index }] · 번호 오름차순
 
 /* 지우는 것도 한 곳에서 한다. 냉장고 화면과 조회 바가 같은 함수를 쓴다. */
 function removeFromPantry(index) {
@@ -502,8 +504,39 @@ function removeFromPantry(index) {
   const stored = savePantry(pantry);
   /* 저장이 안 됐으면 되돌릴 것도 없다 (원래 값이 그대로 남아 있다).
      되돌릴 때 넣은 날짜까지 살아나야 하므로 항목을 통째로 들고 있는다. */
-  lastRemoved = stored ? { item: removed, index } : null;
+  lastRemoved = stored ? [{ item: removed, index }] : null;
   return { removed: pantryText(removed), stored };
+}
+
+/* 이름으로 빼는 경로. "이거 해먹었어요"가 쓴다 — 요리에 쓴 재료는 냉장고 몇 번째 줄인지가
+   아니라 이름으로만 알 수 있기 때문에 인덱스를 받는 removeFromPantry로는 부를 수 없다.
+
+   수량은 보지 않고 이름이 맞으면 통째로 뺀다. 냉장고 수량이 자유 텍스트라("계란", "2개",
+   "한 판") 절반은 뺄 근거가 없고, 못 뺀 이유를 설명하는 화면이 또 필요해진다 —
+   이 서비스가 없애려는 마찰을 되불러오는 쪽이다. 정밀 수량 추적은 범위 밖이다.
+
+   보유 판정은 카드가 "사야 해요"를 그릴 때 쓴 isCovered 그대로다. 다른 규칙을 쓰면
+   화면에 "있음"으로 보이던 재료가 빼려는 순간 없는 것이 된다. */
+function consumeFromPantry(names) {
+  const pantry = loadPantry();
+  const taken = new Map(); // index -> item · 재료 둘이 같은 줄을 가리켜도 한 번만 뺀다
+
+  (Array.isArray(names) ? names : [names]).forEach((raw) => {
+    const key = normalizeIngredient(raw);
+    if (!key) return;
+    pantry.forEach((item, index) => {
+      if (taken.has(index)) return;
+      if (isCovered(key, [normalizeIngredient(item.name)])) taken.set(index, item);
+    });
+  });
+
+  /* 냉장고에 없는 재료로 요리한 경우다. 저장을 건드리지 않으므로 직전 되돌리기도 살려둔다. */
+  if (!taken.size) return { removed: [], stored: true };
+
+  const indexes = [...taken.keys()].sort((a, b) => a - b);
+  const stored = savePantry(pantry.filter((_, i) => !taken.has(i)));
+  lastRemoved = stored ? indexes.map((index) => ({ item: taken.get(index), index })) : null;
+  return { removed: indexes.map((i) => taken.get(i).name), stored };
 }
 
 /* 확인창 대신 되돌리기를 둔다. 확인창은 맞게 지우는 99번을 방해하고,
@@ -512,9 +545,12 @@ function undoRemove() {
   if (!lastRemoved) return null;
 
   const pantry = loadPantry();
-  pantry.splice(Math.min(lastRemoved.index, pantry.length), 0, lastRemoved.item);
+  /* 빼둔 자리에 앞번호부터 되꽂는다. 뒤에서부터 넣으면 앞자리가 비어 있어 번호가 밀린다. */
+  lastRemoved.forEach(({ item, index }) => {
+    pantry.splice(Math.min(index, pantry.length), 0, item);
+  });
   const stored = savePantry(pantry);
-  const name = pantryText(lastRemoved.item);
+  const name = lastRemoved.map(({ item }) => pantryText(item)).join(", ");
   lastRemoved = null;
   return { name, stored };
 }
