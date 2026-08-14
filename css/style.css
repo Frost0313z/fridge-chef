@@ -79,6 +79,21 @@ body {
   border-radius: 4px;
 }
 
+/* 누른 순간 "먹혔다"가 보여야 한다. 추천은 응답까지 15~25초가 걸려서, 누른 직후에
+   아무 반응이 없으면 안 눌린 줄 알고 한 번 더 누르게 된다.
+   클래스마다 따로 적으면 버튼을 새로 만들 때마다 빠뜨리므로 요소로 한 번에 건다 —
+   <button> 전부와, 버튼처럼 쓰는 <a>(.cta-button)까지. 값은 tokens.css의
+   .btn-primary:active와 같은 1px로 맞춘다. */
+button:active,
+.cta-button:active {
+  transform: translateY(1px);
+}
+
+/* 글자만 있는 버튼은 1px 이동이 눈에 띄지 않는다. 눌리는 동안 흐려서 따로 알린다. */
+.link-button:active {
+  opacity: 0.7;
+}
+
 img {
   max-width: 100%;
   display: block;
@@ -231,6 +246,11 @@ a {
   height: 2px;
   background: var(--text);
   border-radius: 2px;
+}
+
+/* 배경도 테두리도 없는 버튼이라 막대 색으로만 반응을 보일 수 있다. */
+.nav-toggle:hover span {
+  background: var(--accent-strong);
 }
 
 /* ==========================================================================
@@ -680,6 +700,12 @@ body:has(.pantry-bar) {
   color: var(--accent-strong);
   text-decoration: underline;
   cursor: pointer;
+}
+
+/* 색을 밝히면 대비가 흔들린다 — --accent는 3.69:1이라 글자 기준(4.5:1)에 못 미친다.
+   색은 --accent-strong 그대로 두고 밑줄만 굵혀서 반응을 보인다. */
+.link-button:hover {
+  text-decoration-thickness: 2px;
 }
 
 /* 지우는 쪽. 평소에는 조용히 있다가 누르려 할 때만 빨강으로 무엇을 하는지 알린다. */
