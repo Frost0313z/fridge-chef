@@ -255,13 +255,16 @@ const COPY = {
     days7: "7일",
   },
 
-  /* 푸터 복구: <footer>에 data-copy="FOOTER.tagline" / "FOOTER.copyright" 붙이고,
-     LinkedIn 링크는 <a data-copy="FOOTER.linkedinLabel" data-copy-href="FOOTER.linkedinUrl"> 로 연결.
-     이메일 등 개인 연락처는 노출하지 않기로 결정 — LinkedIn만 공개. */
+  /* 푸터: <footer>에 data-copy="FOOTER.line" 하나만 붙인다 (태그라인+저작권 한 줄로 병합, 2026-08-14 결정).
+     LinkedIn 링크는 <a data-copy="FOOTER.linkedinLabel" data-copy-href="FOOTER.linkedinUrl"
+     aria-label="{FOOTER.linkedinAriaLabel}"> 로 연결 — 링크 텍스트는 브랜드명이 아니라 제작자 실명("두승현")을 노출해
+     이름을 각인시킨다. 이메일 등 개인 연락처는 노출하지 않기로 결정 — LinkedIn만 공개.
+     기존 tagline/copyright 두 필드는 line 하나로 합쳐졌다 — HTML의 두 data-copy 엘리먼트도
+     하나로 합쳐야 한다 (이 변경은 Claude Code 쪽에서 마크업까지 같이 처리). */
   FOOTER: {
-    tagline: "있는대로 · 냉장고에 있는 대로, 오늘 한끼 완성",
-    copyright: "© " + new Date().getFullYear() + " 있는대로",
-    linkedinLabel: "LinkedIn",
+    line: "냉장고에 있는 대로, 오늘 한끼 완성 · © " + new Date().getFullYear() + " 있는대로",
+    linkedinLabel: "두승현",
+    linkedinAriaLabel: "두승현의 LinkedIn 프로필로 이동",
     linkedinUrl: "https://www.linkedin.com/in/seunghyeondu/",
   },
 };
@@ -303,11 +306,31 @@ function applyCopy(root) {
       const href = copyText(el.dataset.copyHref);
       if (typeof href === "string") el.setAttribute("href", href);
     }
+
+    /* data-copy-attr는 두 가지 꼴을 받는다.
+
+         "placeholder"                         data-copy의 값을 그 속성에 넣는다. 글자는 채우지 않는다
+         "aria-label:FOOTER.linkedinAriaLabel" 콜론 뒤 경로의 값을 그 속성에 넣는다. 글자는 data-copy가 채운다
+
+       뒤 꼴이 필요한 이유는 링크 때문이다. 보이는 글자("두승현")와 화면 낭독기가
+       읽어주는 이름("두승현의 LinkedIn 프로필로 이동")이 서로 다른 문구라,
+       앞 꼴로는 둘 중 하나만 채울 수 있다. */
+    const attrSpec = el.dataset.copyAttr;
+    let attrTakesText = false;
+    if (attrSpec) {
+      const sep = attrSpec.indexOf(":");
+      if (sep === -1) {
+        attrTakesText = true;
+      } else {
+        const value = copyText(attrSpec.slice(sep + 1));
+        if (typeof value === "string") el.setAttribute(attrSpec.slice(0, sep), value);
+      }
+    }
+
     if (!el.dataset.copy) return;
     const text = copyText(el.dataset.copy);
     if (typeof text !== "string") return;
-    // data-copy-attr가 있으면 글자가 아니라 그 속성(placeholder, aria-label 등)을 채운다
-    if (el.dataset.copyAttr) el.setAttribute(el.dataset.copyAttr, text);
+    if (attrTakesText) el.setAttribute(attrSpec, text);
     else setCopyText(el, text);
   });
 }
