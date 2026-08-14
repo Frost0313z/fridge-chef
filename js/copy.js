@@ -180,11 +180,14 @@ const COPY = {
     goMealplan: "이번 주 식단 짜기",
   },
 
-  /* 푸터는 지금 화면에서 내려가 있다(제작자 표기를 잠시 뺀 상태).
-     다시 넣을 때 <footer>에 data-copy="FOOTER.tagline" / "FOOTER.copyright"만 붙이면 된다. */
+  /* 푸터 복구: <footer>에 data-copy="FOOTER.tagline" / "FOOTER.copyright" 붙이고,
+     LinkedIn 링크는 <a data-copy="FOOTER.linkedinLabel" data-copy-href="FOOTER.linkedinUrl"> 로 연결.
+     이메일 등 개인 연락처는 노출하지 않기로 결정 — LinkedIn만 공개. */
   FOOTER: {
     tagline: "있는대로 · 냉장고에 있는 대로, 오늘 한끼 완성",
     copyright: "© " + new Date().getFullYear() + " 있는대로",
+    linkedinLabel: "LinkedIn",
+    linkedinUrl: "https://www.linkedin.com/in/seunghyeondu/",
   },
 };
 
@@ -217,7 +220,15 @@ function setCopyText(el, text) {
 }
 
 function applyCopy(root) {
-  (root || document).querySelectorAll("[data-copy]").forEach((el) => {
+  (root || document).querySelectorAll("[data-copy], [data-copy-href]").forEach((el) => {
+    /* data-copy-href는 data-copy-attr와 방향이 반대다. copy-attr는 "값을 어느 속성에 넣을지"를
+       적고 값은 data-copy에서 가져오지만, copy-href는 "값을 어느 경로에서 가져올지"를 적는다.
+       링크는 보이는 글자와 주소가 서로 다른 문구라 속성 하나로는 둘 다 담지 못한다. */
+    if (el.dataset.copyHref) {
+      const href = copyText(el.dataset.copyHref);
+      if (typeof href === "string") el.setAttribute("href", href);
+    }
+    if (!el.dataset.copy) return;
     const text = copyText(el.dataset.copy);
     if (typeof text !== "string") return;
     // data-copy-attr가 있으면 글자가 아니라 그 속성(placeholder, aria-label 등)을 채운다
