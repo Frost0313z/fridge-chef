@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>있는대로 — 냉장고에 있는 대로, 오늘 한끼 완성</title>
-  <meta name="description" content="냉장고에 있는 재료만 입력하면 AI가 오늘 만들 수 있는 요리를 추천해주는 서비스입니다. 며칠치 저녁 식단을 미리 짜고 부족한 재료만 장보기 리스트로 받아볼 수도 있어요." />
+  <meta name="description" content="냉장고에 있는 재료만 입력하면 오늘 해먹을 수 있는 요리를 추천해요. 며칠치 식단 계획과 부족한 재료 장보기 리스트까지 한 번에." />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 
   <!-- 공유 카드. og:image는 절대 URL이어야 하고, SVG를 받지 않는 곳이 있어 PNG를 쓴다.
@@ -28,10 +28,10 @@
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body data-page="index">
-  <a href="#main" class="skip-link">본문 바로가기</a>
+  <a href="#main" class="skip-link" data-copy="NAV.skip">본문 바로가기</a>
   <header class="site-header">
     <div class="nav-wrap">
-      <a href="index.html" class="brand" aria-label="있는대로 홈으로">
+      <a href="index.html" class="brand" data-copy="NAV.brandAria" data-copy-attr="aria-label" aria-label="있는대로 홈으로">
         <svg class="brand-mark" width="26" height="26" viewBox="0 0 26 26" fill="none"
           stroke="currentColor" stroke-width="2" stroke-linecap="round"
           aria-hidden="true" focusable="false">
@@ -39,24 +39,26 @@
           <path d="M5 10.5h16" />
           <path d="M9 6v2.5M9 13.5v3" />
         </svg>
-        <span class="brand-name">있는대로</span>
+        <span class="brand-name" data-copy="BRAND.name">있는대로</span>
       </a>
-      <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="메뉴 열기">
+      <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-controls="nav-menu" data-copy="NAV.menuAria" data-copy-attr="aria-label" aria-label="메뉴 열기">
         <span></span><span></span><span></span>
       </button>
       <nav id="nav-menu" class="nav-menu">
-        <a href="index.html" class="active">홈</a>
-        <a href="pantry.html">냉장고</a>
-        <a href="recipe.html">레시피 추천</a>
-        <a href="mealplan.html">식단 계획</a>
-        <a href="shopping.html">장보기</a>
+        <a href="index.html" class="active" data-copy="NAV.home">홈</a>
+        <a href="pantry.html" data-copy="NAV.pantry">냉장고</a>
+        <a href="recipe.html" data-copy="NAV.recipe">레시피 추천</a>
+        <a href="mealplan.html" data-copy="NAV.mealplan">식단 계획</a>
+        <a href="shopping.html" data-copy="NAV.shopping">장보기</a>
       </nav>
     </div>
   </header>
 
   <main id="main">
     <div class="theme-bar">
-      <button id="theme-toggle" class="theme-toggle" aria-label="다크 모드로 전환">🌙</button>
+      <!-- aria-label과 아이콘은 main.js가 현재 테마에 맞춰 COPY.UI.darkModeToggle로 채운다.
+           여기 적힌 값은 스크립트가 실패했을 때 남는 사본이라 COPY와 같은 문구로 맞춰둔다. -->
+      <button id="theme-toggle" class="theme-toggle" aria-label="화면 모드 바꾸기">🌙</button>
     </div>
 
     <section class="hero">
@@ -70,48 +72,49 @@
     </section>
 
     <section class="home-section">
-      <h2>이렇게 쓰면 돼요</h2>
+      <h2 data-copy="HOME.stepsTitle">이렇게 쓰면 돼요</h2>
       <div class="features">
         <article class="feature-card">
           <span class="step-num" data-copy="STEPS.0.num">1</span>
           <h3 data-copy="STEPS.0.title">냉장고에 재료를 넣어요</h3>
-          <p data-copy="STEPS.0.body">쉼표로 구분해서 적기만 하면 돼요. 정확한 계량은 필요 없어요.</p>
+          <p data-copy="STEPS.0.body">쉼표로 구분해서 적기만 하면 돼요. 정확한 계량은 필요 없어요. 한 번 넣어두면 다음부터 다시 적지 않아도 되고, 아래 기능에 자동으로 반영돼요.</p>
         </article>
         <article class="feature-card">
           <span class="step-num" data-copy="STEPS.1.num">2</span>
           <h3 data-copy="STEPS.1.title">오늘 뭐 먹을지 고르거나, 이번 주를 계획해요</h3>
-          <p data-copy="STEPS.1.body">지금 있는 재료로 만들 수 있는 요리를 골라드려요.</p>
+          <p data-copy="STEPS.1.body">지금 있는 재료로 만들 수 있는 요리를 골라드려요. 며칠치 저녁을 미리 계획할 수도 있고, 냉장고에 없는 재료는 "사야 해요"로 표시돼요.</p>
         </article>
         <article class="feature-card">
           <span class="step-num" data-copy="STEPS.2.num">3</span>
           <h3 data-copy="STEPS.2.title">부족한 재료만 사요</h3>
-          <p data-copy="STEPS.2.body">계획에 필요한 재료 중 냉장고에 없는 것만 모아드려요.</p>
+          <p data-copy="STEPS.2.body">계획에 필요한 재료 중 냉장고에 없는 것만 모아 장보기 리스트로 만들어드려요. 사고 나면 "샀어요"를 눌러 바로 냉장고에 넣을 수 있어요.</p>
         </article>
       </div>
     </section>
 
     <section class="home-section">
-      <h2>자주 묻는 질문</h2>
+      <h2 data-copy="HOME.faqTitle">자주 묻는 질문</h2>
       <div class="faq">
         <details>
-          <summary>재료를 정확한 계량으로 입력해야 하나요?</summary>
-          <p>아니요. "계란 2개, 대파 조금"처럼 대략적으로만 입력해도 됩니다.</p>
+          <summary data-copy="FAQ.0.q">재료를 정확한 계량으로 입력해야 하나요?</summary>
+          <p data-copy="FAQ.0.a">아니요. "계란 2개, 대파 조금"처럼 대략적으로만 입력해도 됩니다.</p>
         </details>
         <details>
-          <summary>추천 결과가 이상하거나 안 나오면 어떻게 하나요?</summary>
-          <p>재료를 조금 더 구체적으로 입력하거나, 잠시 후 다시 시도해보세요. AI 서버가 혼잡하거나 응답이 지연되는 경우 안내 메시지가 표시됩니다. 이전에 추천받은 요리가 있다면 "최근 추천 받은 요리"에서 다시 확인할 수 있습니다.</p>
+          <summary data-copy="FAQ.1.q">추천 결과가 이상하거나 안 나오면 어떻게 하나요?</summary>
+          <p data-copy="FAQ.1.a">재료를 조금 더 구체적으로 입력하거나, 잠시 후 다시 시도해보세요. 서버가 혼잡하거나 응답이 지연되는 경우 안내 메시지가 표시됩니다. 이전에 추천받은 요리가 있다면 "최근 받은 요리"에서 다시 확인할 수 있습니다.</p>
         </details>
         <details>
-          <summary>제 재료 정보가 저장되나요?</summary>
-          <p>"냉장고"에 넣어둔 재료는 편의를 위해 이 브라우저의 로컬 저장소(localStorage)에만 저장됩니다. 서버로 전송되거나 다른 사람에게 공개되지 않으며, 언제든 × 버튼으로 삭제할 수 있습니다. 그 외 그날그날 추가로 입력한 재료는 추천을 생성하는 데만 쓰이고 따로 저장되지 않습니다.</p>
+          <summary data-copy="FAQ.2.q">제 재료 정보가 저장되나요?</summary>
+          <p data-copy="FAQ.2.a">"냉장고"에 넣어둔 재료는 편의를 위해 이 브라우저의 로컬 저장소(localStorage)에만 저장됩니다. 서버로 전송되거나 다른 사람에게 공개되지 않으며, 언제든 × 버튼으로 삭제할 수 있습니다. 그 외 그날그날 추가로 입력한 재료는 추천을 생성하는 데만 쓰이고 따로 저장되지 않습니다.</p>
         </details>
         <details>
-          <summary>주간 식단의 장보기 리스트, 쿠팡 장바구니에 자동으로 담기나요?</summary>
-          <p>아니요. 리스트의 "쿠팡에서 검색" 링크를 누르면 해당 재료의 쿠팡 검색 결과 페이지가 새 탭으로 열릴 뿐, 장바구니에 자동으로 담거나 결제를 진행하지 않습니다. 실제 담기·구매는 직접 확인하고 진행해주세요.</p>
+          <summary data-copy="FAQ.3.q">주간 식단의 장보기 리스트, 쿠팡 장바구니에 자동으로 담기나요?</summary>
+          <p data-copy="FAQ.3.a">아니요. 리스트의 "쿠팡에서 검색" 링크를 누르면 해당 재료의 쿠팡 검색 결과 페이지가 새 탭으로 열릴 뿐, 장바구니에 자동으로 담거나 결제를 진행하지 않습니다. 실제 담기·구매는 직접 확인하고 진행해주세요.</p>
         </details>
         <details>
-          <summary>어떤 기술로 만들었나요?</summary>
-          <p>프론트엔드는 프레임워크 없이 HTML / CSS / JavaScript로, 백엔드는 Vercel Serverless Functions(Python)로 만들었습니다. 요리 추천에는 OpenAI API를 쓰고, 배포는 Vercel로 합니다. 자세한 구조는 <a href="https://github.com/Frost0313z/fridge-chef" target="_blank" rel="noopener noreferrer">GitHub 저장소</a>에서 볼 수 있어요.</p>
+          <summary data-copy="FAQ.4.q">어떤 기술로 만들었나요?</summary>
+          <!-- 답에 링크가 들어가서 <p> 하나로는 COPY에 못 붙인다. 앞·링크·뒤 셋으로 나눈다. -->
+          <p><span data-copy="FAQ.4.aHead">프론트엔드는 프레임워크 없이 HTML / CSS / JavaScript로, 백엔드는 Vercel Serverless Functions(Python)로 만들었습니다. 요리 추천에는 OpenAI API를 쓰고, 배포는 Vercel로 합니다. 자세한 구조는 </span><a href="https://github.com/Frost0313z/fridge-chef" target="_blank" rel="noopener noreferrer" data-copy="FAQ.4.aLinkLabel" data-copy-href="FAQ.4.aLinkUrl">GitHub 저장소</a><span data-copy="FAQ.4.aTail">에서 볼 수 있어요.</span></p>
         </details>
       </div>
     </section>

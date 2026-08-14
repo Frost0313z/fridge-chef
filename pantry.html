@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>내 냉장고 · 있는대로</title>
-  <meta name="description" content="냉장고에 있는 재료를 등록해두면 레시피 추천·식단 계획·장보기에 자동으로 반영됩니다." />
+  <meta name="description" content="냉장고에 있는 재료를 넣어두면 추천·식단·장보기에 자동으로 반영돼요." />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 
   <!-- 공유 카드. og:image는 절대 URL이어야 하고, SVG를 받지 않는 곳이 있어 PNG를 쓴다.
@@ -28,10 +28,10 @@
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body data-page="pantry">
-  <a href="#main" class="skip-link">본문 바로가기</a>
+  <a href="#main" class="skip-link" data-copy="NAV.skip">본문 바로가기</a>
   <header class="site-header">
     <div class="nav-wrap">
-      <a href="index.html" class="brand" aria-label="있는대로 홈으로">
+      <a href="index.html" class="brand" data-copy="NAV.brandAria" data-copy-attr="aria-label" aria-label="있는대로 홈으로">
         <svg class="brand-mark" width="26" height="26" viewBox="0 0 26 26" fill="none"
           stroke="currentColor" stroke-width="2" stroke-linecap="round"
           aria-hidden="true" focusable="false">
@@ -39,17 +39,17 @@
           <path d="M5 10.5h16" />
           <path d="M9 6v2.5M9 13.5v3" />
         </svg>
-        <span class="brand-name">있는대로</span>
+        <span class="brand-name" data-copy="BRAND.name">있는대로</span>
       </a>
-      <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="메뉴 열기">
+      <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-controls="nav-menu" data-copy="NAV.menuAria" data-copy-attr="aria-label" aria-label="메뉴 열기">
         <span></span><span></span><span></span>
       </button>
       <nav id="nav-menu" class="nav-menu">
-        <a href="index.html">홈</a>
-        <a href="pantry.html" class="active">냉장고</a>
-        <a href="recipe.html">레시피 추천</a>
-        <a href="mealplan.html">식단 계획</a>
-        <a href="shopping.html">장보기</a>
+        <a href="index.html" data-copy="NAV.home">홈</a>
+        <a href="pantry.html" class="active" data-copy="NAV.pantry">냉장고</a>
+        <a href="recipe.html" data-copy="NAV.recipe">레시피 추천</a>
+        <a href="mealplan.html" data-copy="NAV.mealplan">식단 계획</a>
+        <a href="shopping.html" data-copy="NAV.shopping">장보기</a>
       </nav>
     </div>
   </header>

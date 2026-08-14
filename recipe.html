@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>레시피 추천 · 있는대로</title>
-  <meta name="description" content="냉장고 속 재료를 입력하면 AI가 오늘 만들 수 있는 요리를 추천해드립니다." />
+  <meta name="description" content="있는 재료만 적으면 지금 바로 만들 수 있는 요리를 찾아드려요." />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 
   <!-- 공유 카드. og:image는 절대 URL이어야 하고, SVG를 받지 않는 곳이 있어 PNG를 쓴다.
@@ -28,10 +28,10 @@
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body data-page="recipe">
-  <a href="#main" class="skip-link">본문 바로가기</a>
+  <a href="#main" class="skip-link" data-copy="NAV.skip">본문 바로가기</a>
   <header class="site-header">
     <div class="nav-wrap">
-      <a href="index.html" class="brand" aria-label="있는대로 홈으로">
+      <a href="index.html" class="brand" data-copy="NAV.brandAria" data-copy-attr="aria-label" aria-label="있는대로 홈으로">
         <svg class="brand-mark" width="26" height="26" viewBox="0 0 26 26" fill="none"
           stroke="currentColor" stroke-width="2" stroke-linecap="round"
           aria-hidden="true" focusable="false">
@@ -39,17 +39,17 @@
           <path d="M5 10.5h16" />
           <path d="M9 6v2.5M9 13.5v3" />
         </svg>
-        <span class="brand-name">있는대로</span>
+        <span class="brand-name" data-copy="BRAND.name">있는대로</span>
       </a>
-      <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="메뉴 열기">
+      <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-controls="nav-menu" data-copy="NAV.menuAria" data-copy-attr="aria-label" aria-label="메뉴 열기">
         <span></span><span></span><span></span>
       </button>
       <nav id="nav-menu" class="nav-menu">
-        <a href="index.html">홈</a>
-        <a href="pantry.html">냉장고</a>
-        <a href="recipe.html" class="active">레시피 추천</a>
-        <a href="mealplan.html">식단 계획</a>
-        <a href="shopping.html">장보기</a>
+        <a href="index.html" data-copy="NAV.home">홈</a>
+        <a href="pantry.html" data-copy="NAV.pantry">냉장고</a>
+        <a href="recipe.html" class="active" data-copy="NAV.recipe">레시피 추천</a>
+        <a href="mealplan.html" data-copy="NAV.mealplan">식단 계획</a>
+        <a href="shopping.html" data-copy="NAV.shopping">장보기</a>
       </nav>
     </div>
   </header>
@@ -61,36 +61,41 @@
 
     <section class="recipe-form-section">
       <form id="recipe-form" novalidate>
-        <label for="ingredients">오늘 추가로 있는 재료 <span class="optional">(선택)</span></label>
+        <label for="ingredients"><span data-copy="FORM.extraIngredients">오늘 추가로 있는 재료</span> <span class="optional" data-copy="FORM.optional">(선택)</span></label>
         <textarea
           id="ingredients"
           name="ingredients"
           rows="2"
+          data-copy="FORM.extraPlaceholder" data-copy-attr="placeholder"
           placeholder="냉장고에 없는 재료가 있다면 여기에 추가로 적어주세요. 예: 대파 조금, 두부 반모"
         ></textarea>
 
+        <!-- <option>은 보이는 글자만 COPY에서 받는다. value는 그대로 서버 프롬프트로
+             나가므로 건드리지 않는다 — 바꾸면 AI가 받는 지시가 달라진다. -->
         <div class="form-row">
           <div class="form-field">
-            <label for="portion">만들 분량</label>
+            <label for="portion" data-copy="FORM.portion">만들 분량</label>
             <select id="portion" name="portion">
-              <option value="한 끼">한 끼</option>
-              <option value="두 끼">두 끼 (내일 점심까지)</option>
-              <option value="3~4끼">3~4끼 (며칠치)</option>
+              <option value="한 끼" data-copy="FORM.portionOne">한 끼</option>
+              <option value="두 끼" data-copy="FORM.portionTwoRecipe">두 끼 (내일 점심까지)</option>
+              <option value="3~4끼" data-copy="FORM.portionFew">3~4끼 (며칠치)</option>
             </select>
           </div>
           <div class="form-field">
-            <label for="timeLimit">희망 조리 시간</label>
+            <label for="timeLimit" data-copy="FORM.timeLimit">희망 조리 시간</label>
             <select id="timeLimit" name="timeLimit">
-              <option value="상관없음">상관없음</option>
-              <option value="15분 이내">15분 이내</option>
-              <option value="30분 이내">30분 이내</option>
+              <option value="상관없음" data-copy="FORM.timeAny">상관없음</option>
+              <option value="15분 이내" data-copy="FORM.time15">15분 이내</option>
+              <option value="30분 이내" data-copy="FORM.time30">30분 이내</option>
             </select>
           </div>
         </div>
 
+        <!-- 문구를 <span>으로 감싼다. <label>에 직접 걸면 textContent를 덮어쓰면서
+             안에 있는 <input type="checkbox">가 통째로 지워진다. -->
         <label class="form-check">
           <input type="checkbox" id="healthy" name="healthy" />
-          건강 관리 중이에요 (기름지지 않고 칼로리 낮은 요리로)
+          <span data-copy="FORM.healthy">건강 관리 중이에요 (기름지지 않고 칼로리 낮은 요리로)</span>
         </label>
 
         <button type="submit" id="submit-btn" class="cta-button" data-copy="UI.submitRecipe">오늘 뭐 해먹지?</button>

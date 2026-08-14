@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>주간 식단 계획 · 있는대로</title>
-  <meta name="description" content="냉장고를 활용해 일주일 저녁 식단을 계획하고, 부족한 재료만 장보기 리스트로 확인하세요." />
+  <meta name="description" content="냉장고에 있는 대로 며칠치 저녁을 미리 정하고, 부족한 재료만 따로 모아드려요." />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 
   <!-- 공유 카드. og:image는 절대 URL이어야 하고, SVG를 받지 않는 곳이 있어 PNG를 쓴다.
@@ -28,10 +28,10 @@
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body data-page="mealplan">
-  <a href="#main" class="skip-link">본문 바로가기</a>
+  <a href="#main" class="skip-link" data-copy="NAV.skip">본문 바로가기</a>
   <header class="site-header">
     <div class="nav-wrap">
-      <a href="index.html" class="brand" aria-label="있는대로 홈으로">
+      <a href="index.html" class="brand" data-copy="NAV.brandAria" data-copy-attr="aria-label" aria-label="있는대로 홈으로">
         <svg class="brand-mark" width="26" height="26" viewBox="0 0 26 26" fill="none"
           stroke="currentColor" stroke-width="2" stroke-linecap="round"
           aria-hidden="true" focusable="false">
@@ -39,17 +39,17 @@
           <path d="M5 10.5h16" />
           <path d="M9 6v2.5M9 13.5v3" />
         </svg>
-        <span class="brand-name">있는대로</span>
+        <span class="brand-name" data-copy="BRAND.name">있는대로</span>
       </a>
-      <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="메뉴 열기">
+      <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-controls="nav-menu" data-copy="NAV.menuAria" data-copy-attr="aria-label" aria-label="메뉴 열기">
         <span></span><span></span><span></span>
       </button>
       <nav id="nav-menu" class="nav-menu">
-        <a href="index.html">홈</a>
-        <a href="pantry.html">냉장고</a>
-        <a href="recipe.html">레시피 추천</a>
-        <a href="mealplan.html" class="active">식단 계획</a>
-        <a href="shopping.html">장보기</a>
+        <a href="index.html" data-copy="NAV.home">홈</a>
+        <a href="pantry.html" data-copy="NAV.pantry">냉장고</a>
+        <a href="recipe.html" data-copy="NAV.recipe">레시피 추천</a>
+        <a href="mealplan.html" class="active" data-copy="NAV.mealplan">식단 계획</a>
+        <a href="shopping.html" data-copy="NAV.shopping">장보기</a>
       </nav>
     </div>
   </header>
@@ -61,28 +61,32 @@
 
     <section class="recipe-form-section">
       <form id="mealplan-form" novalidate>
+        <!-- <option>은 보이는 글자만 COPY에서 받는다. value는 그대로 서버 프롬프트로
+             나가므로 건드리지 않는다 — 바꾸면 AI가 받는 지시가 달라진다. -->
         <div class="form-row">
           <div class="form-field">
-            <label for="days">계획할 일수</label>
+            <label for="days" data-copy="FORM.days">계획할 일수</label>
             <select id="days" name="days">
-              <option value="3">3일</option>
-              <option value="5" selected>5일</option>
-              <option value="7">7일</option>
+              <option value="3" data-copy="FORM.days3">3일</option>
+              <option value="5" selected data-copy="FORM.days5">5일</option>
+              <option value="7" data-copy="FORM.days7">7일</option>
             </select>
           </div>
           <div class="form-field">
-            <label for="mp-portion">한 끼당 만들 분량</label>
+            <label for="mp-portion" data-copy="FORM.portionPerMeal">한 끼당 만들 분량</label>
             <select id="mp-portion" name="portion">
-              <option value="한 끼">한 끼</option>
-              <option value="두 끼">두 끼 (다음 끼니까지)</option>
-              <option value="3~4끼">3~4끼 (며칠치)</option>
+              <option value="한 끼" data-copy="FORM.portionOne">한 끼</option>
+              <option value="두 끼" data-copy="FORM.portionTwoMealplan">두 끼 (다음 끼니까지)</option>
+              <option value="3~4끼" data-copy="FORM.portionFew">3~4끼 (며칠치)</option>
             </select>
           </div>
         </div>
 
+        <!-- 문구를 <span>으로 감싼다. <label>에 직접 걸면 textContent를 덮어쓰면서
+             안에 있는 <input type="checkbox">가 통째로 지워진다. -->
         <label class="form-check">
           <input type="checkbox" id="mp-healthy" name="healthy" />
-          건강 관리 중이에요 (기름지지 않고 칼로리 낮은 요리로)
+          <span data-copy="FORM.healthy">건강 관리 중이에요 (기름지지 않고 칼로리 낮은 요리로)</span>
         </label>
 
         <button type="submit" id="mealplan-submit-btn" class="cta-button" data-copy="UI.submitMealplan">식단 짜기</button>

@@ -180,6 +180,81 @@ const COPY = {
     goMealplan: "이번 주 식단 짜기",
   },
 
+  // 5개 페이지가 공유하는 머리말 — 건너뛰기 링크, 로고, 햄버거, 메뉴
+  NAV: {
+    skip: "본문 바로가기",
+    brandAria: "있는대로 홈으로",
+    menuAria: "메뉴 열기",
+    home: "홈",
+    pantry: "냉장고",
+    recipe: "레시피 추천",
+    mealplan: "식단 계획",
+    shopping: "장보기",
+  },
+
+  // index.html 섹션 제목
+  HOME: {
+    stepsTitle: "이렇게 쓰면 돼요",
+    faqTitle: "자주 묻는 질문",
+  },
+
+  /* 자주 묻는 질문. 마지막 답에는 링크가 들어가는데, 문구를 화면에 붙이는 쪽은
+     안전을 위해 innerHTML을 쓰지 않아 <a>를 만들어내지 못한다. 그래서 그 항목만
+     앞뒤로 쪼개 둔다 — PANTRY.amountHint를 셋으로 나눠둔 것과 같은 방식이다. */
+  FAQ: [
+    {
+      q: "재료를 정확한 계량으로 입력해야 하나요?",
+      a: '아니요. "계란 2개, 대파 조금"처럼 대략적으로만 입력해도 됩니다.',
+    },
+    {
+      q: "추천 결과가 이상하거나 안 나오면 어떻게 하나요?",
+      a: '재료를 조금 더 구체적으로 입력하거나, 잠시 후 다시 시도해보세요. 서버가 혼잡하거나 응답이 지연되는 경우 안내 메시지가 표시됩니다. 이전에 추천받은 요리가 있다면 "최근 받은 요리"에서 다시 확인할 수 있습니다.',
+    },
+    {
+      q: "제 재료 정보가 저장되나요?",
+      a: '"냉장고"에 넣어둔 재료는 편의를 위해 이 브라우저의 로컬 저장소(localStorage)에만 저장됩니다. 서버로 전송되거나 다른 사람에게 공개되지 않으며, 언제든 × 버튼으로 삭제할 수 있습니다. 그 외 그날그날 추가로 입력한 재료는 추천을 생성하는 데만 쓰이고 따로 저장되지 않습니다.',
+    },
+    {
+      q: "주간 식단의 장보기 리스트, 쿠팡 장바구니에 자동으로 담기나요?",
+      a: '아니요. 리스트의 "쿠팡에서 검색" 링크를 누르면 해당 재료의 쿠팡 검색 결과 페이지가 새 탭으로 열릴 뿐, 장바구니에 자동으로 담거나 결제를 진행하지 않습니다. 실제 담기·구매는 직접 확인하고 진행해주세요.',
+    },
+    {
+      q: "어떤 기술로 만들었나요?",
+      // 기술 스택을 묻는 질문이라 여기서는 구현을 그대로 밝힌다(브랜드 규칙의 예외 문맥)
+      aHead:
+        "프론트엔드는 프레임워크 없이 HTML / CSS / JavaScript로, 백엔드는 Vercel Serverless Functions(Python)로 만들었습니다. 요리 추천에는 OpenAI API를 쓰고, 배포는 Vercel로 합니다. 자세한 구조는 ",
+      aLinkLabel: "GitHub 저장소",
+      aLinkUrl: "https://github.com/Frost0313z/fridge-chef",
+      aTail: "에서 볼 수 있어요.",
+    },
+  ],
+
+  // 추천·식단 입력 폼
+  FORM: {
+    extraIngredients: "오늘 추가로 있는 재료",
+    optional: "(선택)",
+    extraPlaceholder:
+      "냉장고에 없는 재료가 있다면 여기에 추가로 적어주세요. 예: 대파 조금, 두부 반모",
+    portion: "만들 분량",
+    portionPerMeal: "한 끼당 만들 분량",
+    timeLimit: "희망 조리 시간",
+    days: "계획할 일수",
+    healthy: "건강 관리 중이에요 (기름지지 않고 칼로리 낮은 요리로)",
+
+    /* 아래는 <option>에 보이는 글자만이다. value 속성은 손대지 않는다 —
+       그 값이 그대로 서버 프롬프트로 나가서, 바꾸면 AI가 받는 지시가 달라진다. */
+    portionOne: "한 끼",
+    portionTwoRecipe: "두 끼 (내일 점심까지)",
+    portionTwoMealplan: "두 끼 (다음 끼니까지)",
+    portionFew: "3~4끼 (며칠치)",
+    timeAny: "상관없음",
+    time15: "15분 이내",
+    time30: "30분 이내",
+    days3: "3일",
+    days5: "5일",
+    days7: "7일",
+  },
+
   /* 푸터 복구: <footer>에 data-copy="FOOTER.tagline" / "FOOTER.copyright" 붙이고,
      LinkedIn 링크는 <a data-copy="FOOTER.linkedinLabel" data-copy-href="FOOTER.linkedinUrl"> 로 연결.
      이메일 등 개인 연락처는 노출하지 않기로 결정 — LinkedIn만 공개. */
