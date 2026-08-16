@@ -56,20 +56,11 @@
   <main id="main" class="page">
     <section class="page-intro">
       <h1 data-copy="UI.recipeFormTitle">오늘 뭐 해먹을까요?</h1>
-      <p data-copy="UI.recipeFormIntro">냉장고에 있는 재료는 자동으로 반영돼요. 오늘만 있는 재료가 있다면 아래에 따로 적어주세요.</p>
+      <p data-copy="UI.recipeFormIntro">냉장고에 있는 재료로 찾아드려요. 빠진 게 있으면 아래 냉장고에서 바로 넣을 수 있어요.</p>
     </section>
 
     <section class="recipe-form-section">
       <form id="recipe-form" novalidate>
-        <label for="ingredients"><span data-copy="FORM.extraIngredients">오늘 추가로 있는 재료</span> <span class="optional" data-copy="FORM.optional">(선택)</span></label>
-        <textarea
-          id="ingredients"
-          name="ingredients"
-          rows="2"
-          data-copy="FORM.extraPlaceholder" data-copy-attr="placeholder"
-          placeholder="냉장고에 없는 재료가 있다면 여기에 추가로 적어주세요. 예: 대파 조금, 두부 반모"
-        ></textarea>
-
         <!-- <option>은 보이는 글자만 COPY에서 받는다. value는 그대로 서버 프롬프트로
              나가므로 건드리지 않는다 — 바꾸면 AI가 받는 지시가 달라진다. -->
         <div class="form-row">

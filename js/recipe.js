@@ -6,7 +6,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("recipe-form");
   if (!form) return;
 
-  const ingredientsEl = document.getElementById("ingredients");
   const portionEl = document.getElementById("portion");
   const timeLimitEl = document.getElementById("timeLimit");
   const healthyEl = document.getElementById("healthy");
@@ -60,13 +59,18 @@ document.addEventListener("DOMContentLoaded", () => {
     resultEl.innerHTML = "";
 
     /* 오래 둔 재료에는 며칠 됐는지가 붙어서 나간다. AI가 그걸 먼저 쓰는 요리를 고른다. */
-    const pantryIngredients = loadPantry().map(pantryPromptText).join(", ");
-    const extraIngredients = ingredientsEl.value.trim();
-    const ingredients = [pantryIngredients, extraIngredients].filter(Boolean).join(", ");
+    const ingredients = loadPantry().map(pantryPromptText).join(", ");
 
     if (!ingredients) {
       status.setError(COPY.UI.emptyIngredients);
-      ingredientsEl.focus();
+      /* 적을 곳이 화면에서 사라졌으므로 조회 바를 열어 그 자리로 보낸다. 문구만 띄우면
+         무엇을 해야 하는지가 빠져 막다른 길이 된다. */
+      const bar = document.getElementById("pantry-bar");
+      if (bar) {
+        bar.open = true;
+        const input = document.getElementById("pantry-bar-input");
+        if (input) input.focus();
+      }
       return;
     }
 

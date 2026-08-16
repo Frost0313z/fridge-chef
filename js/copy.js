@@ -150,7 +150,7 @@ const COPY = {
 
     // 추천 화면
     recipeFormTitle: "오늘 뭐 해먹을까요?",
-    recipeFormIntro: "냉장고에 있는 재료는 자동으로 반영돼요. 오늘만 있는 재료가 있다면 아래에 따로 적어주세요.",
+    recipeFormIntro: "냉장고에 있는 재료로 찾아드려요. 빠진 게 있으면 아래 냉장고에서 바로 넣을 수 있어요.",
     submitRecipe: "오늘 뭐 해먹지?",
     rerecommend: "다른 요리 보기",
     historyTitle: "최근 받은 요리",
@@ -278,10 +278,6 @@ const COPY = {
 
   // 추천·식단 입력 폼
   FORM: {
-    extraIngredients: "오늘 추가로 있는 재료",
-    optional: "(선택)",
-    extraPlaceholder:
-      "냉장고에 없는 재료가 있다면 여기에 추가로 적어주세요. 예: 대파 조금, 두부 반모",
     portion: "만들 분량",
     portionPerMeal: "한 끼당 만들 분량",
     timeLimit: "희망 조리 시간",
