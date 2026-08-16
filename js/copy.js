@@ -225,6 +225,15 @@ const COPY = {
   MEALPLAN: {
     done: "해먹었어요",
     short: (names) => `괜찮아요, ${names}만 더 있으면 이 요리도 만들 수 있어요.`,
+
+    /* 그리드 칸에 남기는 짧은 표시. 위의 긴 문구는 모달이 맡는다 —
+       21칸에 문장을 늘어놓으면 정작 "이번 주 뭐 먹지"가 안 읽힌다(C2). */
+    shortBrief: (count) => `${count}가지만 더`,
+
+    /* 칸을 눌러 여는 버튼. 글자가 없는 버튼이라 이름은 이것뿐이다. */
+    detail: (day, meal, menu) => `${day} ${meal} ${menu} 자세히 보기`,
+    dialogTitle: (day, meal) => `${day} ${meal}`,
+    close: "닫기",
   },
 
   // 5개 페이지가 공유하는 머리말 — 건너뛰기 링크, 로고, 햄버거, 메뉴

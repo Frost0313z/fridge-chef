@@ -8,6 +8,11 @@ const MEALS = ["아침", "점심", "저녁"];
 /* 끼니마다 라벨 색이 다르다. 클래스 이름을 한글로 만들지 않으려고 여기서 한 번 옮긴다. */
 const MEAL_CLASS = { 아침: "morning", 점심: "noon", 저녁: "night" };
 
+/* 이모지 대신 단색 SVG를 쓴다(CLAUDE.md). 둘 다 뜻은 옆 글자가 지므로 aria-hidden이다 —
+   "해먹었어요"와 "자세히 보기"를 아이콘이 다시 읽어주면 같은 말이 두 번 들린다. */
+const CHECK_ICON = `<svg class="meal-brief-icon" viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.5 8.5 6.5 11.5 12.5 4.5"/></svg>`;
+const CHEVRON_ICON = `<svg class="meal-open-chevron" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 3.5 10.5 8 6 12.5"/></svg>`;
+
 /* 화면이 고쳐 쓰는 대상. 넣기·옮기기·삭제가 이 배열 하나만 바꾸고 다시 그린다. */
 let planItems = [];
 let planShoppingList = [];
@@ -49,17 +54,40 @@ document.addEventListener("DOMContentLoaded", () => {
   const resultEl = document.getElementById("mealplan-result");
   const status = createFormStatus({ loadingEl, errorEl, submitBtn, timeoutMs: MP_REQUEST_TIMEOUT_MS });
 
+  const dialogEl = document.getElementById("meal-dialog");
+  const dialogBodyEl = document.getElementById("meal-dialog-body");
+
   /* 확인을 누르면 그 칸은 해먹은 것이 된다. 되돌리기를 누르면 차감도 표시도 함께 되돌아간다 —
-     재료는 돌아왔는데 "해먹었어요"만 남으면 둘이 어긋난다. */
-  initCooked(resultEl, (root, action) => {
-    const slot = root.closest(".meal-slot[data-plan-index]");
-    const item = slot && planItems[Number(slot.dataset.planIndex)];
+     재료는 돌아왔는데 "해먹었어요"만 남으면 둘이 어긋난다.
+     체크리스트가 모달로 옮겨갔으므로 위임도 모달에 건다(예전에는 결과 영역이었다). */
+  initCooked(dialogEl, (root, action) => {
+    const holder = root.closest("[data-plan-index]");
+    const item = holder && planItems[Number(holder.dataset.planIndex)];
     if (item) {
       if (action === "undo") delete item.done;
       else item.done = true;
       savePlanState();
     }
     refreshPlanStates();
+  });
+
+  document.getElementById("meal-dialog-close").addEventListener("click", () => dialogEl.close());
+
+  /* 배경을 눌러 닫는다. 모달이 화면 전체를 덮고 안쪽에 패널이 따로 있어서,
+     이벤트 대상이 모달 자신이면 그건 패널 바깥 = 배경을 누른 것이다. */
+  dialogEl.addEventListener("click", (e) => {
+    if (e.target === dialogEl) dialogEl.close();
+  });
+
+  /* 닫기 버튼·배경·Esc 어느 쪽으로 닫혀도 여기로 온다. 초점을 열었던 칸으로 돌려준다 —
+     안 돌려주면 키보드만 쓰는 사람은 화면 맨 처음부터 다시 짚어 내려와야 한다.
+     버튼을 다시 찾는 이유는 그 사이 그리드가 다시 그려져 새 버튼으로 바뀌었을 수 있어서다. */
+  dialogEl.addEventListener("close", () => {
+    const opener = document.querySelector(`.meal-open[data-plan-index="${dialogIndex}"]`);
+    dialogIndex = null;
+    delete dialogBodyEl.dataset.planIndex;
+    dialogBodyEl.innerHTML = "";
+    if (opener) opener.focus();
   });
 
   /* 냉장고는 조회 바에서도 바뀐다(추가·삭제·되돌리기). 부족 여부를 저장하지 않고 그때그때
@@ -179,6 +207,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* 조작은 매번 새로 그리는 카드 위에서 일어나므로 컨테이너에 한 번만 건다. */
   resultEl.addEventListener("click", (e) => {
+    /* 읽기 모드에서 칸을 눌렀다 — 그 칸의 상세를 연다. */
+    const open = e.target.closest(".meal-open");
+    if (open) {
+      openMealDialog(Number(open.dataset.planIndex));
+      return;
+    }
+
     const del = e.target.closest(".meal-delete");
     if (del) {
       deleteMeal(Number(del.dataset.index));
@@ -536,7 +571,9 @@ function enableDragScroll(el) {
    missingIngredients). 그래서 장을 봐서 다시 채우면 따로 누를 것 없이 저절로 풀린다.
 
    부족일 때도 빈 <p>를 남기는 이유는, 냉장고가 바뀌었을 때 이 줄만 제자리에서 갈아끼우기
-   위해서다 — 칸을 통째로 다시 그리면 열어둔 "해먹었어요"와 되돌리기 버튼이 사라진다. */
+   위해서다 — 칸을 통째로 다시 그리면 열어둔 "해먹었어요"와 되돌리기 버튼이 사라진다.
+
+   이 전체 문구가 나가는 자리는 이제 모달 안이다. 칸에는 mealBriefHtml의 짧은 표시만 남는다. */
 function mealStateHtml(item, pantryNames) {
   if (item.done) {
     return `<p class="meal-state meal-state-done">${escapeHtml(COPY.MEALPLAN.done)}</p>`;
@@ -550,15 +587,48 @@ function mealStateHtml(item, pantryNames) {
   )}</p>`;
 }
 
+/* 칸에 남는 짧은 표시. 위의 mealStateHtml과 같은 세 상태를 말하지만 길이가 다르다 —
+   요일 그리드는 "이번 주 뭐 먹지"를 훑는 자리라, 21칸에 문장이 들어가면 칸 높이가
+   요리마다 달라지고 정작 메뉴 이름이 안 읽힌다(C2). 자세한 말은 모달이 맡는다.
+
+   부족을 개수로만 말하는 이유도 같다. "무엇이" 부족한지는 이름 길이에 따라 한 줄이
+   되기도 세 줄이 되기도 하는데, "몇 가지"는 언제나 한 줄이고 눌러볼 이유로는 충분하다.
+
+   아무 말도 없을 때 빈 <p>를 남기는 이유는 mealStateHtml과 같다 — 냉장고가 바뀌면
+   이 줄만 제자리에서 갈아끼운다. */
+function mealBriefHtml(item, pantryNames) {
+  if (item.done) {
+    return `<p class="meal-brief meal-brief-done">${CHECK_ICON}${escapeHtml(
+      COPY.MEALPLAN.done
+    )}</p>`;
+  }
+
+  const missing = missingIngredients(item, pantryNames);
+  if (!missing.length) return `<p class="meal-brief" hidden></p>`;
+
+  return `<p class="meal-brief meal-brief-short">${escapeHtml(
+    COPY.MEALPLAN.shortBrief(missing.length)
+  )}</p>`;
+}
+
 /* 냉장고가 바뀌면 상태 줄만 지금 기준으로 갈아끼운다. renderPlan()을 부르지 않는 이유는
-   위와 같다 — 방금 띄운 결과 문구와 되돌리기가 같이 날아간다. */
+   위와 같다 — 방금 띄운 결과 문구와 되돌리기가 같이 날아간다.
+
+   같은 항목이 두 곳에 그려지므로 두 곳을 다 갈아끼운다: 그리드 칸의 짧은 표시와,
+   열려 있다면 모달의 전체 문구. 모달 쪽은 열려 있는 동안에만 data-plan-index를 갖는다. */
 function refreshPlanStates() {
   const pantryNames = pantryNamesFor(loadPantry());
   document.querySelectorAll(".meal-slot[data-plan-index]").forEach((slot) => {
     const item = planItems[Number(slot.dataset.planIndex)];
-    const stateEl = slot.querySelector(".meal-state");
-    if (item && stateEl) stateEl.outerHTML = mealStateHtml(item, pantryNames);
+    const briefEl = slot.querySelector(".meal-brief");
+    if (item && briefEl) briefEl.outerHTML = mealBriefHtml(item, pantryNames);
   });
+
+  const body = document.querySelector(".meal-dialog-body[data-plan-index]");
+  if (!body) return;
+  const item = planItems[Number(body.dataset.planIndex)];
+  const stateEl = body.querySelector(".meal-state");
+  if (item && stateEl) stateEl.outerHTML = mealStateHtml(item, pantryNames);
 }
 
 /* "해먹었어요" 표시는 메뉴를 고친 것이 아니므로 edited 값을 그대로 둔다 —
@@ -653,13 +723,24 @@ function mealSlotHtml(day, meal, pantryNames = []) {
 
      data-plan-index는 "해먹었어요"를 누른 칸이 어느 항목인지 되찾는 데 쓴다. */
   if (!editMode) {
-    /* 이미 해먹은 칸에는 "이거 해먹었어요"를 다시 띄우지 않는다 — "해먹었어요"라고 적어두고
-       바로 아래에 같은 걸 또 물으면 어느 쪽이 사실인지 알 수 없다.
-       잘못 눌렀을 때는 그 자리에 남는 되돌리기로 되돌린다. */
-    const cooked = item.done ? "" : cookedHtml(item.ingredients, pantryNames);
-    return `<div class="meal-slot" data-plan-index="${index}"><div class="meal-head">${label}${menuLinkHtml(
-      item
-    )}</div>${mealStateHtml(item, pantryNames)}${cooked}</div>`;
+    /* 칸에는 끼니·메뉴·짧은 상태만 남기고, 자세한 상태와 "이거 해먹었어요"는 모달이 맡는다.
+       예전에는 둘 다 칸 안에 있어서 칸 높이가 요리마다 들쭉날쭉했고, 21칸이 한꺼번에
+       복잡해 보였다 — 그리드의 목적은 "한 주 조망" 하나다(C2).
+
+       칸 전체를 덮는 버튼 하나가 상세를 연다. 메뉴 이름은 만개의레시피로 나가는 링크라
+       버튼 안에 넣을 수 없고(대화형 요소는 겹칠 수 없다), 이름을 뺀 나머지만 누를 자리로
+       만들면 21칸에서 표적이 너무 작다. 그래서 버튼을 칸 크기로 깔고 이름 링크만 그 위로
+       올린다(css의 .meal-open 참고).
+
+       버튼에 글자를 넣지 않는 이유는 칸이 이미 끼니·메뉴·상태를 말하고 있어서다.
+       화면 낭독기에는 aria-label이 같은 것을 한 번에 읽어준다. */
+    return `<div class="meal-slot meal-slot-filled" data-plan-index="${index}">
+      <button type="button" class="meal-open" data-plan-index="${index}" aria-label="${escapeHtml(
+      COPY.MEALPLAN.detail(day.aria, meal, item.menu || "")
+    )}">${CHEVRON_ICON}</button>
+      <div class="meal-head">${label}${menuLinkHtml(item)}</div>
+      ${mealBriefHtml(item, pantryNames)}
+    </div>`;
   }
 
   /* 칸에는 설명을 붙이지 않는다. 고른 상태는 색이, 다음에 무엇을 할지는 상단 안내가 말한다
@@ -675,4 +756,50 @@ function mealSlotHtml(day, meal, pantryNames = []) {
       </button>
       <button type="button" class="meal-delete" data-index="${index}" aria-label="${name} 삭제">×</button>
     </div>`;
+}
+
+/* ==========================================================================
+   칸 상세 모달
+   ==========================================================================
+   그리드는 조망이고, 한 칸을 실제로 다루는 일은 여기서 한다(C2·C4).
+
+   커스텀 오버레이 대신 <dialog>의 showModal()을 쓰는 이유는 조회 바가 여닫기를
+   <details>에 맡기는 것과 같다 — 초점 가두기, Esc로 닫기, 뒤 화면 비활성화,
+   다른 요소 위로 띄우기가 전부 브라우저 기본으로 딸려온다. 직접 만들면 그중
+   하나는 반드시 빠뜨린다.
+
+   안쪽 내용은 열 때마다 새로 만든다. 21칸치를 미리 그려두면 지금 냉장고가 아니라
+   그릴 때의 냉장고를 보여주게 되고, 그건 이 화면이 지금까지 피해온 것이다. */
+let dialogIndex = null;
+
+function mealDialogBodyHtml(item, pantryNames) {
+  /* 이미 해먹은 칸에는 "이거 해먹었어요"를 다시 띄우지 않는다 — "해먹었어요"라고 적어두고
+     바로 아래에 같은 걸 또 물으면 어느 쪽이 사실인지 알 수 없다.
+     잘못 눌렀을 때는 확인 직후 그 자리에 남는 되돌리기로 되돌린다. */
+  const cooked = item.done ? "" : cookedHtml(item.ingredients, pantryNames);
+
+  /* 메뉴 이름을 여기서도 보여주는 이유는, 모달 제목이 "8/17 (일) 저녁"이라 어느 요리인지
+     말해주지 않기 때문이다. 링크도 그대로 따라온다 — 상세를 열어놓고 레시피로 넘어가는
+     것이 오히려 자연스러운 다음 걸음이다(C4). */
+  return `<p class="meal-dialog-menu">${menuLinkHtml(item)}</p>${mealStateHtml(
+    item,
+    pantryNames
+  )}${cooked}`;
+}
+
+function openMealDialog(index) {
+  const dlg = document.getElementById("meal-dialog");
+  const body = document.getElementById("meal-dialog-body");
+  const item = planItems[index];
+  if (!dlg || !body || !item) return;
+
+  dialogIndex = index;
+  /* 열려 있는 동안에만 붙는다. refreshPlanStates가 이걸 보고 모달의 상태 줄도 함께 고친다. */
+  body.dataset.planIndex = index;
+  body.innerHTML = mealDialogBodyHtml(item, pantryNamesFor(loadPantry()));
+  document.getElementById("meal-dialog-title").textContent = COPY.MEALPLAN.dialogTitle(
+    dayInfo(item.day, planStartDate).label,
+    item.meal
+  );
+  dlg.showModal();
 }

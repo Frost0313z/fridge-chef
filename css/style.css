@@ -1173,6 +1173,225 @@ body:has(.pantry-bar) {
   color: var(--text-muted);
 }
 
+/* --------------------------------------------------------------------------
+   메뉴가 있는 칸 — 칸 전체가 상세를 여는 버튼
+   --------------------------------------------------------------------------
+   메뉴 이름은 만개의레시피로 나가는 링크라 버튼 안에 넣을 수 없다(대화형 요소는
+   겹칠 수 없다). 그렇다고 이름을 뺀 좁은 자리만 누르게 하면 21칸에서 표적이 너무
+   작아진다. 그래서 버튼을 칸 크기로 깔고, 본문을 그 위에 올린 뒤 본문의 클릭만
+   통과시킨다 — 이름 링크는 다시 받는다. */
+.meal-slot-filled {
+  position: relative;
+}
+
+/* 가로 여백을 음수로 빼는 이유는 hover 표시가 카드 안쪽 여백까지 닿아야
+   "이 줄이 아니라 이 칸을 누르는 것"으로 읽히기 때문이다. */
+.meal-open {
+  position: absolute;
+  inset: 4px -8px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 4px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: none;
+  /* 아이콘 하나뿐인 버튼이라 색을 명시한다 — 기본 검정으로 내려가면 다크에서 안 보인다.
+     --text-subtle(2.4:1)이 아니라 --text-muted를 쓴다. 이 화살표는 "이 칸을 누를 수 있다"를
+     말하는 유일한 표시라 흐리면 안 된다(WCAG 1.4.11). */
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.meal-open:hover {
+  background: var(--accent-tint);
+  color: var(--accent-strong);
+}
+
+/* 전역 button:active의 1px 내림을 쓰지 않는다 — 깔려 있는 버튼만 내려가고 그 위의
+   메뉴 이름은 제자리에 남아, 눌린 것이 아니라 어긋난 것으로 보인다. */
+.meal-open:active {
+  transform: none;
+  box-shadow: inset 0 0 0 1px var(--accent-strong);
+}
+
+.meal-open-chevron {
+  flex: none;
+}
+
+/* 본문은 버튼 위에 그려지되 클릭은 통과시킨다. 이름 링크만 다시 받는다. */
+.meal-slot-filled > .meal-head,
+.meal-slot-filled > .meal-brief {
+  position: relative;
+  pointer-events: none;
+}
+
+/* 오른쪽 끝의 화살표와 겹치지 않게 자리를 비운다. */
+.meal-slot-filled > .meal-head {
+  margin-bottom: 0;
+  padding-right: 20px;
+}
+
+.meal-slot-filled .meal-menu-link {
+  pointer-events: auto;
+}
+
+/* 칸에 남는 짧은 상태 한 줄. 같은 뜻의 긴 문구는 모달의 .meal-state가 맡는다.
+   색은 .meal-state와 같게 간다 — 같은 것을 짧게 적은 것뿐인데 색까지 다르면
+   두 번 배워야 한다(C5). */
+.meal-brief {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0 0;
+  padding-right: 20px;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+/* display:flex가 UA의 [hidden]{display:none}을 이겨서, 속성만으로는 안 숨는다.
+   (.rerecommend-btn[hidden]과 같은 자리) */
+.meal-brief[hidden] {
+  display: none;
+}
+
+.meal-brief-done {
+  color: var(--text-muted);
+}
+
+.meal-brief-short {
+  color: var(--accent-strong);
+}
+
+.meal-brief-icon {
+  flex: none;
+}
+
+/* --------------------------------------------------------------------------
+   칸 상세 모달
+   --------------------------------------------------------------------------
+   모달이 화면 전체를 덮고 안쪽에 패널을 띄운다. 이렇게 두면 패널 바깥을 누른 것을
+   "모달 자신이 대상"으로 받을 수 있어, 배경 클릭 닫기가 좌표 계산 없이 끝난다.
+
+   막(scrim)을 ::backdrop이 아니라 모달 자신에게 칠하는 이유는 ::backdrop이 상속을
+   받지 못하는 브라우저가 있어 var(--scrim)이 통하지 않기 때문이다. UA가 깔아주는
+   기본 막은 이중으로 어두워지므로 지운다. */
+.meal-dialog {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 16px;
+  border: 0;
+  background: var(--scrim);
+  color: var(--text);
+  overflow: hidden;
+
+  /* display가 none↔flex로 뛰므로 allow-discrete가 있어야 닫힐 때도 전환이 남는다.
+     여는 쪽 시작값은 @starting-style이 준다. 둘 다 못 알아듣는 브라우저에서는
+     전환 없이 바로 나타난다 — 기능은 그대로다. */
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease), display var(--dur) allow-discrete,
+    overlay var(--dur) allow-discrete;
+}
+
+.meal-dialog::backdrop {
+  background: transparent;
+}
+
+.meal-dialog[open] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+}
+
+@starting-style {
+  .meal-dialog[open] {
+    opacity: 0;
+  }
+}
+
+.meal-dialog-panel {
+  width: min(420px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg); /* 카드 12px */
+  box-shadow: var(--shadow-lg);
+}
+
+/* 움직임을 줄이도록 설정한 사용자에게는 뜨는 동작을 아예 만들지 않는다.
+   전역 블록이 전환 시간을 끊어도, 시작 위치가 어긋나 있으면 한 번은 튄다. */
+@media (prefers-reduced-motion: no-preference) {
+  .meal-dialog-panel {
+    transform: translateY(8px);
+    transition: transform var(--dur) var(--ease);
+  }
+
+  .meal-dialog[open] .meal-dialog-panel {
+    transform: none;
+  }
+
+  @starting-style {
+    .meal-dialog[open] .meal-dialog-panel {
+      transform: translateY(8px);
+    }
+  }
+}
+
+.meal-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* 날짜 칸 제목(.mealplan-day-card h3)과 같은 것을 말하는 자리라 같은 생김새를 쓴다. */
+.meal-dialog-title {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent-strong);
+}
+
+/* 아이콘 하나뿐인 버튼은 color를 반드시 적는다 — currentColor가 브라우저 기본 검정으로
+   내려가면 다크 모드에서 버튼이 사라진다(CLAUDE.md).
+   크기는 칸 옆의 ×·+ 버튼과 같은 44px다. */
+.meal-dialog-close {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -8px -8px 0 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.meal-dialog-close:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.meal-dialog-close:active {
+  background: var(--bg);
+}
+
+/* 제목이 "8/17 (일) 저녁"이라 어느 요리인지 말해주지 않는다. 이름이 그 답이다. */
+.meal-dialog-menu {
+  margin: 4px 0 0;
+}
+
 /* ==========================================================================
    식단 편집 모드
    ==========================================================================

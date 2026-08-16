@@ -123,6 +123,29 @@
     </div>
   </footer>
 
+  <!-- 요일 그리드는 "한 주 조망" 하나만 맡고, 한 칸의 자세한 상태와 조작은 여기서 한다(C2).
+       커스텀 오버레이 대신 <dialog>를 쓰는 이유는 초점 가두기·Esc 닫기·다른 요소 위로
+       띄우기가 브라우저 기본으로 딸려오기 때문이다 — 조회 바가 <details>에 여닫기를
+       맡기는 것과 같은 원칙이다. 안쪽 .meal-dialog-body는 mealplan.js가 채운다. -->
+  <dialog id="meal-dialog" class="meal-dialog" aria-labelledby="meal-dialog-title">
+    <!-- 열리면 초점이 패널로 간다(autofocus). 없으면 첫 초점 대상인 닫기 버튼에 링이 뜨는데,
+         그러면 이 화면에서 할 일이 "닫기"인 것처럼 읽힌다. 패널이 받으면 화면 낭독기가
+         aria-labelledby가 가리키는 제목부터 읽는다. -->
+    <div class="meal-dialog-panel" tabindex="-1" autofocus>
+      <div class="meal-dialog-head">
+        <p id="meal-dialog-title" class="meal-dialog-title"></p>
+        <button type="button" id="meal-dialog-close" class="meal-dialog-close"
+          data-copy="MEALPLAN.close" data-copy-attr="aria-label" aria-label="닫기">
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor"
+            stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false">
+            <path d="M4 4l8 8M12 4l-8 8" />
+          </svg>
+        </button>
+      </div>
+      <div id="meal-dialog-body" class="meal-dialog-body"></div>
+    </div>
+  </dialog>
+
   <details id="pantry-bar" class="pantry-bar">
     <summary>
       <span class="pantry-bar-head">
