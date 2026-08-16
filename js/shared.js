@@ -674,12 +674,19 @@ function initCooked(containerEl, onChange) {
       /* 체크는 했는데 뺄 것이 없었던 경우 — 다른 칸에서 이미 뺐거나 냉장고에 없던 재료다.
          목록은 그릴 때의 냉장고 기준이라 그 사이에 재고가 빠졌을 수 있다.
          여기서 "뺐어요"라고 하면 거짓말이 되고, 되돌리기를 붙이면 이 확인과 무관한
-         직전 차감이 되살아난다. */
+         직전 차감이 되살아난다.
+
+         절약은 이 경우에도 센다. 뺄 재료가 없었다는 것이지 요리를 안 해먹었다는 뜻이
+         아니다 — 사용자는 분명히 해먹었고, 그러면 배달을 안 시킨 것이 맞다. */
       if (!result.removed.length) {
-        setCookedStatus(root, COPY.COOKED.already, false);
+        setCookedStatus(root, `${COPY.COOKED.already} ${COPY.SAVINGS.inline(addSavings())}`, false);
         return;
       }
-      setCookedStatus(root, COPY.COOKED.done(result.removed.join(", ")), true);
+      setCookedStatus(
+        root,
+        `${COPY.COOKED.done(result.removed.join(", "))} ${COPY.SAVINGS.inline(addSavings())}`,
+        true
+      );
       renderPantryBar();
       if (onChange) onChange(root, "consume");
       return;
@@ -688,9 +695,13 @@ function initCooked(containerEl, onChange) {
     if (e.target.closest(".undo-btn")) {
       const undone = undoRemove();
       if (!undone) return;
+      /* 되돌리기는 방금 그 확인으로 늘어난 만큼만 취소한다(main.js의 undoSavings).
+         잘못 누른 것을 되돌리는 자리이지, 기록을 깎는 자리가 아니다. */
       setCookedStatus(
         root,
-        undone.stored ? COPY.COOKED.undone(undone.name) : COPY.COOKED.failed,
+        undone.stored
+          ? `${COPY.COOKED.undone(undone.name)} ${COPY.SAVINGS.inline(undoSavings())}`
+          : COPY.COOKED.failed,
         false
       );
       renderPantryBar();

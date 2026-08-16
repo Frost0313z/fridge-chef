@@ -22,13 +22,18 @@ const sandbox = {
     removeItem: (key) => { delete store[key]; },
   },
   /* 스크립트가 로드되면서 거는 초기화는 여기서 아무것도 하지 않는다 — 화면이 없기 때문이다. */
-  document: { addEventListener: () => {}, getElementById: () => null },
+  /* main.js가 로드되자마자 테마를 documentElement에 쓴다. 화면이 없으므로 받아만 둔다. */
+  document: {
+    addEventListener: () => {},
+    getElementById: () => null,
+    documentElement: { setAttribute: () => {}, getAttribute: () => null },
+  },
   window: { matchMedia: () => ({ matches: false }) },
 };
 sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 
-for (const file of ["js/shared.js", "js/shopping.js"]) {
+for (const file of ["js/copy.js", "js/main.js", "js/shared.js", "js/shopping.js"]) {
   vm.runInContext(fs.readFileSync(path.join(ROOT, file), "utf8"), sandbox, { filename: file });
 }
 
@@ -37,7 +42,12 @@ const {
   remainingAmount, buyIntoPantry, loadPantry,
   consumeFromPantry, undoRemove, removeFromPantry,
   missingIngredients, planShortages, pantryNamesFor,
+  loadSavings, addSavings, undoSavings, chickenText,
 } = sandbox;
+
+/* copy.js의 COPY는 const라 전역 객체에 붙지 않는다(함수 선언만 붙는다).
+   같은 컨텍스트 안에서 이름을 평가해 꺼내온다. */
+const COPY = vm.runInContext("COPY", sandbox);
 
 let failed = 0;
 
@@ -191,6 +201,27 @@ check("냉장고를 채우면 그 줄이 사라진다",
   planShortages(plan, asNames(["계란", "대파", "연어", "레몬", "밥"])).map((s) => s.name), []);
 check("옛 저장분처럼 done이 없어도 미완료로 본다",
   planShortages([{ menu: "x", ingredients: ["연어 200g"] }], fridge).map((s) => s.name), ["연어"]);
+
+// 절약 체감 — 오직 올라가기만 한다. 되돌리기만 직전 증가분을 취소한다.
+store["fridge-chef-savings"] = JSON.stringify(0);
+check("처음은 0원", loadSavings(), 0);
+check("한 번 확인하면 13,000원", addSavings(), 13000);
+check("두 번이면 26,000원", addSavings(), 26000);
+check("되돌리면 직전 것만 취소", undoSavings(), 13000);
+check("되돌리기는 한 번만 먹는다", undoSavings(), 13000);
+check("깎여서 음수가 되지 않는다", loadSavings() >= 0, true);
+
+store["fridge-chef-savings"] = JSON.stringify(-5000);
+check("손상된 값은 0으로 본다", loadSavings(), 0);
+store["fridge-chef-savings"] = '"이상한값"';
+check("숫자가 아니어도 0", loadSavings(), 0);
+
+// 치킨 환산 — 소수점을 그대로 노출하지 않는다.
+check("한 마리가 안 되면 격려", chickenText(13000), COPY.SAVINGS.chickenAlmost);
+check("딱 떨어지면 그대로", chickenText(30000), "치킨 1마리 값이에요.");
+check("조금 넘으면 넘었다고", chickenText(39000), "치킨 1마리 값을 넘었어요.");
+check("거의 다 왔으면 다음 마리 기준", chickenText(52000), "치킨 2마리에 조금 못 미쳐요.");
+check("소수점은 문구에 안 나온다", /\d+\.\d/.test(chickenText(52000)), false);
 
 console.log(failed ? `\n${failed}개 실패` : "\nall passed");
 process.exit(failed ? 1 : 0);
