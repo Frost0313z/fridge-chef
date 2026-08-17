@@ -378,7 +378,8 @@ function renderEditStatus() {
       `"${picked.menu}"을(를) 들었어요. 옮길 자리를 누르세요. ` +
       `이미 메뉴가 있는 자리를 누르면 서로 바뀌고, 색이 칠해진 "${picked.menu}"을(를) 다시 누르면 취소됩니다.`;
   } else if (addingSlot) {
-    el.textContent = `${dayInfo(addingSlot.day, planStartDate).label} ${addingSlot.meal}에 넣을 메뉴를 적거나, 최근 추천받은 요리에서 고르세요.`;
+    /* 아래 목록이 즐겨찾기와 최근 추천 둘로 늘었다. 한쪽만 가리키면 다른 쪽을 안 본다. */
+    el.textContent = `${dayInfo(addingSlot.day, planStartDate).label} ${addingSlot.meal}에 넣을 메뉴를 적거나, 아래에서 고르세요.`;
   } else {
     el.textContent =
       "옮길 메뉴를 누르세요. 빈 자리를 누르면 메뉴를 직접 넣고, 옆의 × 를 누르면 지웁니다.";
