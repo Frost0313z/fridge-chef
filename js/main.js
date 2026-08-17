@@ -21,46 +21,134 @@ const SAVED_PER_MEAL = 13000;
 /* 2026년 들어 치킨 한 마리가 3만 원대에 진입했다는 보도 기준. */
 const CHICKEN_PRICE = 30000;
 
-/* 사용자가 개발자 도구로 고칠 수도 있고 옛 값이 들어 있을 수도 있다.
-   숫자가 아니거나 음수면 0으로 본다 — 이 값은 음수가 될 수 없다. */
-function loadSavings() {
-  try {
-    const raw = Number(JSON.parse(localStorage.getItem(SAVINGS_KEY)));
-    return isFinite(raw) && raw > 0 ? raw : 0;
-  } catch {
-    return 0;
-  }
+/* toISOString()은 UTC 기준이라 한국에서 자정 무렵에 하루가 어긋난다.
+   스웨덴 로캘이 쓰는 형식이 마침 YYYY-MM-DD라, 로컬 날짜를 그대로 얻는 데 쓴다.
+
+   shared.js가 아니라 여기 있는 이유는 아래 절약 기록과 같다 — 홈은 shared.js를 안 부르는데
+   날짜 규칙이 갈라지면 자정 언저리에 냉장고의 addedAt과 절약 기록의 날짜가 어긋난다.
+   main.js는 다섯 페이지 모두에서 shared.js보다 먼저 실린다. */
+function todayISO() {
+  return new Date().toLocaleDateString("sv-SE");
 }
 
-function storeSavings(value) {
+/* 저장 형태는 { legacy, days }다.
+
+   days는 "YYYY-MM-DD" → 그날 쌓인 금액. 냉장고의 addedAt과 같은 날짜 형식을 쓴다.
+   날짜를 붙여야 "이번 주 얼마"를 셀 수 있다 — 누적 숫자 하나로는 이번 주에 한 번도
+   안 해먹었는지, 원래 그만큼인지 구분이 안 된다.
+
+   legacy는 날짜별로 쪼개기 전에 쌓아둔 총액이다. 버리지 않는 이유는 그동안 모은 것이
+   화면에서 0으로 보이면 안 되기 때문이고, 주간·월간에 넣지 않는 이유는 그 돈이 언제
+   쌓였는지 알 방법이 없어서다. 누적에만 더한다.
+
+   사용자가 개발자 도구로 고칠 수도 있고 옛 값이 들어 있을 수도 있다. 숫자가 아니거나
+   음수인 값은 0으로 본다 — 이 값들은 음수가 될 수 없다. */
+function loadSavings() {
+  let raw = null;
   try {
-    localStorage.setItem(SAVINGS_KEY, JSON.stringify(value));
+    raw = JSON.parse(localStorage.getItem(SAVINGS_KEY));
+  } catch {
+    return { legacy: 0, days: {} };
+  }
+
+  /* 날짜별로 쪼개기 전의 저장분. 숫자 하나가 통째로 들어 있다. */
+  if (typeof raw === "number") return { legacy: positive(raw), days: {} };
+  if (!raw || typeof raw !== "object") return { legacy: 0, days: {} };
+
+  const days = {};
+  Object.entries(raw.days || {}).forEach(([date, won]) => {
+    const value = positive(Number(won));
+    if (isDateKey(date) && value) days[date] = value;
+  });
+  return { legacy: positive(Number(raw.legacy)), days };
+}
+
+function positive(value) {
+  return isFinite(value) && value > 0 ? value : 0;
+}
+
+function isDateKey(value) {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function storeSavings(record) {
+  try {
+    localStorage.setItem(SAVINGS_KEY, JSON.stringify(record));
     return true;
   } catch {
     return false;
   }
 }
 
-/* 방금 한 번의 확인으로 늘어난 금액. 되돌리기가 딱 그만큼만 취소한다 — 실수 정정이지
-   "오늘 배달 시켰으니 깎는" 것이 아니다. undoRemove의 lastRemoved와 같은 방식으로
-   직전 것 하나만 기억하고, 페이지를 옮기면 사라진다. */
-let lastSaved = 0;
+/* 누적은 절대 줄지 않는 숫자다(되돌리기가 방금 것을 취소하는 경우만 예외).
+   legacy를 여기에만 더하는 이유는 위 loadSavings 주석 참고. */
+function savingsTotal(record) {
+  const rec = record || loadSavings();
+  return Object.values(rec.days).reduce((sum, won) => sum + won, rec.legacy);
+}
 
+/* 이번 주는 월요일에 시작한다. getDay()는 일요일이 0이라 월요일 기준으로 돌려놓는다.
+   전부 로컬 시간이다 — 사용자가 "이번 주"라고 느끼는 것은 자기 시계 기준이다. */
+function weekStartISO(todayIso) {
+  const date = new Date(`${todayIso || todayISO()}T00:00:00`);
+  date.setDate(date.getDate() - ((date.getDay() + 6) % 7));
+  return date.toLocaleDateString("sv-SE");
+}
+
+/* 날짜 키가 YYYY-MM-DD로 자릿수가 고정이라 문자열 비교가 곧 날짜 비교다. */
+function savingsWeek(record, todayIso) {
+  const rec = record || loadSavings();
+  const from = weekStartISO(todayIso);
+  const to = addDaysISO(from, 6);
+  return Object.entries(rec.days)
+    .filter(([date]) => date >= from && date <= to)
+    .reduce((sum, [, won]) => sum + won, 0);
+}
+
+function savingsMonth(record, todayIso) {
+  const rec = record || loadSavings();
+  const prefix = (todayIso || todayISO()).slice(0, 7);
+  return Object.entries(rec.days)
+    .filter(([date]) => date.startsWith(prefix))
+    .reduce((sum, [, won]) => sum + won, 0);
+}
+
+function addDaysISO(iso, days) {
+  const date = new Date(`${iso}T00:00:00`);
+  date.setDate(date.getDate() + days);
+  return date.toLocaleDateString("sv-SE");
+}
+
+/* 방금 한 번의 확인으로 늘어난 금액과 그것이 붙은 날짜. 되돌리기가 딱 그만큼만 취소한다 —
+   실수 정정이지 "오늘 배달 시켰으니 깎는" 것이 아니다. undoRemove의 lastRemoved와 같은
+   방식으로 직전 것 하나만 기억하고, 페이지를 옮기면 사라진다. */
+let lastSaved = null;
+
+/* 돌려주는 값은 예전과 같은 "지금까지 누적"이다 — 확인 직후 문구(COPY.SAVINGS.inline)가
+   그 숫자를 쓴다. */
 function addSavings() {
-  const next = loadSavings() + SAVED_PER_MEAL;
-  if (!storeSavings(next)) return loadSavings();
-  lastSaved = SAVED_PER_MEAL;
-  return next;
+  const record = loadSavings();
+  const today = todayISO();
+  record.days[today] = (record.days[today] || 0) + SAVED_PER_MEAL;
+  if (!storeSavings(record)) return savingsTotal();
+  lastSaved = { date: today, won: SAVED_PER_MEAL };
+  return savingsTotal(record);
 }
 
 function undoSavings() {
-  if (!lastSaved) return loadSavings();
+  if (!lastSaved) return savingsTotal();
+
+  const record = loadSavings();
+  const { date, won } = lastSaved;
+  lastSaved = null;
   /* 음수로 내려가지 않게 막는다. 저장이 실패했거나 값이 손상됐을 때 빼기만 성공하면
-     기록이 거꾸로 간다. */
-  const next = Math.max(0, loadSavings() - lastSaved);
-  lastSaved = 0;
-  storeSavings(next);
-  return next;
+     기록이 거꾸로 간다. 0이 된 날짜는 아예 지운다 — 아무 일도 없던 날과 같다. */
+  const rest = Math.max(0, (record.days[date] || 0) - won);
+  if (rest) record.days[date] = rest;
+  else delete record.days[date];
+
+  storeSavings(record);
+  return savingsTotal(record);
 }
 
 /* 치킨 몇 마리인지. 소수점을 그대로 노출하지 않고 말로 푼다. */
@@ -75,19 +163,37 @@ function chickenText(total) {
   return rest < 0.5 ? COPY.SAVINGS.chickenOver(whole) : COPY.SAVINGS.chickenNear(whole + 1);
 }
 
-/* 홈의 절약 카드. 0원일 때는 통째로 감춘다 — "0원 아꼈어요"는 축하가 아니라 핀잔이다. */
+/* 홈의 절약 카드. 큰 숫자는 이번 주, 작은 줄이 이번 달과 누적을 받는다.
+   주간을 앞에 세우는 이유는 그 숫자만 오르내려서 "이번 주에 몇 번 해먹었나"가 읽히기
+   때문이다. 누적은 계속 커지기만 해서 어느 순간부터 아무 말도 하지 않는다.
+
+   치킨 환산을 월간으로 계산하는 이유도 같다 — 주간은 13,000원 단위라 한 마리(30,000원)를
+   못 채우는 주가 많고, 그러면 "조금만 더 모으면"만 반복해서 말이 죽는다.
+
+   한 번도 안 눌렀으면 카드를 통째로 감춘다("0원 아꼈어요"는 축하가 아니라 핀잔이다).
+   그런데 모아둔 것이 있는데 이번 주만 0원인 경우(월요일 아침 같은)까지 감추면, 어제까지
+   보이던 카드가 소리 없이 사라져 "그동안 모은 게 없어졌다"로 읽힌다. 그때는 카드를 두고
+   큰 숫자 자리만 인사말로 바꾼다 — 아래 줄이 누적을 계속 말해주고 있다. */
 function renderSavings() {
   const section = document.getElementById("savings");
   if (!section) return;
 
-  const total = loadSavings();
+  const record = loadSavings();
+  const total = savingsTotal(record);
   section.hidden = total <= 0;
   if (!total) return;
 
+  const week = savingsWeek(record);
+  const month = savingsMonth(record);
+
   const amountEl = document.getElementById("savings-amount");
-  const chickenEl = document.getElementById("savings-chicken");
-  if (amountEl) amountEl.textContent = COPY.SAVINGS.amount(total);
-  if (chickenEl) chickenEl.textContent = chickenText(total);
+  if (amountEl) {
+    amountEl.textContent = week ? COPY.SAVINGS.amount(week) : COPY.SAVINGS.weekWelcome;
+    amountEl.classList.toggle("is-welcome", !week);
+  }
+
+  const subEl = document.getElementById("savings-sub");
+  if (subEl) subEl.textContent = COPY.SAVINGS.sub(month, chickenText(month), total);
 }
 
 (function applyStoredTheme() {

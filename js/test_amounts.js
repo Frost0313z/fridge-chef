@@ -43,6 +43,7 @@ const {
   consumeFromPantry, undoRemove, removeFromPantry,
   missingIngredients, planShortages, pantryNamesFor,
   loadSavings, addSavings, undoSavings, chickenText,
+  savingsTotal, savingsWeek, savingsMonth, weekStartISO, todayISO,
 } = sandbox;
 
 /* copy.js의 COPY는 const라 전역 객체에 붙지 않는다(함수 선언만 붙는다).
@@ -202,19 +203,70 @@ check("냉장고를 채우면 그 줄이 사라진다",
 check("옛 저장분처럼 done이 없어도 미완료로 본다",
   planShortages([{ menu: "x", ingredients: ["연어 200g"] }], fridge).map((s) => s.name), ["연어"]);
 
-// 절약 체감 — 오직 올라가기만 한다. 되돌리기만 직전 증가분을 취소한다.
-store["fridge-chef-savings"] = JSON.stringify(0);
-check("처음은 0원", loadSavings(), 0);
+// 절약 체감 — 누적은 오직 올라가기만 한다. 되돌리기만 직전 증가분을 취소한다.
+const SAVINGS = "fridge-chef-savings";
+const setSavings = (value) => { store[SAVINGS] = JSON.stringify(value); };
+const days = () => loadSavings().days;
+
+setSavings({ legacy: 0, days: {} });
+check("처음은 0원", savingsTotal(), 0);
 check("한 번 확인하면 13,000원", addSavings(), 13000);
 check("두 번이면 26,000원", addSavings(), 26000);
+check("오늘 날짜 하나에 모인다", Object.keys(days()), [todayISO()]);
 check("되돌리면 직전 것만 취소", undoSavings(), 13000);
 check("되돌리기는 한 번만 먹는다", undoSavings(), 13000);
-check("깎여서 음수가 되지 않는다", loadSavings() >= 0, true);
+check("깎여서 음수가 되지 않는다", savingsTotal() >= 0, true);
 
-store["fridge-chef-savings"] = JSON.stringify(-5000);
-check("손상된 값은 0으로 본다", loadSavings(), 0);
-store["fridge-chef-savings"] = '"이상한값"';
-check("숫자가 아니어도 0", loadSavings(), 0);
+// 되돌려서 0이 된 날짜는 아무 일도 없던 날과 같으므로 남기지 않는다.
+setSavings({ legacy: 0, days: {} });
+addSavings();
+undoSavings();
+check("0이 된 날짜 키는 지운다", Object.keys(days()), []);
+
+// 손상된 값 — 이 숫자들은 음수가 될 수 없다.
+setSavings(-5000);
+check("손상된 legacy는 0으로 본다", savingsTotal(), 0);
+store[SAVINGS] = '"이상한값"';
+check("숫자가 아니어도 0", savingsTotal(), 0);
+setSavings({ legacy: 1000, days: { "2026-08-17": -3000, "엉뚱한키": 5000, "2026-08-18": 2000 } });
+check("음수·엉뚱한 날짜 키는 버린다", days(), { "2026-08-18": 2000 });
+check("남은 것만 누적에 든다", savingsTotal(), 3000);
+
+/* 주 경계 — 월요일에 시작해서 일요일에 끝난다.
+   2026-08-17은 월요일이고 2026-08-23이 그 주 일요일이다. */
+check("월요일의 주 시작은 그날", weekStartISO("2026-08-17"), "2026-08-17");
+check("일요일은 앞선 월요일이 주 시작", weekStartISO("2026-08-23"), "2026-08-17");
+check("목요일도 같은 월요일", weekStartISO("2026-08-20"), "2026-08-17");
+check("월요일 하루 전은 지난주", weekStartISO("2026-08-16"), "2026-08-10");
+
+setSavings({
+  legacy: 50000,
+  days: {
+    "2026-08-16": 13000, // 지난주 일요일
+    "2026-08-17": 13000, // 이번 주 월요일
+    "2026-08-20": 26000, // 이번 주 목요일
+    "2026-08-23": 13000, // 이번 주 일요일
+    "2026-08-24": 13000, // 다음 주 월요일
+    "2026-07-30": 13000, // 지난달
+  },
+});
+check("주간은 월~일만 센다", savingsWeek(null, "2026-08-20"), 52000);
+check("주간 경계는 일요일까지", savingsWeek(null, "2026-08-23"), 52000);
+check("다음 주 월요일이면 그 주만", savingsWeek(null, "2026-08-24"), 13000);
+check("월간은 달력 기준", savingsMonth(null, "2026-08-20"), 78000);
+check("지난달은 그달만", savingsMonth(null, "2026-07-30"), 13000);
+
+/* 옛 저장분(숫자 하나)은 언제 쌓였는지 알 수 없다. 누적에는 들어가되 주간·월간에는 안 든다 —
+   기존 이용자의 기록이 갑자기 0으로 보이면 안 되고, 이번 주 것으로 둔갑해서도 안 된다. */
+check("legacy는 누적에 든다", savingsTotal(), 141000);
+check("legacy는 주간에 안 든다", savingsWeek(null, "2026-08-20"), 52000);
+check("legacy는 월간에 안 든다", savingsMonth(null, "2026-08-20"), 78000);
+
+setSavings(91000);
+check("옛 숫자 저장분을 legacy로 읽는다", loadSavings(), { legacy: 91000, days: {} });
+check("옛 저장분도 누적은 그대로", savingsTotal(), 91000);
+check("옛 저장분만 있으면 이번 주는 0", savingsWeek(null, "2026-08-20"), 0);
+check("그래도 카드는 숨지 않는다(누적>0)", savingsTotal() > 0, true);
 
 // 치킨 환산 — 소수점을 그대로 노출하지 않는다.
 check("한 마리가 안 되면 격려", chickenText(13000), COPY.SAVINGS.chickenAlmost);

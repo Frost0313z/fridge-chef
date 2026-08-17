@@ -77,11 +77,9 @@ function pantryPromptText(item) {
   return age ? `${pantryText(item)} (${age}에 넣음)` : pantryText(item);
 }
 
-/* toISOString()은 UTC 기준이라 한국에서 자정 무렵에 하루가 어긋난다.
-   스웨덴 로캘이 쓰는 형식이 마침 YYYY-MM-DD라, 로컬 날짜를 그대로 얻는 데 쓴다. */
-function todayISO() {
-  return new Date().toLocaleDateString("sv-SE");
-}
+/* todayISO()는 js/main.js에 있다 — 홈(shared.js를 안 부른다)의 절약 기록도 같은 날짜를
+   써야 하는데, 같은 규칙을 두 곳에 두면 자정 언저리에 둘이 갈라진다.
+   main.js는 다섯 페이지 모두에서 shared.js보다 먼저 실려 있다. */
 
 /* 넣은 지 며칠 됐는지. 날짜를 모르거나(옛 저장분) 값이 깨졌으면 null이다.
    양쪽 다 자정 기준으로 맞춰서 "몇 시에 넣었는지"가 결과를 흔들지 않게 한다. */

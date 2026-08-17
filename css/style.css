@@ -2103,10 +2103,21 @@ body:has(.pantry-bar) {
   font-variant-numeric: tabular-nums;
 }
 
-.savings-chicken {
-  margin: 4px 0 0;
-  font-size: 0.95rem;
+/* 이번 주 금액이 0원일 때 그 자리에 들어가는 인사말. 금액이 아니므로 금액의 크기·색을
+   쓰지 않는다 — 문장을 1.6rem 감빛으로 띄우면 숫자인 줄 알고 읽게 된다. */
+.savings-amount.is-welcome {
+  font-size: 1.05rem;
   font-weight: 600;
+  color: var(--text);
+}
+
+/* 이번 달·누적. 주간 숫자(1.6rem)보다 확실히 작아야 무엇이 주인공인지 한눈에 잡힌다.
+   글자색은 본문 색이다 — 아래 추정치 안내(.savings-note)와 크기가 비슷해서, 색까지 같으면
+   둘이 한 덩어리로 읽히고 이 줄의 금액이 각주처럼 묻힌다. */
+.savings-sub {
+  margin: 6px 0 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
 }
 
 .savings-note {

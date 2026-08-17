@@ -219,8 +219,25 @@ const COPY = {
      자조인데, 여기는 손실이 아니라 성취를 보여주는 자리라 그 말투를 가져오면 안 된다.
      숫자는 올라가기만 한다 — 배달을 시킨 날이라고 깎으면 뿌듯함이 아니라 죄책감이 된다. */
   SAVINGS: {
-    title: "지금까지 아낀 돈",
+    // 큰 숫자가 이번 주치라 제목도 이번 주를 가리킨다. 누적은 아래 작은 줄이 말한다.
+    title: "이번 주 아낀 돈",
     amount: (won) => `${won.toLocaleString("ko-KR")}원`,
+
+    /* 모아둔 것은 있는데 이번 주만 0원일 때 큰 숫자 자리에 대신 들어간다(월요일 아침 같은).
+       "0원"이라고 적으면 그동안 모은 것이 사라진 것처럼 읽히고, 카드를 감추면 아예 없던
+       일이 된다. 지난주를 탓하지 않고 이번 주를 권하는 말로 둔다. */
+    weekWelcome: "이번 주도 있는 대로 해먹어볼까요?",
+
+    /* 큰 숫자 아래 한 줄. 치킨 환산은 이번 달 금액으로 계산해서 넘겨받는다 —
+       주간은 13,000원 단위라 한 마리를 못 채우는 주가 많다.
+       치킨 문구는 마침표로 끝나는 완결 문장이라, 뒤에 · 가 붙는 이 자리에서는 걷어낸다.
+       이번 달이 0원이면 환산을 붙이지 않는다 — 0원을 두고 "조금만 더 모으면"이라고
+       하면 아무 말도 아니게 된다. */
+    sub: (monthWon, chicken, totalWon) => {
+      const month = `이번 달 ${monthWon.toLocaleString("ko-KR")}원`;
+      const withChicken = monthWon ? `${month} (${chicken.replace(/\.$/, "")})` : month;
+      return `${withChicken} · 지금까지 총 ${totalWon.toLocaleString("ko-KR")}원`;
+    },
     // 확인 직후 결과 문구 뒤에 붙는 한 줄
     inline: (won) => `지금까지 ${won.toLocaleString("ko-KR")}원 아꼈어요.`,
 
