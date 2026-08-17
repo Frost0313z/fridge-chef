@@ -163,37 +163,50 @@ function chickenText(total) {
   return rest < 0.5 ? COPY.SAVINGS.chickenOver(whole) : COPY.SAVINGS.chickenNear(whole + 1);
 }
 
-/* 홈의 절약 카드. 큰 숫자는 이번 주, 작은 줄이 이번 달과 누적을 받는다.
-   주간을 앞에 세우는 이유는 그 숫자만 오르내려서 "이번 주에 몇 번 해먹었나"가 읽히기
-   때문이다. 누적은 계속 커지기만 해서 어느 순간부터 아무 말도 하지 않는다.
+/* 지금 카드가 보고 있는 기간. 기본은 주간이고 저장하지 않는다 — 페이지를 새로 열면
+   언제나 이번 주부터다. 냉장고의 "자세히"는 목록을 훑는 내내 유지돼야 해서 기억하지만,
+   이쪽은 한 번 들여다보는 것이라 다음 방문까지 끌고 갈 이유가 없다. */
+let savingsShowMonth = false;
 
-   치킨 환산을 월간으로 계산하는 이유도 같다 — 주간은 13,000원 단위라 한 마리(30,000원)를
-   못 채우는 주가 많고, 그러면 "조금만 더 모으면"만 반복해서 말이 죽는다.
+/* 홈의 절약 카드. 제목과 큰 숫자가 함께 기간을 따라가고, 그 밖의 숫자는 화면에 두지 않는다 —
+   주간·월간·누적을 한꺼번에 늘어놓으면 어느 것이 지금 내 성적인지 읽는 데 시간이 걸린다.
 
-   한 번도 안 눌렀으면 카드를 통째로 감춘다("0원 아꼈어요"는 축하가 아니라 핀잔이다).
-   그런데 모아둔 것이 있는데 이번 주만 0원인 경우(월요일 아침 같은)까지 감추면, 어제까지
-   보이던 카드가 소리 없이 사라져 "그동안 모은 게 없어졌다"로 읽힌다. 그때는 카드를 두고
-   큰 숫자 자리만 인사말로 바꾼다 — 아래 줄이 누적을 계속 말해주고 있다. */
+   치킨 환산은 월간에만 붙인다. 주간은 13,000원 단위라 한 마리(30,000원)를 못 채우는 주가
+   많고, 그러면 "조금만 더 모으면"만 반복돼 말이 죽는다.
+
+   카드를 감출지는 누적으로 판단한다. 한 번도 안 눌러본 사람에게 "0원 아꼈어요"는 축하가
+   아니라 핀잔이라 통째로 감추지만, 그건 이번 주에만 안 해먹은 사람과 다른 이야기다 —
+   뒤엣것까지 감추면 어제까지 보이던 카드가 소리 없이 사라진다. 누적에는 날짜를 모르는
+   옛 저장분(legacy)도 들어가므로, 예전부터 쓰던 사람의 카드가 이 판단에서 빠지지 않는다. */
 function renderSavings() {
   const section = document.getElementById("savings");
   if (!section) return;
 
   const record = loadSavings();
-  const total = savingsTotal(record);
-  section.hidden = total <= 0;
-  if (!total) return;
+  section.hidden = savingsTotal(record) <= 0;
+  if (section.hidden) return;
 
-  const week = savingsWeek(record);
-  const month = savingsMonth(record);
+  const month = savingsShowMonth;
+  const won = month ? savingsMonth(record) : savingsWeek(record);
+
+  const titleEl = document.getElementById("savings-title");
+  if (titleEl) titleEl.textContent = month ? COPY.SAVINGS.titleMonth : COPY.SAVINGS.titleWeek;
 
   const amountEl = document.getElementById("savings-amount");
-  if (amountEl) {
-    amountEl.textContent = week ? COPY.SAVINGS.amount(week) : COPY.SAVINGS.weekWelcome;
-    amountEl.classList.toggle("is-welcome", !week);
+  if (amountEl) amountEl.textContent = COPY.SAVINGS.amount(won);
+
+  const chickenEl = document.getElementById("savings-chicken");
+  if (chickenEl) {
+    chickenEl.textContent = month ? chickenText(won) : "";
+    chickenEl.hidden = !month;
   }
 
-  const subEl = document.getElementById("savings-sub");
-  if (subEl) subEl.textContent = COPY.SAVINGS.sub(month, chickenText(month), total);
+  const toggle = document.getElementById("savings-range-toggle");
+  if (toggle) {
+    toggle.textContent = month ? COPY.SAVINGS.rangeToWeek : COPY.SAVINGS.rangeToMonth;
+    toggle.setAttribute("aria-pressed", String(month));
+    toggle.classList.toggle("is-on", month);
+  }
 }
 
 (function applyStoredTheme() {
@@ -204,6 +217,14 @@ function renderSavings() {
 
 document.addEventListener("DOMContentLoaded", () => {
   renderSavings(); // 홈에만 있는 카드 (요소가 없으면 즉시 반환)
+
+  const savingsToggle = document.getElementById("savings-range-toggle");
+  if (savingsToggle) {
+    savingsToggle.addEventListener("click", () => {
+      savingsShowMonth = !savingsShowMonth;
+      renderSavings();
+    });
+  }
 
   const toggle = document.getElementById("nav-toggle");
   const menu = document.getElementById("nav-menu");

@@ -72,12 +72,17 @@
     </section>
 
     <!-- 아직 한 번도 안 눌렀으면 main.js가 통째로 감춘다 ("0원 아꼈어요"는 핀잔이다).
-         큰 숫자는 이번 주, 아래 한 줄이 이번 달과 누적을 받는다. -->
+         제목·큰 숫자는 토글이 가리키는 기간을 따라간다. 냉장고의 "자세히"와 같은
+         단일 버튼 토글이고, 고른 값은 저장하지 않는다 — 열 때마다 이번 주부터 본다. -->
     <section class="home-section" id="savings" hidden>
-      <h2 data-copy="SAVINGS.title">이번 주 아낀 돈</h2>
+      <div class="savings-head">
+        <h2 id="savings-title" data-copy="SAVINGS.titleWeek">이번 주 아낀 돈</h2>
+        <button type="button" id="savings-range-toggle" class="pill-toggle savings-range-toggle"
+          aria-pressed="false" data-copy="SAVINGS.rangeToMonth">이번 달 보기</button>
+      </div>
       <div class="savings-card">
         <p class="savings-amount" id="savings-amount"></p>
-        <p class="savings-sub" id="savings-sub"></p>
+        <p class="savings-chicken" id="savings-chicken" hidden></p>
         <p class="savings-note" data-copy="SAVINGS.note">배달 한 끼를 13,000원으로 잡고 더한 값이에요. 실제로 아낀 금액과는 다를 수 있어요.</p>
       </div>
     </section>
