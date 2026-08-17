@@ -2,6 +2,7 @@
 document.addEventListener("DOMContentLoaded", () => {
   initHistory();
   initRecipeCooked();
+  initFavorites();
 
   const form = document.getElementById("recipe-form");
   if (!form) return;
@@ -115,7 +116,8 @@ document.addEventListener("DOMContentLoaded", () => {
     /* 보유 판정은 렌더 시점에 다시 계산한다 — 저장된 식단을 복원할 때 장보기 리스트를
        다시 계산하는 것과 같은 규칙으로, 항상 "지금의 재료함" 기준이 되게 한다. */
     const pantryNames = pantryNamesFor(loadPantry());
-    resultEl.innerHTML = recipes.map((r) => recipeCardHtml(r, pantryNames)).join("");
+    shownRecipes = recipes;
+    resultEl.innerHTML = recipes.map((r, i) => recipeCardHtml(r, pantryNames, i)).join("");
     document.getElementById("result-empty").hidden = true;
     addToHistory(recipes);
 
@@ -142,10 +144,18 @@ function ingredientLiHtml(name, pantryNames) {
       )}</span></li>`;
 }
 
-function recipeCardHtml(r, pantryNames = []) {
+/* 지금 결과 영역에 그려져 있는 요리들. 별을 누르면 이름만으로는 저장할 수 없고
+   재료·조리 순서·검색어까지 필요해서, 원본을 인덱스로 되찾으려고 들고 있는다
+   (이력 목록이 historyItems를 들고 있는 것과 같은 이유). */
+let shownRecipes = [];
+
+function recipeCardHtml(r, pantryNames = [], index = 0) {
   return `
-    <article class="recipe-card">
-      <h3>${escapeHtml(r.name)}</h3>
+    <article class="recipe-card" data-recipe-index="${index}">
+      <div class="recipe-card-head">
+        <h3>${escapeHtml(r.name)}</h3>
+        ${favoriteToggleHtml(r.name, `data-recipe-index="${index}"`)}
+      </div>
       <p class="recipe-time">⏱ ${escapeHtml(r.time || "")}</p>
       <h4>재료</h4>
       <ul class="recipe-ingredients">${(r.ingredients || [])
@@ -157,6 +167,56 @@ function recipeCardHtml(r, pantryNames = []) {
       ${cookedHtml(r.ingredients, pantryNames)}
     </article>
   `;
+}
+
+/* 별은 결과 카드와 이력 목록 두 곳에 있고, 둘 다 다시 그려지는 영역 안이라 위임으로 받는다.
+   누른 별만 제자리에서 갈아끼운다 — 카드를 다시 그리면 열어둔 "이거 해먹었어요"가 닫힌다. */
+function initFavorites() {
+  const statusEl = document.getElementById("favorite-status");
+
+  function setStatus(message) {
+    if (!statusEl) return;
+    statusEl.textContent = message;
+    statusEl.hidden = !message;
+  }
+
+  function syncButton(btn, name) {
+    const on = isFavorite(name);
+    btn.setAttribute("aria-pressed", String(on));
+    btn.setAttribute("aria-label", on ? COPY.FAVORITES.remove(name) : COPY.FAVORITES.add(name));
+  }
+
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".fav-toggle");
+    if (!btn) return;
+
+    /* 어느 목록에서 눌렀는지에 따라 원본이 있는 배열이 다르다. */
+    const recipe =
+      btn.dataset.recipeIndex !== undefined
+        ? shownRecipes[Number(btn.dataset.recipeIndex)]
+        : historyItems[Number(btn.dataset.historyIndex)];
+    if (!recipe) return;
+
+    const result = toggleFavorite(recipe);
+    if (result.full) {
+      setStatus(COPY.FAVORITES.full(FAVORITES_LIMIT));
+      return;
+    }
+    if (!result.stored) {
+      setStatus(COPY.FAVORITES.failed);
+      return;
+    }
+
+    setStatus("");
+    /* 같은 요리가 카드와 이력에 함께 떠 있을 수 있다. 누른 것만 고치면 둘이 어긋난다. */
+    document.querySelectorAll(".fav-toggle").forEach((el) => {
+      const name =
+        el.dataset.recipeIndex !== undefined
+          ? (shownRecipes[Number(el.dataset.recipeIndex)] || {}).name
+          : (historyItems[Number(el.dataset.historyIndex)] || {}).name;
+      if (name) syncButton(el, name);
+    });
+  });
 }
 
 /* 재료를 뺐으니 이 카드의 보유 표시도 지금 냉장고 기준으로 다시 그린다.
@@ -183,10 +243,7 @@ function initRecipeCooked() {
    (initHistory 안의 지역 변수로 두면 새 추천 후 화면만 바뀌고 배열은 옛 순서로 남아 클릭이 어긋난다) */
 let historyItems = [];
 
-/* 서버의 dedupe_key와 같은 규칙 — "김치볶음밥"과 "김치 볶음밥"을 같은 요리로 본다. */
-function recipeKey(name) {
-  return String(name || "").replace(/\s/g, "");
-}
+/* recipeKey()는 js/shared.js에 있다 — 즐겨찾기도 같은 규칙으로 같은 요리를 알아봐야 한다. */
 
 function setHistory(items) {
   historyItems = items.slice(0, HISTORY_LIMIT);
@@ -210,13 +267,18 @@ function renderHistory() {
   if (!listEl) return;
 
   emptyEl.hidden = historyItems.length > 0;
+  /* 별을 항목 버튼 안에 넣을 수 없어서(대화형 요소는 겹칠 수 없다) 한 겹 감싸고 나란히 둔다 —
+     식단 편집 모드의 [고르기][삭제] 짝과 같은 짜임이다. */
   listEl.innerHTML = historyItems
     .map(
       (r, index) => `
-    <button type="button" class="history-item" data-index="${index}">
-      <span class="history-item-name">${escapeHtml(r.name)}</span>
-      <span class="history-item-time">⏱ ${escapeHtml(r.time || "")}</span>
-    </button>
+    <div class="history-entry">
+      <button type="button" class="history-item" data-index="${index}">
+        <span class="history-item-name">${escapeHtml(r.name)}</span>
+        <span class="history-item-time">⏱ ${escapeHtml(r.time || "")}</span>
+      </button>
+      ${favoriteToggleHtml(r.name, `data-history-index="${index}"`)}
+    </div>
   `
     )
     .join("");
@@ -236,7 +298,8 @@ function initHistory() {
     if (!btn) return;
     const recipe = historyItems[Number(btn.dataset.index)];
     if (!recipe || !resultEl) return;
-    resultEl.innerHTML = recipeCardHtml(recipe, pantryNamesFor(loadPantry()));
+    shownRecipes = [recipe];
+    resultEl.innerHTML = recipeCardHtml(recipe, pantryNamesFor(loadPantry()), 0);
     document.getElementById("result-empty").hidden = true;
 
     /* 과거 요리를 다시 연 것이므로 "다른 요리 추천받기"는 맥락에 맞지 않는다. */

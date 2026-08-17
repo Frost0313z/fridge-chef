@@ -2211,6 +2211,94 @@ body:has(.pantry-bar) {
 }
 
 /* ==========================================================================
+   즐겨찾기 별
+   ==========================================================================
+   결과 카드와 이력 항목 두 곳에 같은 모양으로 붙는다. 담김/안 담김은 별의 채움이
+   말하므로 글자를 두지 않고, 그래서 이름은 aria-label이 전부 진다.
+
+   아이콘 하나뿐인 버튼이라 color를 명시한다 — 기본 검정으로 내려가면 다크에서 사라진다
+   (CLAUDE.md). 꺼져 있을 때 --text-subtle(2.4:1)을 쓰지 않는 이유는, 이 별이 "여기를
+   누를 수 있다"를 말하는 유일한 표시라서다. */
+.fav-toggle {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--dur) var(--ease);
+}
+
+.fav-toggle:hover {
+  color: var(--accent-strong);
+  border-color: var(--border-strong);
+}
+
+.fav-toggle[aria-pressed="true"] {
+  color: var(--accent-strong);
+}
+
+/* 비어 있는 별은 윤곽선만, 담은 별은 안까지 채운다. 색만 바꾸면 담겼는지가
+   색을 구분하지 못하는 사람에게 전달되지 않는다(WCAG 1.4.1). */
+.fav-star {
+  fill: none;
+}
+
+.fav-toggle[aria-pressed="true"] .fav-star {
+  fill: currentColor;
+}
+
+/* 제목과 별을 한 줄에. 별이 제목 길이에 밀리지 않게 오른쪽 끝에 세운다. */
+.recipe-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.recipe-card-head h3 {
+  margin: 0;
+}
+
+/* 이력 항목과 별. 항목 버튼 안에 별을 넣을 수 없어 한 겹 감싼 자리다. */
+.history-entry {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+/* 테두리·배경은 위 .history-entry가 진다 — 두 겹이 되면 상자 안에 상자가 보인다. */
+.history-entry .history-item {
+  border: none;
+  border-radius: 12px 0 0 12px;
+  background: none;
+}
+
+.history-entry:hover {
+  border-color: var(--accent);
+}
+
+.history-entry .history-item:hover {
+  border-color: transparent;
+}
+
+/* 즐겨찾기가 가득 찼을 때만 나온다. 평소에는 별 모양이 바뀌는 것 자체가 반응이다. */
+.favorite-status {
+  margin: 16px 0 0;
+  color: var(--accent-strong);
+  font-size: 0.9rem;
+}
+
+/* ==========================================================================
    반응형
    ========================================================================== */
 @media (max-width: 900px) {

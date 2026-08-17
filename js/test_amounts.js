@@ -44,11 +44,15 @@ const {
   missingIngredients, planShortages, pantryNamesFor,
   loadSavings, addSavings, undoSavings, chickenText,
   savingsTotal, savingsWeek, savingsMonth, weekStartISO, todayISO,
+  loadFavorites, isFavorite, toggleFavorite,
 } = sandbox;
 
 /* copy.js의 COPY는 const라 전역 객체에 붙지 않는다(함수 선언만 붙는다).
    같은 컨텍스트 안에서 이름을 평가해 꺼내온다. */
 const COPY = vm.runInContext("COPY", sandbox);
+/* 상한값도 const라 같은 방식으로 꺼낸다 — 테스트가 숫자를 따로 적어두면 코드와 갈라진다. */
+const FAVORITES_LIMIT = vm.runInContext("FAVORITES_LIMIT", sandbox);
+const HISTORY_LIMIT = vm.runInContext("HISTORY_LIMIT", sandbox);
 
 let failed = 0;
 
@@ -274,6 +278,48 @@ check("딱 떨어지면 그대로", chickenText(30000), "치킨 1마리 값이�
 check("조금 넘으면 넘었다고", chickenText(39000), "치킨 1마리 값을 넘었어요.");
 check("거의 다 왔으면 다음 마리 기준", chickenText(52000), "치킨 2마리에 조금 못 미쳐요.");
 check("소수점은 문구에 안 나온다", /\d+\.\d/.test(chickenText(52000)), false);
+
+/* 즐겨찾기 — 이력과 달리 밀려나지 않는다. 같은 요리는 이력과 같은 규칙으로 알아본다. */
+const FAV = "fridge-chef-favorites";
+const kimchiJjigae = {
+  name: "김치찌개",
+  time: "20분",
+  ingredients: ["김치 1/4포기"],
+  steps: ["끓인다"],
+  searchKeyword: "김치찌개",
+};
+
+store[FAV] = JSON.stringify([]);
+check("처음은 비어 있다", loadFavorites(), []);
+check("담으면 켜진다", toggleFavorite(kimchiJjigae).on, true);
+check("담긴 것으로 읽힌다", isFavorite("김치찌개"), true);
+check("이력과 같은 모양으로 저장한다", loadFavorites(), [kimchiJjigae]);
+check("띄어쓰기가 달라도 같은 요리", isFavorite("김치 찌개"), true);
+check("다시 누르면 빠진다", toggleFavorite(kimchiJjigae).on, false);
+check("빠지면 목록도 빈다", loadFavorites(), []);
+check("이름이 없으면 아무 일도 없다", toggleFavorite({ name: "" }).on, false);
+
+// 이력은 5개에서 밀려나지만 즐겨찾기는 담아둔 것이 그대로 남는다 — 이 기능의 존재 이유다.
+store[FAV] = JSON.stringify([]);
+for (let i = 0; i < HISTORY_LIMIT + 3; i++) toggleFavorite({ name: `요리${i}` });
+check("이력 상한에 밀려나지 않는다", loadFavorites().length, HISTORY_LIMIT + 3);
+check("가장 최근에 담은 것이 앞", loadFavorites()[0].name, `요리${HISTORY_LIMIT + 2}`);
+
+// 상한에 닿으면 조용히 버리지 않고 full로 알린다. 빼는 것은 가득 차 있어도 된다.
+store[FAV] = JSON.stringify([]);
+for (let i = 0; i < FAVORITES_LIMIT; i++) toggleFavorite({ name: `가득${i}` });
+check("상한까지 담긴다", loadFavorites().length, FAVORITES_LIMIT);
+check("넘치면 full로 알린다", toggleFavorite({ name: "하나더" }), {
+  on: false,
+  stored: true,
+  full: true,
+});
+check("넘쳐도 목록은 그대로", loadFavorites().length, FAVORITES_LIMIT);
+check("가득 차 있어도 뺄 수는 있다", toggleFavorite({ name: "가득0" }).on, false);
+check("빼고 나면 다시 담긴다", toggleFavorite({ name: "하나더" }).on, true);
+
+store[FAV] = '"이상한값"';
+check("손상된 값은 빈 목록으로 본다", loadFavorites(), []);
 
 console.log(failed ? `\n${failed}개 실패` : "\nall passed");
 process.exit(failed ? 1 : 0);

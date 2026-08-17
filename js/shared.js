@@ -1202,6 +1202,77 @@ function loadHistory() {
   return Array.isArray(saved) ? saved.filter((r) => r && r.name) : [];
 }
 
+/* 서버의 dedupe_key와 같은 규칙 — "김치볶음밥"과 "김치 볶음밥"을 같은 요리로 본다.
+   이력과 즐겨찾기가 같은 요리를 알아보려면 규칙이 하나여야 한다. */
+function recipeKey(name) {
+  return String(name || "").replace(/\s/g, "");
+}
+
+/* ==========================================================================
+   즐겨찾기 — 밀려나지 않는 목록
+
+   이력(HISTORY_LIMIT = 5)은 새 추천이 오면 오래된 것부터 밀려난다. 좋았던 요리를
+   다시 찾으려면 같은 조건으로 다시 추천을 받아야 했고, 그게 나온다는 보장도 없다.
+   여기 담아둔 것은 추천을 아무리 더 받아도 그대로 남는다.
+
+   저장 모양을 이력과 똑같이 맞춘 이유는 식단 빈 칸이 둘을 구분하지 않고 쓰기 때문이다 —
+   이름뿐 아니라 재료·검색어까지 딸려와야 레시피 링크가 걸리고 장보기도 다시 뽑힌다.
+   ========================================================================== */
+const FAVORITES_KEY = "fridge-chef-favorites";
+
+/* 상한을 두는 이유는 용량이 아니라 목록 자체다 — 식단 빈 칸에 늘어놓는 자리라
+   수십 개가 되면 고르는 것이 적는 것보다 번거로워진다. 넘치면 조용히 버리지 않고
+   말해준다(냉장고의 pantryLimitNoticeHtml과 같은 방침). */
+const FAVORITES_LIMIT = 20;
+
+function loadFavorites() {
+  const saved = loadJson(FAVORITES_KEY, []);
+  return Array.isArray(saved) ? saved.filter((r) => r && r.name) : [];
+}
+
+function isFavorite(name) {
+  const key = recipeKey(name);
+  return key ? loadFavorites().some((r) => recipeKey(r.name) === key) : false;
+}
+
+/* 담겨 있으면 빼고, 없으면 담는다. 무슨 일이 있었는지를 돌려주고 문구는 부르는 쪽이 정한다
+   (addToPantry와 같은 방침). 빼는 것은 상한과 무관하다 — 가득 찼을 때 뺄 수 없으면
+   갇힌다. */
+function toggleFavorite(recipe) {
+  const key = recipeKey(recipe && recipe.name);
+  if (!key) return { on: false, stored: true, full: false };
+
+  const items = loadFavorites();
+  const at = items.findIndex((r) => recipeKey(r.name) === key);
+  if (at >= 0) {
+    items.splice(at, 1);
+    return { on: false, stored: saveJson(FAVORITES_KEY, items), full: false };
+  }
+
+  if (items.length >= FAVORITES_LIMIT) return { on: false, stored: true, full: true };
+
+  /* 최근에 담은 것이 앞에 온다 — 식단 빈 칸에서 먼저 눈에 띄어야 하는 쪽이다. */
+  items.unshift({
+    name: recipe.name,
+    time: recipe.time || "",
+    ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
+    steps: Array.isArray(recipe.steps) ? recipe.steps : [],
+    searchKeyword: recipe.searchKeyword || "",
+  });
+  return { on: true, stored: saveJson(FAVORITES_KEY, items), full: false };
+}
+
+/* 별 하나짜리 버튼. 글자가 없으므로 이름은 aria-label이 전부 진다.
+   채움/비움은 aria-pressed에 걸린 CSS가 정한다(css/style.css의 .fav-star). */
+const STAR_ICON = `<svg class="fav-star" viewBox="0 0 20 20" width="18" height="18" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M10 2.8l2.24 4.54 5.01.73-3.62 3.53.85 4.99L10 14.24l-4.48 2.35.85-4.99L2.75 8.07l5.01-.73z"/></svg>`;
+
+function favoriteToggleHtml(name, extraAttrs = "") {
+  const on = isFavorite(name);
+  const label = on ? COPY.FAVORITES.remove(name) : COPY.FAVORITES.add(name);
+  return `<button type="button" class="fav-toggle" aria-pressed="${on}"
+    aria-label="${escapeHtml(label)}" ${extraAttrs}>${STAR_ICON}</button>`;
+}
+
 /* 페이지마다 초기화 호출을 적어두면 페이지가 늘 때 빠뜨리기 쉽다.
    해당 요소가 있는 페이지에서만 알아서 동작하게 둔다. */
 document.addEventListener("DOMContentLoaded", () => {

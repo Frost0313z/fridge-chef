@@ -241,11 +241,15 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    /* 최근 추천받은 요리에서 골랐다 — 이름뿐 아니라 검색어·재료까지 그대로 가져온다.
-       그래야 레시피 링크가 걸리고, 장보기를 다시 뽑을 때도 이 메뉴의 재료가 반영된다. */
-    const recent = e.target.closest(".meal-add-recent-item");
-    if (recent) {
-      const picked = loadHistory()[Number(recent.dataset.historyIndex)];
+    /* 즐겨찾기나 최근 추천에서 골랐다 — 이름뿐 아니라 검색어·재료까지 그대로 가져온다.
+       그래야 레시피 링크가 걸리고, 장보기를 다시 뽑을 때도 이 메뉴의 재료가 반영된다.
+       두 목록은 같은 모양의 버튼이고 어느 배열에서 꺼낼지만 다르다. */
+    const addPick = e.target.closest(".meal-add-recent-item");
+    if (addPick) {
+      const picked =
+        addPick.dataset.favoriteIndex !== undefined
+          ? loadFavorites()[Number(addPick.dataset.favoriteIndex)]
+          : loadHistory()[Number(addPick.dataset.historyIndex)];
       if (picked) addMeal(picked.name, picked.searchKeyword, picked.ingredients);
       return;
     }
@@ -648,22 +652,32 @@ function menuLinkHtml(item) {
     aria-label="${name} 레시피를 만개의레시피에서 찾아보기">${name}${EXTERNAL_LINK_ICON}</a>`;
 }
 
-/* 최근 추천받은 요리를 그대로 식단에 넣을 수 있게 늘어놓는다.
-   손으로 이름을 적는 것보다 빠르고, 재료·검색어까지 딸려와서 결과도 정확하다.
-   이력이 비어 있으면 아무것도 그리지 않는다 — 빈 목록은 정보가 아니라 노이즈다. */
-function addRecentHtml() {
-  const items = loadHistory();
+/* 담아둔 요리를 그대로 식단에 넣을 수 있게 늘어놓는다. 손으로 이름을 적는 것보다 빠르고,
+   재료·검색어까지 딸려와서 결과도 정확하다.
+   비어 있으면 아무것도 그리지 않는다 — 빈 목록은 정보가 아니라 노이즈다. */
+function addPickListHtml(title, items, attr) {
   if (!items.length) return "";
 
   return `<div class="meal-add-recent">
-    <p class="meal-add-recent-title">최근 추천받은 요리</p>
+    <p class="meal-add-recent-title">${escapeHtml(title)}</p>
     ${items
       .map(
-        (r, i) => `<button type="button" class="meal-add-recent-item" data-history-index="${i}">
+        (r, i) => `<button type="button" class="meal-add-recent-item" ${attr}="${i}">
           ${escapeHtml(r.name)}</button>`
       )
       .join("")}
   </div>`;
+}
+
+/* 즐겨찾기가 위에 선다. 이력은 다섯 개까지만 남고 새 추천에 밀려나지만 즐겨찾기는 그대로라,
+   "저번에 좋았던 그거"를 찾는 사람이 먼저 만나야 하는 쪽이다.
+   같은 요리가 양쪽에 있을 수 있는데 걸러내지 않는다 — 두 목록은 서로 다른 것을 말하고
+   ("담아둔 것" / "방금 받은 것"), 어느 쪽에서 골라도 결과는 같다. */
+function addPicksHtml() {
+  return (
+    addPickListHtml(COPY.FAVORITES.pickTitle, loadFavorites(), "data-favorite-index") +
+    addPickListHtml(COPY.MEALPLAN.recentTitle, loadHistory(), "data-history-index")
+  );
 }
 
 function mealAddFormHtml(day, meal) {
@@ -675,7 +689,7 @@ function mealAddFormHtml(day, meal) {
       <button type="button" class="meal-add-confirm">넣기</button>
       <button type="button" class="link-button link-button-muted meal-add-cancel">취소</button>
     </div>
-    ${addRecentHtml()}
+    ${addPicksHtml()}
   </div>`;
 }
 
