@@ -72,7 +72,21 @@ const COPY = {
   // pantry.html 재료 입력
   PANTRY: {
     title: "냉장고",
-    inputPlaceholder: "예) 계란, 대파, 김치, 두부",
+
+    /* 빈 화면의 "눌러서 바로 넣기" 버튼과 입력칸 placeholder가 쓰는 하나의 예시 세트.
+       예전에는 버튼 목록이 pantry.html에, placeholder가 여기에 따로 적혀 있어서
+       순서도 개수도 어긋나 있었다(계란·대파·두부·김치·양파 / 계란·대파·김치·두부).
+       같은 것을 두 곳에 적으면 반드시 갈라진다.
+
+       첫 칸에 수량을 붙여두는 이유는 바로 위 amountHintStrong이 "계란 2개"처럼
+       적으라고 말하고 있어서다 — 말로만 시키지 않고 눌러볼 수 있는 예를 같이 둔다.
+       (누르면 손으로 적은 것과 똑같이 이름·수량으로 갈라져 들어간다) */
+    examples: ["계란 2개", "대파", "김치", "두부", "양파"],
+    /* getter인 이유는 위 배열을 그대로 쓰기 위해서다. 함수로 두면 data-copy 바인딩이
+       문자열이 아니라며 건너뛴다(copy.js 아래 applyCopy 참고). */
+    get inputPlaceholder() {
+      return `예) ${this.examples.join(", ")}`;
+    },
     inputHelp: "냉장고 열어보고 보이는 대로, 쉼표로 구분해서 적어주세요.",
     empty: "아직 넣어둔 재료가 없어요. 두세 개만 적어도 충분해요.",
 

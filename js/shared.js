@@ -1055,7 +1055,23 @@ function initPantry() {
   });
 
   /* 첫 방문자는 빈 입력란 앞에서 "뭘 적어야 하지"로 멈춘다.
-     placeholder를 읽고 자기 냉장고를 떠올려 타이핑하는 대신, 눌러서 바로 넣게 한다. */
+     placeholder를 읽고 자기 냉장고를 떠올려 타이핑하는 대신, 눌러서 바로 넣게 한다.
+
+     예시는 placeholder와 같은 곳에서 나온다(COPY.PANTRY.examples). 앞의 +는 이 버튼이
+     "지금 들어있는 재료"가 아니라 더하는 조작임을 모양으로 말한다 — 실제 칩은 오른쪽에
+     빼는 ×를 달고 있어서, 반대쪽에 반대 부호를 두면 방향으로 읽힌다.
+     뜻은 옆 글자와 버튼 자리가 이미 지므로 낭독기에서는 감춘다. */
+  const examplesEl = document.getElementById("pantry-examples");
+  if (examplesEl) {
+    examplesEl.innerHTML = COPY.PANTRY.examples
+      .map((name) => {
+        const safe = escapeHtml(name);
+        return `<button type="button" class="pantry-example" data-name="${safe}"><span
+          class="pantry-example-plus" aria-hidden="true">+</span>${safe}</button>`;
+      })
+      .join("");
+  }
+
   if (emptyEl) {
     emptyEl.addEventListener("click", (e) => {
       const btn = e.target.closest(".pantry-example");

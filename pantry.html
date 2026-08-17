@@ -79,13 +79,9 @@
       <div id="pantry-empty" class="pantry-empty">
         <p data-copy="PANTRY.empty">아직 넣어둔 재료가 없어요. 두세 개만 적어도 충분해요.</p>
         <p class="pantry-example-label" data-copy="PANTRY.exampleLabel">눌러서 바로 넣기</p>
-        <div class="pantry-examples">
-          <button type="button" class="pantry-example" data-name="계란">계란</button>
-          <button type="button" class="pantry-example" data-name="대파">대파</button>
-          <button type="button" class="pantry-example" data-name="두부">두부</button>
-          <button type="button" class="pantry-example" data-name="김치">김치</button>
-          <button type="button" class="pantry-example" data-name="양파">양파</button>
-        </div>
+        <!-- 버튼은 shared.js가 COPY.PANTRY.examples로 그린다. 여기에 이름을 적어두면
+             바로 위 입력칸의 placeholder와 조용히 어긋난다 — 실제로 그랬다. -->
+        <div id="pantry-examples" class="pantry-examples"></div>
       </div>
     </section>
 
