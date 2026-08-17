@@ -134,6 +134,26 @@
         </details>
       </div>
     </section>
+
+    <!-- 계정도 서버도 없어서 이 브라우저를 벗어나면 기록이 전부 사라진다. 냉장고야 다시
+         적으면 되지만 "아낀 돈"은 다시 만들 수 없다. 홈에 두는 이유는 테마 토글과 같다 —
+         한 번 하고 마는 설정성 조작은 기능 화면이 아니라 여기 모은다. -->
+    <section class="home-section" id="data-backup">
+      <h2 data-copy="BACKUP.title">기록 옮기기</h2>
+      <div class="backup-card">
+        <p class="backup-intro" data-copy="BACKUP.intro">냉장고·식단·즐겨찾기·아낀 돈까지, 이 브라우저에 저장된 것을 파일 하나로 내려받아요. 브라우저를 바꾸거나 지우기 전에 받아두면 그대로 되살릴 수 있어요.</p>
+        <div class="backup-actions">
+          <button type="button" id="backup-export" class="cta-button cta-button-secondary"
+            data-copy="BACKUP.export">파일로 내보내기</button>
+          <!-- 파일 선택창은 <input type="file">만 열 수 있다. 생김새를 맞추면서 키보드
+               초점도 살리려고, 보이는 버튼이 숨긴 입력칸을 대신 연다(js/main.js). -->
+          <button type="button" id="backup-import" class="cta-button cta-button-secondary"
+            data-copy="BACKUP.import">파일에서 가져오기</button>
+          <input type="file" id="backup-file" accept="application/json,.json" hidden />
+        </div>
+        <p id="backup-status" class="backup-status" role="status" aria-live="polite" hidden></p>
+      </div>
+    </section>
   </main>
 
   <footer class="site-footer">

@@ -209,6 +209,154 @@ function renderSavings() {
   }
 }
 
+/* ==========================================================================
+   기록 옮기기 — 내보내기 / 가져오기
+
+   계정도 서버도 없어서 이 브라우저를 벗어나면 전부 사라진다. 냉장고야 다시 적으면 되지만
+   "지금까지 아낀 돈"은 다시 만들 수 없는 기록이라, 브라우저를 바꾸는 순간 0이 된다.
+   파일 하나로 들고 다니게 해서 그 구멍을 막는다.
+
+   여기(홈)에 두는 이유는 테마 토글과 같다 — 한 번 하고 마는 설정성 조작은 기능 화면이
+   아니라 홈에 모은다.
+
+   담는 기준을 키 목록이 아니라 접두사로 잡는 이유는, 나중에 저장 키가 하나 늘었을 때
+   여기를 같이 고치는 것을 잊으면 그 데이터만 조용히 안 따라오기 때문이다. */
+const STORAGE_PREFIX = "fridge-chef-";
+
+/* 스키마가 바뀌면 올린다. 파일에 적어두지 않으면 나중에 옛 파일을 읽을 때 무엇이 다른지
+   알 방법이 없다. */
+const BACKUP_VERSION = 1;
+
+function backupKeys() {
+  const keys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith(STORAGE_PREFIX)) keys.push(key);
+  }
+  return keys;
+}
+
+/* 값을 파싱하지 않고 저장된 문자열 그대로 담는다. 읽어서 다시 쓰는 과정이 없으면
+   되돌릴 때 원본과 한 글자도 달라지지 않는다. */
+function collectBackup() {
+  const data = {};
+  backupKeys().forEach((key) => {
+    data[key] = localStorage.getItem(key);
+  });
+  return { version: BACKUP_VERSION, exportedAt: new Date().toISOString(), data };
+}
+
+/* 파일에서 읽은 것이 우리 파일이 맞는지 본다. 무엇이 틀렸는지에 따라 다른 말을 해야
+   사용자가 다음에 할 일을 안다(A2의 "원인별로 다르게 말한다"). */
+function readBackup(text) {
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return { error: COPY.BACKUP.broken };
+  }
+
+  if (!parsed || typeof parsed !== "object" || typeof parsed.version !== "number") {
+    return { error: COPY.BACKUP.notOurs };
+  }
+  if (parsed.version > BACKUP_VERSION) return { error: COPY.BACKUP.tooNew };
+  if (!parsed.data || typeof parsed.data !== "object") return { error: COPY.BACKUP.notOurs };
+
+  /* 우리 접두사가 붙은 것만 받는다. 파일이 손을 탔더라도 남의 키를 이 브라우저에
+     심지 않는다. */
+  const data = {};
+  Object.entries(parsed.data).forEach(([key, value]) => {
+    if (key.startsWith(STORAGE_PREFIX) && typeof value === "string") data[key] = value;
+  });
+  if (!Object.keys(data).length) return { error: COPY.BACKUP.empty };
+
+  return { data };
+}
+
+/* 덮어쓰기다. 지금 것을 먼저 지우는 이유는, 남겨두면 파일에 없는 키가 그대로 살아남아
+   "파일 그대로"가 아니게 되기 때문이다. */
+function restoreBackup(data) {
+  try {
+    backupKeys().forEach((key) => localStorage.removeItem(key));
+    Object.entries(data).forEach(([key, value]) => localStorage.setItem(key, value));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function initBackup() {
+  const exportBtn = document.getElementById("backup-export");
+  const importBtn = document.getElementById("backup-import");
+  const fileEl = document.getElementById("backup-file");
+  const statusEl = document.getElementById("backup-status");
+  if (!exportBtn || !importBtn || !fileEl) return;
+
+  function setStatus(message) {
+    if (!statusEl) return;
+    statusEl.textContent = message;
+    statusEl.hidden = !message;
+  }
+
+  exportBtn.addEventListener("click", () => {
+    const backup = collectBackup();
+    if (!Object.keys(backup.data).length) {
+      setStatus(COPY.BACKUP.nothing);
+      return;
+    }
+
+    const fileName = `${STORAGE_PREFIX}${todayISO()}.json`;
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" })
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    URL.revokeObjectURL(url);
+    setStatus(COPY.BACKUP.exported(fileName));
+  });
+
+  /* 파일 선택창은 <input type="file">만 열 수 있다. 그 입력칸을 그대로 두면 생김새를
+     맞출 수 없고, <label>로 감싸면 키보드 초점이 갈 곳이 없어진다. 버튼이 대신 연다. */
+  importBtn.addEventListener("click", () => fileEl.click());
+
+  fileEl.addEventListener("change", async () => {
+    const file = fileEl.files && fileEl.files[0];
+    /* 같은 파일을 다시 골랐을 때도 change가 오게 값을 비운다. */
+    fileEl.value = "";
+    if (!file) return;
+
+    let text = "";
+    try {
+      text = await file.text();
+    } catch {
+      setStatus(COPY.BACKUP.broken);
+      return;
+    }
+
+    const result = readBackup(text);
+    if (result.error) {
+      setStatus(result.error);
+      return;
+    }
+
+    /* 되돌릴 수 없는 조작이라 여기서 한 번 묻는다(A4). 확인 전에는 아무것도 지우지 않는다. */
+    if (!confirm(COPY.BACKUP.confirm)) {
+      setStatus(COPY.BACKUP.canceled);
+      return;
+    }
+
+    if (!restoreBackup(result.data)) {
+      setStatus(COPY.BACKUP.failed);
+      return;
+    }
+
+    setStatus(COPY.BACKUP.imported);
+    location.reload();
+  });
+}
+
 (function applyStoredTheme() {
   const stored = localStorage.getItem(THEME_KEY);
   const theme = stored || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
@@ -217,6 +365,8 @@ function renderSavings() {
 
 document.addEventListener("DOMContentLoaded", () => {
   renderSavings(); // 홈에만 있는 카드 (요소가 없으면 즉시 반환)
+
+  initBackup(); // 홈에만 있는 구역 (요소가 없으면 즉시 반환)
 
   const savingsToggle = document.getElementById("savings-range-toggle");
   if (savingsToggle) {
