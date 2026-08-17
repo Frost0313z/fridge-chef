@@ -7,7 +7,8 @@ POST /api/recommend
 반환(4xx/5xx): {"error": str, "message": str}  # message는 화면에 그대로 표시할 한국어 안내문
 """
 
-from _common import call_openai, to_str_list
+from _common import BASIC_SEASONINGS, call_openai, to_str_list
+from shopping import find_owned, normalize_name, parse_line
 
 SYSTEM_PROMPT = """당신은 냉장고에 있는 재료로 만들 수 있는 한식/양식/중식 요리를 추천하는 요리 도우미입니다.
 사용자가 알려준 재료를 최대한 활용하는 요리 1~3개를 추천하세요.
@@ -55,13 +56,57 @@ def dedupe_key(name):
     return name.replace(" ", "")
 
 
-def sanitize_recipes(raw):
+def _pantry_keys(ingredients_str):
+    """사용자가 입력한 재료 문자열("계란 2개, 대파, 두부")을 비교용 이름 목록으로 바꾼다.
+    parse_line은 shopping.py가 장보기 계산에 쓰는 것과 같은 함수다 — 수량·괄호 메모("13일
+    전에 넣음")를 걷어내는 규칙이 여기서도 그대로 맞아야, 같은 재료를 다르게 읽지 않는다."""
+    keys = []
+    for raw in (ingredients_str or "").split(","):
+        raw = raw.strip()
+        if not raw:
+            continue
+        name, _, _ = parse_line(raw)
+        if name:
+            keys.append(normalize_name(name))
+    return keys
+
+
+def _unknown_ingredients(ingredients, pantry_keys):
+    """레시피가 쓴 재료 중 사용자 재료에도, 기본 조미료에도 없는 것만 골라낸다.
+    find_owned는 shopping.py가 "냉장고에 이 재료가 있는가"를 판단할 때 쓰는 것과 같은
+    함수라, 여기서도 같은 기준으로 "있다/없다"를 가른다.
+
+    레시피 쪽 재료도 parse_line으로 수량을 떼고 비교한다. 안 떼면 "물 1컵"이 "물"과
+    글자가 달라 find_owned의 포함 비교에 기대게 되는데, 그 비교는 짧은 쪽이 한 글자면
+    우연한 겹침으로 보고 거절한다 — 그래서 물·밥·쌀처럼 한 글자짜리는 수량이 붙는 순간
+    영영 못 알아본다. 양쪽을 같은 방법으로 다듬어야 같은 것을 같다고 한다."""
+    known = pantry_keys + list(BASIC_SEASONINGS)
+    unknown = []
+    for raw in ingredients:
+        name, _, _ = parse_line(raw)
+        key = normalize_name(name or raw)
+        if key and not find_owned(key, known):
+            unknown.append(raw)
+    return unknown
+
+
+def sanitize_recipes(raw, pantry_ingredients=None):
     """response_format으로 JSON은 보장되지만 '스키마'까지 보장되지는 않는다.
-    이름 없는 항목은 버리고, 나머지 필드는 프론트가 기대하는 타입으로 맞춰서 내보낸다."""
+    이름 없는 항목은 버리고, 나머지 필드는 프론트가 기대하는 타입으로 맞춰서 내보낸다.
+
+    pantry_ingredients(사용자가 입력한 재료 문자열)가 주어지면, 레시피의 ingredients에
+    사용자가 갖고 있지 않고 기본 조미료도 아닌 재료가 하나라도 섞인 레시피는 통째로 버린다.
+    "알려주지 않은 재료를 임의로 추가하지 마세요"는 SYSTEM_PROMPT가 지시만 할 뿐 강제하지
+    않는다 — shopping.py가 장보기 합산을 AI에게 맡겼다가 34종 중 6종을 놓쳤던 것과 같은
+    종류의 문제다("이 끼니에 뭐가 들어가는지"까지만 AI에게 맡기고, 맞는지 확인은 코드가 한다).
+    일부 재료만 지우면 이름과 실제 재료 목록이 어긋나므로, 레시피 전체를 버린다."""
     if not isinstance(raw, list):
         return []
 
+    pantry_keys = _pantry_keys(pantry_ingredients) if pantry_ingredients else None
+
     recipes = []
+    dropped = []  # 재료 검증에 걸린 것. 남는 게 하나도 없을 때만 되살린다(아래 참고).
     seen = set()
     for item in raw:
         if not isinstance(item, dict):
@@ -74,17 +119,28 @@ def sanitize_recipes(raw):
         if key in seen:
             continue
         seen.add(key)
-        recipes.append(
-            {
-                "name": name,
-                # 비면 프론트가 name으로 대체한다. 옛 이력 데이터에도 이 필드가 없다.
-                "searchKeyword": str(item.get("searchKeyword") or "").strip(),
-                "time": str(item.get("time") or "").strip(),
-                "ingredients": to_str_list(item.get("ingredients")),
-                "steps": to_str_list(item.get("steps")),
-            }
-        )
-    return recipes[:MAX_RECIPES]
+
+        ingredients = to_str_list(item.get("ingredients"))
+        recipe = {
+            "name": name,
+            # 비면 프론트가 name으로 대체한다. 옛 이력 데이터에도 이 필드가 없다.
+            "searchKeyword": str(item.get("searchKeyword") or "").strip(),
+            "time": str(item.get("time") or "").strip(),
+            "ingredients": ingredients,
+            "steps": to_str_list(item.get("steps")),
+        }
+
+        if pantry_keys is not None and ingredients and _unknown_ingredients(ingredients, pantry_keys):
+            dropped.append(recipe)
+            continue
+        recipes.append(recipe)
+
+    # 전부 걸렸다면 거른 것을 그대로 돌려준다. 이 검증은 이름을 글자로 맞춰보는 것이라
+    # "달걀"과 "계란", "후춧가루"와 "후추"처럼 같은 것을 다르게 적으면 못 알아본다 —
+    # 그때 빈 손으로 돌려보내면 화면은 "재료를 다르게 입력해보세요"라는 엉뚱한 말을 하고
+    # 막다른 길이 된다(B7). 카드는 없는 재료에 이미 "사야 해요"를 붙이므로 속지도 않는다.
+    # 검증은 결과의 질을 올리는 장치이지 결과를 없애는 장치가 아니다.
+    return (recipes or dropped)[:MAX_RECIPES]
 
 
 def build_user_prompt(ingredients, portion, time_limit, healthy, exclude=()):
@@ -129,4 +185,4 @@ def handle(payload):
         return error
 
     raw_recipes = data.get("recipes") if isinstance(data, dict) else None
-    return 200, {"recipes": sanitize_recipes(raw_recipes)}
+    return 200, {"recipes": sanitize_recipes(raw_recipes, ingredients)}

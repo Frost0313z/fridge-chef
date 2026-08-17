@@ -52,6 +52,55 @@ def test_recipes_schema():
     assert recommend.sanitize_recipes("배열 아님") == []
 
 
+def test_recipes_reject_unknown_ingredient():
+    """사용자가 알려주지 않은 재료가 섞인 레시피는 통째로 버린다 — 이름과 재료 목록이
+    어긋난 카드를 반쪽만 보여주는 것보다, 그 카드 자체를 안 보여주는 쪽이 낫다."""
+    out = recommend.sanitize_recipes(
+        [
+            {"name": "계란찜", "ingredients": ["계란", "물", "소금"]},  # 전부 보유+기본 조미료
+            {"name": "새우볶음밥", "ingredients": ["계란", "새우", "밥"]},  # 새우는 안 알려줌
+        ],
+        pantry_ingredients="계란 2개, 대파",
+    )
+    assert [r["name"] for r in out] == ["계란찜"], out
+
+
+def test_recipes_allow_pantry_wording_gap():
+    """"양파"라고 입력했는데 AI가 "양파채"라고 쓰는 것처럼, 표기가 완전히 같지 않아도
+    포함 관계면(2글자 이상) 같은 재료로 본다(shopping.py의 find_owned와 같은 규칙)."""
+    out = recommend.sanitize_recipes(
+        [{"name": "제육볶음", "ingredients": ["양파채", "돼지고기"]}],
+        pantry_ingredients="양파, 돼지고기 200g",
+    )
+    assert [r["name"] for r in out] == ["제육볶음"], out
+
+
+def test_recipes_without_pantry_skips_check():
+    """pantry_ingredients를 안 넘기면(기존 호출부 호환) 재료 검증을 하지 않는다."""
+    out = recommend.sanitize_recipes([{"name": "아무거나", "ingredients": ["캐비아", "송로버섯"]}])
+    assert [r["name"] for r in out] == ["아무거나"], out
+
+
+def test_handle_filters_unknown_ingredient_recipes():
+    """handle()이 실제로 pantry_ingredients를 넘겨주는지 끝까지 확인한다."""
+
+    def fake_call(system, user, timeout, temperature):
+        return {
+            "recipes": [
+                {"name": "계란볶음밥", "ingredients": ["계란", "밥"]},
+                {"name": "랍스터파스타", "ingredients": ["랍스터", "생크림"]},
+            ]
+        }, None
+
+    original, recommend.call_openai = recommend.call_openai, fake_call
+    try:
+        status, body = recommend.handle({"ingredients": "계란"})
+        assert status == 200
+        assert [r["name"] for r in body["recipes"]] == ["계란볶음밥"], body
+    finally:
+        recommend.call_openai = original
+
+
 def test_exclude_prompt():
     """재추천일 때만 제외 목록이 프롬프트에 들어간다."""
     without = recommend.build_user_prompt("계란", "한 끼", "상관없음", False)
@@ -366,6 +415,57 @@ def test_handler_returns_500_on_crash():
     finally:
         server.server_close()
         index.ROUTES.pop("boom", None)
+
+
+def test_recipes_keep_one_letter_staples_with_amount():
+    """"물 1컵"처럼 한 글자 재료에 수량이 붙어도 알아본다. 레시피 쪽 재료도 parse_line으로
+    수량을 떼고 비교하기 때문이다 — 안 떼면 find_owned의 한 글자 방어에 걸려 물·밥·쌀이
+    들어간 레시피가 전부 버려진다(찌개·국·찜이 다 여기 해당한다)."""
+    out = recommend.sanitize_recipes(
+        [{"name": "계란찜", "ingredients": ["계란 2개", "물 1컵", "소금 약간"]}],
+        pantry_ingredients="계란 2개, 밥",
+    )
+    assert [r["name"] for r in out] == ["계란찜"], out
+
+
+def test_recipes_keep_only_the_clean_ones():
+    """섞여 들어오면 통과한 것만 남는다 — 되살리기는 전부 걸렸을 때만이다."""
+    out = recommend.sanitize_recipes(
+        [
+            {"name": "계란찜", "ingredients": ["계란 2개", "물 1컵", "소금"]},
+            {"name": "새우볶음밥", "ingredients": ["계란", "새우 100g", "밥"]},
+            {"name": "랍스터파스타", "ingredients": ["랍스터 1마리", "생크림 200ml"]},
+        ],
+        pantry_ingredients="계란 2개, 밥",
+    )
+    assert [r["name"] for r in out] == ["계란찜"], out
+
+
+def test_recipes_never_return_empty_because_of_the_check():
+    """전부 걸리면 거른 것을 그대로 돌려준다. 이 검증은 이름을 글자로 맞춰보는 것이라
+    "달걀"과 "계란"처럼 같은 것을 다르게 적으면 못 알아보는데, 그때 빈 손으로 돌려보내면
+    화면이 "재료를 다르게 입력해보세요"라고 엉뚱하게 말하며 막다른 길이 된다(B7).
+    카드는 없는 재료에 "사야 해요"를 이미 붙이므로 사용자가 속지도 않는다."""
+    out = recommend.sanitize_recipes(
+        [
+            {"name": "새우볶음밥", "ingredients": ["새우 100g"]},
+            {"name": "랍스터파스타", "ingredients": ["랍스터 1마리"]},
+        ],
+        pantry_ingredients="계란 2개",
+    )
+    assert [r["name"] for r in out] == ["새우볶음밥", "랍스터파스타"], out
+
+
+def test_recipes_dedupe_applies_to_dropped_too():
+    """되살리는 쪽에도 중복 제거가 걸린다 — 같은 요리가 카드 두 장으로 뜨면 고장으로 보인다."""
+    out = recommend.sanitize_recipes(
+        [
+            {"name": "새우볶음밥", "ingredients": ["새우 100g"]},
+            {"name": "새우 볶음밥", "ingredients": ["새우 200g"]},
+        ],
+        pantry_ingredients="계란",
+    )
+    assert [r["name"] for r in out] == ["새우볶음밥"], out
 
 
 if __name__ == "__main__":

@@ -14,16 +14,13 @@
 import math
 import re
 
+from _common import BASIC_SEASONINGS
+
 # 프롬프트로 "넣지 마세요"라고 지시해도 AI가 계속 넣던 항목들. 이제는 재료 목록에
 # 들어와도 상관없다 — 요리에 실제로 쓰이니 적는 게 맞고, 사러 갈 일이 없을 뿐이므로
-# 장보기 목록을 만들 때 여기서 뺀다. 뒤쪽 셋(채소·야채·고기)은 뭘 사야 할지 알 수 없는
-# 뭉뚱그린 이름이라 함께 거른다.
-NOT_WORTH_BUYING = {
-    "소금", "후추", "설탕", "식용유", "올리브유", "참기름", "들기름",
-    "간장", "된장", "고추장", "고춧가루", "고추가루", "다진마늘", "양념",
-    "물", "밥", "쌀",
-    "채소", "야채", "고기",
-}
+# 장보기 목록을 만들 때 여기서 뺀다. 기본 조미료(BASIC_SEASONINGS)에 "양념"과
+# 뭉뚱그린 이름(채소·야채·고기 — 뭘 사야 할지 알 수 없다)만 더한다.
+NOT_WORTH_BUYING = BASIC_SEASONINGS | {"양념", "채소", "야채", "고기"}
 
 # 7일치 21끼면 30종을 넘는 것이 정상이라 예전 상한(30)은 목록 끝을 조용히 잘라먹었다.
 # 응답 크기를 막기 위한 안전장치로만 남기고, 실제 계획이 닿지 않을 높이로 올린다.
@@ -148,10 +145,12 @@ def _format_amounts(amounts):
     return ", ".join(format_amount(total, unit) for unit, total in amounts.items())
 
 
-def _find_owned(target, owned_keys):
-    """냉장고에서 같은 재료를 찾는다. js/shared.js의 isCovered와 같은 규칙 —
-    한 방향 포함 비교는 냉장고의 "파"가 "파프리카"까지 보유로 만들어버리므로
-    양방향으로 보되, 짧은 쪽이 한 글자면 우연한 겹침이라 인정하지 않는다."""
+def find_owned(target, owned_keys):
+    """냉장고(또는 그에 준하는 목록)에서 같은 재료를 찾는다. js/shared.js의 isCovered와
+    같은 규칙 — 한 방향 포함 비교는 "파"가 "파프리카"까지 보유로 만들어버리므로
+    양방향으로 보되, 짧은 쪽이 한 글자면 우연한 겹침이라 인정하지 않는다.
+    recommend.py가 레시피의 재료가 사용자 재료에 있는지 확인할 때도 이 함수를 그대로 쓴다 —
+    "같은 이름인지 판단하는 규칙"이 갈라지면 한쪽은 있다고 하고 한쪽은 없다고 하게 된다."""
     for key in owned_keys:
         if key == target:
             return key
@@ -191,7 +190,7 @@ def build_shopping_list(plan, pantry):
         if key in NOT_WORTH_BUYING:
             continue
 
-        owned_key = _find_owned(key, owned_keys)
+        owned_key = find_owned(key, owned_keys)
         have = owned[owned_key]["amounts"] if owned_key else {}
         # 냉장고에 있긴 한데 뺄 수 없었던 경우를 화면이 구분해 말할 수 있어야 한다.
         # (수량을 안 적었거나 단위가 달라서 — 사용자 눈에는 "있는데 또 사라네"로만 보인다)
