@@ -268,12 +268,24 @@ a {
    앱·음악 앱의 시트에서 이미 익숙한 조작).
 
    bottom: 0에 붙여두면 내용이 늘어난 만큼 **위로** 자란다 — "아래에서 올라온다"가
-   위치만으로 자연히 나온다. */
+   위치만으로 자연히 나온다.
+
+   폭은 안쪽 내용과 같은 축에 맞춘다. 안쪽 summary/body는 이미 공용 컨테이너 규칙으로
+   --max-width에 맞춰 가운데 정렬되는데, 바탕만 뷰포트 끝까지 뻗어 있어서 넓은 화면에서
+   시트가 내용보다 훨씬 넓어 보였다.
+
+   가운데 정렬을 transform으로 하지 않는다 — shared.js의 initPantryBarDrag()가
+   barEl.style.transform을 translateY로 쓰고 그 값을 숫자로 되읽는다. 여기에 다른 것을
+   겹치면 끌어서 여닫기가 깨진다. left/right는 그대로 두고 auto 여백에 맡기면
+   1200px보다 좁은 화면에서는 지금처럼 꽉 차므로 분기도 필요 없다.
+   padding-inline은 여기에 넣지 않는다 — 안쪽 summary/body가 이미 갖고 있어 두 겹이 된다. */
 .pantry-bar {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
+  max-width: var(--max-width);
+  margin-inline: auto;
   z-index: 40;
   border-top: 1px solid var(--border);
   border-radius: 16px 16px 0 0;
