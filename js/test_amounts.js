@@ -39,6 +39,7 @@ for (const file of ["js/copy.js", "js/main.js", "js/shared.js", "js/shopping.js"
 
 const {
   parseAmount, addAmounts, amountIn, formatAmount, splitIngredient, dayInfo,
+  normalizeIngredient,
   remainingAmount, buyIntoPantry, loadPantry,
   consumeFromPantry, undoRemove, removeFromPantry,
   missingIngredients, planShortages, pantryNamesFor,
@@ -83,6 +84,12 @@ check("취향껏도 마찬가지", splitIngredient("설탕 취향껏").name, "�
 // 이름 나누기 — 단위 목록을 늘렸을 때 이름이 깎이지 않는지.
 check("대파 1단의 이름", splitIngredient("대파 1단").name, "대파");
 check("통마늘의 통은 단위가 아니다", splitIngredient("통마늘").name, "통마늘");
+// 단위 목록에 없는 세는 말. 이름에 남으면 레시피의 "김치"와 못 만난다.
+check("모르는 단위도 이름에서 뺀다", splitIngredient("김치 1/4포기").name, "김치");
+check("그 단위를 수량 쪽에서 잃지도 않는다", splitIngredient("김치 1/4포기").amount, "1/4포기");
+check("시금치 한 줌", splitIngredient("시금치 1줌").name, "시금치");
+check("이름이 숫자로 시작하면 예전대로", splitIngredient("1++한우").name, "++한우");
+check("비교용 이름도 같이 고쳐진다", normalizeIngredient("김치 1/4포기"), "김치");
 
 // 더하기 — 못 더하면 숫자를 지어내지 않고 null.
 check("4개 + 6개", addAmounts("4개", "6개"), "10개");

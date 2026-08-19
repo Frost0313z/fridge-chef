@@ -164,10 +164,20 @@ const QUANTITY_PATTERN = new RegExp(
 const VAGUE_AMOUNT_PATTERN =
   /(조금|약간|살짝|많이|넉넉히|한줌|두줌|적당량|적당히|적당양|취향껏|취향것|소량|듬뿍)/g;
 
+/* 수량이 시작되는 자리는 첫 숫자다. 단위 목록에 없는 세는 말이 이름에 눌러앉으면
+   ("김치 1/4포기" -> "김치포기") 같은 재료가 둘로 갈라진다. api/shopping.py의
+   parse_line과 같은 규칙이어야 한다 — 한쪽만 알아보면 화면과 서버가 어긋난다.
+   이름이 숫자로 시작하면 자를 머리가 없으니 -1을 돌려 예전 경로로 보낸다. */
+function amountStart(text) {
+  const at = text.search(/\d/);
+  return at > 0 && text.slice(0, at).trim() ? at : -1;
+}
+
 /* 수량·단위·괄호를 걷어내고 재료 이름만 남긴다. 띄어쓰기는 살린다("닭 가슴살"). */
 function stripAmounts(raw) {
-  return String(raw)
-    .replace(/\([^)]*\)/g, " ")
+  const text = String(raw).replace(/\([^)]*\)/g, " ");
+  const at = amountStart(text);
+  return (at > 0 ? text.slice(0, at) : text)
     .replace(QUANTITY_PATTERN, " ")
     .replace(VAGUE_AMOUNT_PATTERN, " ")
     .replace(/\s+/g, " ")
@@ -194,6 +204,10 @@ function splitIngredient(raw) {
     .join(" ");
 
   const name = stripAmounts(text);
+  /* 이름을 첫 숫자에서 잘랐다면 수량도 거기서부터다. QUANTITY_PATTERN으로 모은 조각만
+     쓰면 모르는 단위어가 통째로 사라진다("김치 1/4포기"가 "김치 1/4"로 보인다). */
+  const at = amountStart(text);
+  if (at > 0 && name) return { name, amount: text.slice(at).trim() };
   /* 이름이 안 남으면(수량만 적은 입력) 원문을 이름으로 두고 수량은 비운다.
      같은 글자를 이름과 수량 양쪽에 두 번 그리지 않기 위해서다. */
   return name ? { name, amount } : { name: text, amount: "" };

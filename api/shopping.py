@@ -93,7 +93,13 @@ def parse_line(raw):
         unit, factor = _UNIT_SCALES[unit]
         quantity *= factor
 
-    name = _QUANTITY_RE.sub(" ", text)
+    # 이름은 첫 숫자 앞까지다. 단위 목록에 없는 세는 말이 이름에 눌러앉으면 같은 재료가
+    # 둘로 갈라진다 — "김치 1/4포기"가 "김치포기"가 되면 레시피의 "김치"와 못 만난다.
+    # 목록을 계속 늘리는 대신(줌·숟갈·꼬집·Ts·아빠숟가락…) 자르는 자리를 규칙으로 정한다.
+    # 단위 목록은 여전히 필요하다 — 장보기 합산은 "개"와 "알"을 알아야 더할 수 있다.
+    head = text[: match.start()] if match else text
+    # 이름이 숫자로 시작하면("1++한우") 자를 머리가 없다. 그때는 예전대로 읽는다.
+    name = head if head.strip() else _QUANTITY_RE.sub(" ", text)
     name = _VAGUE_RE.sub(" ", name)
     name = re.sub(r"\s+", " ", name).strip()
 

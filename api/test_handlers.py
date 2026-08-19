@@ -340,6 +340,12 @@ def test_parse_line():
     # 레시피 데이터에 4천 번 넘게 나오는 표현. 안 떼면 "소금적당량"이 별개 재료가 된다.
     assert shopping.parse_line("소금 적당량") == ("소금", None, "")
     assert shopping.parse_line("설탕 취향껏") == ("설탕", None, "")
+    # 단위 목록에 없는 세는 말도 이름에 남으면 안 된다 — "김치포기"는 레시피의 "김치"와
+    # 못 만난다. 수량은 읽되(1/4) 단위는 모르는 채로 두는 것이 맞다.
+    assert shopping.parse_line("김치 1/4포기") == ("김치", 0.25, "")
+    assert shopping.parse_line("시금치 1줌") == ("시금치", 1.0, "")
+    # 이름이 숫자로 시작하면 자를 머리가 없다. 통째로 잃지 말고 예전대로 읽는다.
+    assert shopping.parse_line("1++한우 200g")[0] == "++한우"
 
 
 def test_recipe_index_reads_both_snapshot_formats():
