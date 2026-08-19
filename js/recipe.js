@@ -109,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderRecipes(recipes) {
     if (!recipes.length) {
-      showErrorWithFallback("추천 결과를 만들지 못했어요. 재료를 다르게 입력해보세요.");
+      showErrorWithFallback(COPY.UI.emptyResult);
       return;
     }
 
@@ -335,7 +335,7 @@ function initHistory() {
 
   clearBtn.addEventListener("click", () => {
     if (!historyItems.length) return;
-    if (!confirm("최근 추천 이력을 전체 삭제할까요?")) return;
+    if (!confirm(COPY.UI.clearAllConfirm)) return;
     setHistory([]);
   });
 }

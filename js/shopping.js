@@ -10,7 +10,7 @@ function coupangSearchUrl(keyword) {
 }
 
 const REFRESH_TIMEOUT_MS = 25000;
-let waitIndicator = null;
+let refreshStatus = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   const listEl = document.getElementById("shopping-list");
@@ -80,6 +80,12 @@ function buyIntoPantry(name, amount) {
     return saveMessage(savePantry(pantry), `${current.name}의 수량을 ${amount}로 적어뒀어요.`);
   }
 
+  /* amount가 없으면(서버가 부족분으로 만든 줄 등) 단위 충돌이 아니라 애초에 더할 값이
+     없는 것이다 — 그 경우까지 "단위가 달라"로 뭉치면 빈 문자열이 문장에 끼어 비문이 된다. */
+  if (!amount) {
+    return `냉장고에 이미 "${current.name} ${current.amount}"이(가) 있어요. 산 양을 몰라 더하지 못했어요.`;
+  }
+
   /* 단위가 서로 달라("1팩"과 "500ml") 더할 방법이 없다. 아무 숫자나 지어내지 않고,
      무엇을 직접 고쳐야 하는지 알려준다. */
   return `냉장고에 이미 "${current.name} ${current.amount}"이(가) 있어요.
@@ -87,7 +93,7 @@ function buyIntoPantry(name, amount) {
 }
 
 function saveMessage(stored, message) {
-  return stored ? message : "브라우저에 저장하지 못했어요. 시크릿 창이라면 일반 창에서 다시 열어주세요.";
+  return stored ? message : COPY.COOKED.failed;
 }
 
 function render() {
@@ -120,12 +126,12 @@ async function refreshShoppingList() {
 
   /* 여기서 만들되 한 번만 만든다 — 부를 때마다 만들면 새로고침할 때마다 표시가 하나씩 늘어난다.
      추천·식단 화면과 같은 것을 쓴다. 기다림의 모양이 화면마다 다르면 그때마다 다시 읽어야 한다. */
-  waitIndicator = waitIndicator || createWaitIndicator(loadingEl, REFRESH_TIMEOUT_MS);
+  refreshStatus =
+    refreshStatus ||
+    createFormStatus({ loadingEl, errorEl, submitBtn: btn, timeoutMs: REFRESH_TIMEOUT_MS });
 
-  btn.disabled = true;
-  loadingEl.hidden = false;
-  waitIndicator.start();
-  errorEl.hidden = true;
+  refreshStatus.setError("");
+  refreshStatus.setLoading(true);
 
   /* 보낸 냉장고와 스냅샷이 같은 순간의 것이어야 한다. 응답을 기다리는 사이에
      조회 바로 재료를 넣으면 나중에 읽은 냉장고는 계산에 쓰인 것과 달라진다. */
@@ -136,13 +142,10 @@ async function refreshShoppingList() {
     REFRESH_TIMEOUT_MS
   );
 
-  loadingEl.hidden = true;
-  waitIndicator.stop();
-  btn.disabled = false;
+  refreshStatus.setLoading(false);
 
   if (!result.ok) {
-    errorEl.textContent = result.message;
-    errorEl.hidden = false;
+    refreshStatus.setError(result.message);
     return;
   }
 
@@ -204,8 +207,8 @@ function renderShoppingList(saved, pantry) {
   const hasList = Array.isArray(saved.shoppingList);
   if (hintEl) hintEl.hidden = !hasList;
   if (!hasList) {
-    listEl.innerHTML = `<li class="shopping-item-none">예전에 저장한 식단이라 장보기 목록이 없어요.
-         <a href="mealplan.html">식단을 다시 계획하면 →</a> 부족한 재료를 뽑아드려요.</li>`;
+    listEl.innerHTML = `<li class="shopping-item-none">${escapeHtml(COPY.UI.shoppingNoPlanBefore)}
+         <a href="mealplan.html">${escapeHtml(COPY.UI.shoppingNoPlanLink)}</a> ${escapeHtml(COPY.UI.shoppingNoPlanAfter)}</li>`;
     return;
   }
 
@@ -250,9 +253,8 @@ function renderShoppingList(saved, pantry) {
     const hasQuantity = pantry.some((p) => /\d/.test(p.amount));
     listEl.innerHTML = hasQuantity
       ? `<li class="shopping-item-none">${escapeHtml(COPY.UI.shoppingListEmpty)}</li>`
-      : `<li class="shopping-item-none">살 게 없다고 나왔어요.
-           냉장고에 "계란 2개"처럼 수량을 적으면 모자란 재료를 더 정확히 찾아드려요.
-           <a href="pantry.html">냉장고 수정 →</a></li>`;
+      : `<li class="shopping-item-none">${escapeHtml(COPY.UI.shoppingNoQuantityBefore)}
+           <a href="pantry.html">${escapeHtml(COPY.UI.shoppingNoQuantityLink)}</a></li>`;
     return;
   }
 
@@ -289,16 +291,16 @@ function whyHtml(item, filled, startDate) {
   if (!uses.length && !item.need) return "";
 
   const lines = [];
-  if (item.need) lines.push(`계획 전체에 <strong>${escapeHtml(item.need)}</strong> 필요해요.`);
+  if (item.need) lines.push(COPY.UI.shoppingWhyNeed(`<strong>${escapeHtml(item.need)}</strong>`));
   if (item.have && item.subtracted) {
-    lines.push(`냉장고에 ${escapeHtml(item.have)} 있어서 뺐어요.`);
+    lines.push(COPY.UI.shoppingWhySubtracted(escapeHtml(item.have)));
   } else if (item.have) {
     /* 있는데 못 뺀 경우. 이 한 줄이 없으면 "있는데 왜 또 사라고 해?"로 끝난다. */
-    lines.push(`냉장고에 ${escapeHtml(item.have)} 있지만 단위가 달라 빼지 못했어요.`);
+    lines.push(COPY.UI.shoppingWhyHaveButMismatch(escapeHtml(item.have)));
   } else {
-    lines.push("냉장고에는 없어요.");
+    lines.push(COPY.UI.shoppingWhyNone);
   }
-  if (filled) lines.push(`그 뒤로 ${escapeHtml(filled)}를 채웠어요.`);
+  if (filled) lines.push(COPY.UI.shoppingWhyFilled(escapeHtml(filled)));
 
   const useList = uses
     .map((use) => {
@@ -310,7 +312,7 @@ function whyHtml(item, filled, startDate) {
     .join("");
 
   return `<details class="shopping-why">
-    <summary>왜 사야 하나요?</summary>
+    <summary>${escapeHtml(COPY.UI.shoppingWhySummary)}</summary>
     <p class="shopping-why-sum">${lines.join(" ")}</p>
     ${useList ? `<ul class="shopping-why-uses">${useList}</ul>` : ""}
   </details>`;

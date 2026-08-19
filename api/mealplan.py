@@ -148,8 +148,12 @@ def build_user_prompt(days, portion, healthy, pantry):
 
 def handle(payload):
     """(status, body) 를 돌려준다. HTTP 처리는 api/index.py가 한다."""
+    raw_days = payload.get("days")
     try:
-        days = int(payload.get("days") or 5)
+        # `or 5`로 쓰면 명시적으로 보낸 0이 "안 보냄"과 같이 취급돼 5일치로 튄다.
+        # None(진짜 안 보낸 경우)일 때만 기본값을 쓰고, 나머지는 그대로 int로 읽어
+        # 바로 아래 clamp가 1로 잡게 둔다.
+        days = int(raw_days) if raw_days is not None else 5
     except (TypeError, ValueError):
         days = 5
     days = max(1, min(days, 7))

@@ -529,6 +529,18 @@ def test_match_prefers_using_more_of_the_fridge():
     assert [r["name"] for r in out] == ["제대로된것", "간단한것"], out
 
 
+def test_match_counts_duplicate_ingredients_once():
+    """재료 그룹이 겹치면([재료]+[양념] 양쪽에 소금·마늘 등) ing 리스트에 같은 이름이
+    여러 번 들어간다. 분모를 원본 길이로 세면 사용자가 고유 재료를 다 갖고 있어도
+    커버율이 실제보다 낮게 나와 잘못 걸러진다."""
+    _fake_index([
+        {"id": 1, "name": "겹치는재료요리", "ing": ["계란", "계란", "대파", "두부", "두부"], "pop": 0},
+    ])
+    out = recipe_match.match(["계란", "대파", "두부"])
+    assert [r["name"] for r in out] == ["겹치는재료요리"], out
+    assert out[0]["coverage"] == 1.0, out
+
+
 def test_match_drops_duplicate_names():
     """RCP_SNO가 달라도 화면에 같은 이름 카드가 두 장 뜨면 고장으로 보인다.
     인덱스에서는 합치지 않고(진짜 다른 레시피다) 응답에서만 거른다."""

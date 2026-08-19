@@ -84,10 +84,18 @@ def ingredient_names(raw):
 
 
 def to_int(value):
-    try:
-        return int(str(value).strip() or 0)
-    except ValueError:
+    # 천단위 콤마("1,234")나 소수점("12.0")으로 온 값은 plain int()가 못 읽고 조용히 0으로
+    # 떨어진다 — 인기도 집계와 RCP_SNO(원본 링크 id)가 여기서 나오므로 값을 잃으면 안 된다.
+    text = str(value).strip().replace(",", "")
+    if not text:
         return 0
+    try:
+        return int(text)
+    except ValueError:
+        try:
+            return int(float(text))
+        except ValueError:
+            return 0
 
 
 def main():

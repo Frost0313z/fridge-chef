@@ -7,6 +7,7 @@
 
 import json
 import os
+import traceback
 
 from openai import OpenAI, APITimeoutError, APIStatusError, APIConnectionError
 
@@ -71,4 +72,7 @@ def call_openai(system_prompt, user_prompt, timeout, temperature):
     except (ValueError, TypeError, AttributeError, KeyError, IndexError):
         # "해석"은 개발자 말이다. 사용자가 알아야 할 것은 "AI가 답을 제대로 못 만들었고,
         # 한 번 더 하면 대개 된다"는 것뿐이다 — 실제로 이 오류는 재시도로 거의 풀린다.
+        # 하지만 이 블록은 응답 파싱 실패뿐 아니라 SDK 호출 자체의 버그도 같이 잡으므로,
+        # vercel logs에 흔적을 남겨야 진짜 버그가 "AI가 가끔 그래요"로 영영 묻히지 않는다.
+        traceback.print_exc()
         return None, (502, {"error": "bad_ai_response", "message": "AI가 답을 제대로 만들지 못했어요. 한 번 더 시도하면 대개 잘 나와요."})

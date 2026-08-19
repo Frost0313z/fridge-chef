@@ -12,7 +12,7 @@ import collections
 import json
 import os
 
-from shopping import find_owned, normalize_name
+from shopping import find_owned
 
 INDEX_PATH = os.path.join(os.path.dirname(__file__), "recipes_index.json")
 
@@ -84,7 +84,9 @@ def match(pantry_keys, limit=3):
     scored = []
     for i, hit in hits.items():
         recipe = index[i]
-        total = len(recipe.get("ing") or ())
+        # hit은 set(ing)로 만든 색인 기준(중복 재료명 1회) 이므로 분모도 같은 기준이어야
+        # 한다. 원본 리스트 길이를 쓰면 중복 재료가 있는 레시피의 커버율이 실제보다 낮게 나온다.
+        total = len(set(recipe.get("ing") or ()))
         if total < MIN_INGREDIENTS:
             continue
         rate = hit / total
@@ -131,16 +133,9 @@ def to_response(recipe, rate):
 
 
 def pantry_keys_from(ingredients_str):
-    """사용자 입력 문자열을 비교용 이름 목록으로. recommend.py의 _pantry_keys와 같은 규칙."""
-    from shopping import parse_line
+    """사용자 입력 문자열을 비교용 이름 목록으로. recommend.py가 top-level에서 이 모듈을
+    import하므로(순환을 피하려고) 여기서는 늦게 받는다 — match()의 dedupe_key와 같은 이유다.
+    규칙만 맞추는 게 아니라 구현 자체를 공유해야, 한쪽만 고쳐 갈라지는 일이 없다."""
+    from recommend import _pantry_keys
 
-    keys = []
-    for raw in (ingredients_str or "").split(","):
-        raw = raw.strip()
-        if not raw:
-            continue
-        name, _, _ = parse_line(raw)
-        name = normalize_name(name)
-        if name:
-            keys.append(name)
-    return keys
+    return _pantry_keys(ingredients_str)

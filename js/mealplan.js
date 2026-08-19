@@ -192,7 +192,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   clearBtn.addEventListener("click", () => {
-    if (!confirm("저장된 식단 계획을 삭제할까요?")) return;
+    if (!confirm(COPY.UI.mealplanClearConfirm)) return;
     localStorage.removeItem(MEALPLAN_KEY);
     planItems = [];
     planShoppingList = [];
@@ -315,7 +315,7 @@ function addMeal(menu, searchKeyword, ingredients) {
 
   const name = String(menu || "").trim();
   if (!name) {
-    editNotice = "넣을 메뉴 이름을 적어주세요.";
+    editNotice = COPY.MEALPLAN.nameRequired;
     renderEditStatus();
     const input = document.querySelector(".meal-add-input");
     if (input) input.focus();

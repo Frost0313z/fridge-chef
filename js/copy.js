@@ -201,6 +201,31 @@ const COPY = {
     // 홈에서 다음 화면으로 넘기는 버튼
     goRecipe: "이 재료로 추천받기 →",
     goMealplan: "이번 주 식단 짜기",
+
+    // 되돌릴 수 없는 삭제라 한 번 묻는다(BACKUP.confirm과 같은 방침)
+    mealplanClearConfirm: "저장된 식단 계획을 삭제할까요?",
+    clearAllConfirm: "최근 추천 이력을 전체 삭제할까요?",
+
+    // 예전 저장분이라 장보기 목록 자체가 없을 때. 문장 중간에 링크가 끼어들어 셋으로 나눈다
+    // (FAQ 마지막 항목과 같은 이유).
+    shoppingNoPlanBefore: "예전에 저장한 식단이라 장보기 목록이 없어요.",
+    shoppingNoPlanLink: "식단을 다시 계획하면 →",
+    shoppingNoPlanAfter: "부족한 재료를 뽑아드려요.",
+
+    // 목록은 비었는데 냉장고에 수량 표기가 하나도 없을 때 — "다 있어요"로 오해하지 않게
+    // 왜 비었는지와 무엇을 하면 되는지를 알려준다.
+    shoppingNoQuantityBefore:
+      '살 게 없다고 나왔어요. 냉장고에 "계란 2개"처럼 수량을 적으면 모자란 재료를 더 정확히 찾아드려요.',
+    shoppingNoQuantityLink: "냉장고 수정 →",
+
+    /* "왜 사야 하나요?" 펼침 근거. amount·have·filled 자리에는 이미 <strong>으로 감싸고
+       이스케이프한 조각이 들어온다 — escapeHtml은 부르는 쪽(shopping.js)이 맡는다. */
+    shoppingWhySummary: "왜 사야 하나요?",
+    shoppingWhyNeed: (amount) => `계획 전체에 ${amount} 필요해요.`,
+    shoppingWhySubtracted: (have) => `냉장고에 ${have} 있어서 뺐어요.`,
+    shoppingWhyHaveButMismatch: (have) => `냉장고에 ${have} 있지만 단위가 달라 빼지 못했어요.`,
+    shoppingWhyNone: "냉장고에는 없어요.",
+    shoppingWhyFilled: (filled) => `그 뒤로 ${filled}를 채웠어요.`,
   },
 
   /* "이거 해먹었어요" — 요리한 뒤 냉장고에서 재료를 빼는 확인 단계.
@@ -284,6 +309,9 @@ const COPY = {
     recentTitle: "최근 추천받은 요리",
     dialogTitle: (day, meal) => `${day} ${meal}`,
     close: "닫기",
+
+    // 빈 칸에 메뉴 이름 없이 등록하려 했을 때
+    nameRequired: "넣을 메뉴 이름을 적어주세요.",
   },
 
   // 5개 페이지가 공유하는 머리말 — 건너뛰기 링크, 로고, 햄버거, 메뉴

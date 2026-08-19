@@ -205,8 +205,10 @@ function splitIngredient(raw) {
 
   const name = stripAmounts(text);
   /* 이름을 첫 숫자에서 잘랐다면 수량도 거기서부터다. QUANTITY_PATTERN으로 모은 조각만
-     쓰면 모르는 단위어가 통째로 사라진다("김치 1/4포기"가 "김치 1/4"로 보인다). */
-  const at = amountStart(text);
+     쓰면 모르는 단위어가 통째로 사라진다("김치 1/4포기"가 "김치 1/4"로 보인다).
+     원문 그대로 찾으면 괄호 속 숫자("두부(1/2모) 200g")에 걸려 수량이 깨지니,
+     길이를 보존한 채 괄호만 지운 텍스트에서 위치를 찾고 자르기는 원문에서 한다. */
+  const at = amountStart(text.replace(/\([^)]*\)/g, (m) => " ".repeat(m.length)));
   if (at > 0 && name) return { name, amount: text.slice(at).trim() };
   /* 이름이 안 남으면(수량만 적은 입력) 원문을 이름으로 두고 수량은 비운다.
      같은 글자를 이름과 수량 양쪽에 두 번 그리지 않기 위해서다. */
@@ -1193,7 +1195,8 @@ function nearBadge(date) {
    사람은 "3일차 저녁"으로 기억하지 않는다. "목요일 저녁"으로 기억한다.
    요일만 적으면 다음 주 목요일과 헷갈리므로 날짜를 함께 적는다. */
 function dayInfo(key, startDate) {
-  const date = dayDate(startDate, (parseInt(key, 10) || 1) - 1);
+  const n = parseInt(key, 10);
+  const date = dayDate(startDate, (Number.isNaN(n) ? 1 : n) - 1);
   if (!date) return { key, label: key, badge: "", aria: key };
 
   const label = `${date.getMonth() + 1}/${date.getDate()} (${WEEKDAYS[date.getDay()]})`;

@@ -276,11 +276,19 @@ function readBackup(text) {
 /* 덮어쓰기다. 지금 것을 먼저 지우는 이유는, 남겨두면 파일에 없는 키가 그대로 살아남아
    "파일 그대로"가 아니게 되기 때문이다. */
 function restoreBackup(data) {
+  const snapshot = {};
+  backupKeys().forEach((key) => { snapshot[key] = localStorage.getItem(key); });
   try {
     backupKeys().forEach((key) => localStorage.removeItem(key));
     Object.entries(data).forEach(([key, value]) => localStorage.setItem(key, value));
     return true;
   } catch {
+    /* 실패하면 쓰다 만 상태로 남기지 않는다 — 지웠던 원래 값을 되돌리고,
+       새로 쓰다 만 키 중 원래 없던 것은 지운다. */
+    backupKeys().forEach((key) => {
+      if (!(key in snapshot)) localStorage.removeItem(key);
+    });
+    Object.entries(snapshot).forEach(([key, value]) => localStorage.setItem(key, value));
     return false;
   }
 }

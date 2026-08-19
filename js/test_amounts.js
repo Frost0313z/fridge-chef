@@ -90,6 +90,8 @@ check("그 단위를 수량 쪽에서 잃지도 않는다", splitIngredient("김
 check("시금치 한 줌", splitIngredient("시금치 1줌").name, "시금치");
 check("이름이 숫자로 시작하면 예전대로", splitIngredient("1++한우").name, "++한우");
 check("비교용 이름도 같이 고쳐진다", normalizeIngredient("김치 1/4포기"), "김치");
+// 괄호 메모 안에 숫자가 있어도 진짜 수량은 괄호 밖에서 온전히 잡혀야 한다.
+check("괄호 속 숫자에 수량이 안 깨진다", splitIngredient("두부(1/2모) 200g").amount, "200g");
 
 // 더하기 — 못 더하면 숫자를 지어내지 않고 null.
 check("4개 + 6개", addAmounts("4개", "6개"), "10개");
@@ -135,6 +137,14 @@ setPantry([{ name: "돼지고기", amount: "1팩", addedAt: null }]);
 const message = buyIntoPantry("돼지고기", "150g");
 check("단위가 다르면 건드리지 않고", loadPantry()[0].amount, "1팩");
 check("무엇을 고쳐야 하는지 말해준다", /합치지 못했어요/.test(message), true);
+
+setPantry([{ name: "김", amount: "조금", addedAt: null }]);
+const emptyAmountMessage = buyIntoPantry("김", "");
+check(
+  "산 양을 모르면 단위 탓을 하지 않고 문장도 안 깨진다",
+  emptyAmountMessage,
+  '냉장고에 이미 "김 조금"이(가) 있어요. 산 양을 몰라 더하지 못했어요.'
+);
 
 setPantry([]);
 buyIntoPantry("대파", "1단");
