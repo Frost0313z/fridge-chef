@@ -30,5 +30,6 @@ Thumbs.db
 # Vercel CLI가 로컬 폴더를 올리는 방식이라, 커밋하지 않아도 배포에는 실린다.
 data/kadx-recipes/
 /TB_RECIPE_SEARCH*.csv
+api/recipes_index.json
 
 .vercel

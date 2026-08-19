@@ -7,6 +7,7 @@ POST /api/recommend
 반환(4xx/5xx): {"error": str, "message": str}  # message는 화면에 그대로 표시할 한국어 안내문
 """
 
+import recipe_match
 from _common import BASIC_SEASONINGS, call_openai, to_str_list
 from shopping import find_owned, normalize_name, parse_line
 
@@ -14,6 +15,11 @@ SYSTEM_PROMPT = """당신은 냉장고에 있는 재료로 만들 수 있는 한
 사용자가 알려준 재료를 최대한 활용하는 요리 1~3개를 추천하세요.
 소금, 후추, 식용유, 물처럼 대부분의 가정에 있는 기본 조미료는 목록에 없어도 사용할 수 있다고 가정합니다.
 사용자가 알려주지 않은 값비싸거나 특수한 재료를 임의로 추가하지 마세요.
+
+당신은 실제로 존재하는 레시피 중에 이 재료 조합과 충분히 겹치는 것이 없어서 대신 호출됐습니다.
+그러니 완전히 새로운 요리를 창작하기보다, 사용자가 가진 재료를 최대한 그대로 살리는 조합을
+우선하세요. 특이하거나 낯선 조합보다, 평범해도 실제로 이 재료들로 바로 만들 수 있는 요리가
+더 낫습니다.
 
 사용자는 혼자 사는 자취생입니다. 이건 선택 사항이 아니라 항상 참인 전제입니다.
 설거지가 적고 조리 과정이 간단한 요리를 우선하고, 특수한 조리도구가 필요한 요리는 피하세요.
@@ -174,6 +180,21 @@ def handle(payload):
     # str(None)은 "None"이라 참 같은 값이 된다. 문자열만 받아야 프롬프트에 "None"이 섞이지 않는다.
     raw_exclude = payload.get("exclude")
     exclude = [x.strip() for x in raw_exclude if isinstance(x, str) and x.strip()][:10] if isinstance(raw_exclude, list) else []
+
+    """실제 레시피를 먼저 찾는다. 있으면 AI를 부르지 않는다.
+
+    장보기가 "재료를 아는 메뉴는 AI에게 안 묻는다"를 하는 것과 같은 자리다. 매칭 결과는
+    실제로 존재하는 레시피라 AI 생성물보다 믿을 수 있고, 비용·속도도 아낀다.
+    매칭과 생성을 한 응답에 섞지 않는다 — 섞으면 카드마다 있는 것과 없는 것(조리 순서)이
+    달라져 화면 규칙이 둘이 된다."""
+    matched = recipe_match.match(recipe_match.pantry_keys_from(ingredients), limit=MAX_RECIPES)
+    if exclude:
+        # "다른 요리 보기"로 다시 부른 경우. 방금 보여준 것을 빼야 버튼 문구가 거짓말이 아니다.
+        skip = {dedupe_key(x) for x in exclude}
+        matched = [r for r in matched if dedupe_key(r["name"]) not in skip]
+    if matched:
+        return 200, {"recipes": matched}
+
 
     data, error = call_openai(
         SYSTEM_PROMPT,

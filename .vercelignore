@@ -1,0 +1,13 @@
+# Vercel CLI는 .gitignore를 보지 않는다. 로컬 폴더를 통째로 올리므로 여기서 따로 막는다.
+# (이걸 안 두면 원본 CSV 181MB가 함께 올라가 함수 번들 상한 225MB를 넘긴다 — 실제로 넘겼다.)
+
+# KADX 원본 CSV. 배포에 필요한 것은 전처리 결과(api/recipes_index.json)뿐이다.
+data/
+TB_RECIPE_SEARCH*.csv
+
+# 배포에 실리지 않는 것들 — 올려봐야 번들만 키운다.
+docs/
+scripts/
+.git/
+__pycache__/
+*.pyc
