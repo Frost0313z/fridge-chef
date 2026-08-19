@@ -2244,6 +2244,27 @@ body:has(.pantry-bar) {
   line-height: 1.6;
 }
 
+/* 실제 레시피와 매칭된 카드. 조리 순서 자리에 원본으로 가는 링크가 대신 들어간다
+   (데이터 라이선스의 ND 조건 — js/recipe.js의 matchedDetailHtml 참고). */
+.recipe-matched-note {
+  margin: 16px 0 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+/* 조리 순서가 없는 카드에서는 이 링크가 주 행동이다 — 곁다리 링크보다 눈에 띄어야 한다. */
+.recipe-matched-link {
+  font-weight: 600;
+}
+
+/* 출처 표기(BY 조건). 읽히되 카드의 주인공이 되지는 않는 크기로 둔다. */
+.recipe-source {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
 /* ==========================================================================
    즐겨찾기 별
    ==========================================================================

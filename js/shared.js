@@ -1262,6 +1262,9 @@ function toggleFavorite(recipe) {
     ingredients: Array.isArray(recipe.ingredients) ? recipe.ingredients : [],
     steps: Array.isArray(recipe.steps) ? recipe.steps : [],
     searchKeyword: recipe.searchKeyword || "",
+    /* 실제 레시피와 매칭된 항목은 원본 주소가 곧 조리 순서다(steps가 비어 있다).
+       여기서 빠뜨리면 담아둔 뒤 다시 열었을 때 이름으로 검색하는 링크로 떨어진다. */
+    recipeUrl: recipe.recipeUrl || "",
   });
   return { on: true, stored: saveJson(FAVORITES_KEY, items), full: false };
 }

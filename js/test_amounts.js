@@ -287,6 +287,9 @@ const kimchiJjigae = {
   ingredients: ["김치 1/4포기"],
   steps: ["끓인다"],
   searchKeyword: "김치찌개",
+  /* 실제 레시피 매칭 항목은 원본 주소가 곧 조리 순서다(steps가 비어 있다).
+     즐겨찾기가 이 필드를 버리면 담아둔 뒤 링크가 사라진다. */
+  recipeUrl: "",
 };
 
 store[FAV] = JSON.stringify([]);
@@ -320,6 +323,12 @@ check("빼고 나면 다시 담긴다", toggleFavorite({ name: "하나더" }).on
 
 store[FAV] = '"이상한값"';
 check("손상된 값은 빈 목록으로 본다", loadFavorites(), []);
+
+/* 실제 레시피와 매칭된 항목은 steps가 비어 있고 원본 주소가 그 자리를 대신한다.
+   즐겨찾기가 recipeUrl을 버리면 담아둔 뒤 다시 열었을 때 링크가 검색 URL로 떨어진다. */
+store[FAV] = JSON.stringify([]);
+toggleFavorite({ name: "순두부찌개", recipeUrl: "https://www.10000recipe.com/recipe/6841712", steps: [] });
+check("매칭 레시피의 원본 주소를 잃지 않는다", loadFavorites()[0].recipeUrl, "https://www.10000recipe.com/recipe/6841712");
 
 console.log(failed ? `\n${failed}개 실패` : "\nall passed");
 process.exit(failed ? 1 : 0);
