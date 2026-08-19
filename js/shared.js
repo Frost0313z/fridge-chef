@@ -144,9 +144,12 @@ function escapeHtml(str) {
    서버(api/shopping.py)의 _UNITS와 같은 목록이어야 한다 — 한쪽에만 단위를 추가하면
    화면이 수량으로 지운 글자를 서버는 이름의 일부로 읽어 같은 재료가 둘로 갈라진다. */
 const AMOUNT_UNITS = [
-  "g", "kg", "ml", "l", "개", "알", "장", "줄", "대", "모", "쪽", "톨", "컵",
+  "g", "kg", "ml", "l", "L", "개", "알", "장", "줄", "대", "모", "쪽", "톨", "컵",
   "큰술", "작은술", "스푼", "봉지", "봉", "팩", "캔", "공기", "인분", "주먹",
   "단", "통", "마리", "조각",
+  /* 레시피 데이터가 큰술/작은술을 이렇게 줄여 쓴다("참기름1T"). api/shopping.py의 _UNITS와
+     같은 목록이어야 한다 — 한쪽만 알아보면 같은 재료를 서로 다르게 읽는다. */
+  "T", "t",
 ].sort((a, b) => b.length - a.length);
 
 const NUMBER_SOURCE = "\\d+(?:\\.\\d+)?(?:\\/\\d+)?";
@@ -198,7 +201,8 @@ function splitIngredient(raw) {
 /* 같은 것을 다르게 세는 말과, 배수만 다른 단위. 합칠 수 있어야 "계란 2개"와 "계란 3알"이
    5개로 모인다. api/shopping.py의 같은 표와 짝이다. 확실히 같은 것만 넣는다 —
    마늘 "1통"과 "1톨"은 양이 열 배 차이라 묶으면 안 된다. */
-const UNIT_ALIASES = { 알: "개" };
+/* 대소문자를 구분한다 — T(큰술)와 t(작은술)는 양이 세 배 차이다. */
+const UNIT_ALIASES = { 알: "개", T: "큰술", t: "작은술", L: "l" };
 const UNIT_SCALES = { kg: ["g", 1000], l: ["ml", 1000] };
 
 const SINGLE_AMOUNT_PATTERN = new RegExp(

@@ -18,7 +18,6 @@ INDEX_PATH = os.path.join(os.path.dirname(__file__), "recipes_index.json")
 RECIPE_URL = "https://www.10000recipe.com/recipe/{}"
 
 # 커버율 기준. 레시피 재료 중 사용자가 가진 것의 비율이 이 값을 넘어야 후보로 본다.
-# 스펙에서 70%로 가정했고, 실제 조합으로 재본 뒤 조정한다.
 MIN_COVERAGE = 0.7
 
 # 커버율만 보면 재료 2개짜리 레시피가 늘 이긴다("양파 1개, 소금" = 100%). 그런 건 요리라기보다
@@ -56,25 +55,54 @@ def coverage(recipe_ings, owned_keys):
     return hit / len(recipe_ings)
 
 
+def score(hit, total):
+    """커버율만으로 줄을 세우면 재료가 적을수록 유리하다 — 분모가 작으니 당연하다.
+    그래서 "몇 %를 채웠나"에 "실제로 몇 개나 맞았나"를 곱한다.
+
+        점수 = (hit / total) * hit
+
+    재료 3개를 다 맞춘 레시피는 (3/3)*3 = 3점, 재료 8개 중 7개를 맞춘 레시피는
+    (7/8)*7 = 6.1점이다. 커버율은 후자가 낮지만 냉장고를 더 많이 쓴다 —
+    "있는 재료를 최대한 활용한다"는 이 서비스의 목적과 같은 방향이다."""
+    return (hit / total) * hit if total else 0.0
+
+
 def match(pantry_keys, limit=3):
     """냉장고 재료로 만들 수 있는 실제 레시피를 찾는다. 없으면 빈 배열."""
     if not pantry_keys:
         return []
 
-    index = load_index()
     scored = []
-    for recipe in index:
+    for recipe in load_index():
         ings = recipe.get("ing") or []
         if len(ings) < MIN_INGREDIENTS:
             continue
-        rate = coverage(ings, pantry_keys)
+        hit = sum(1 for ing in ings if find_owned(ing, pantry_keys))
+        rate = hit / len(ings)
         if rate >= MIN_COVERAGE:
-            scored.append((rate, recipe.get("pop", 0), recipe))
+            scored.append((score(hit, len(ings)), recipe.get("pop", 0), rate, recipe))
 
-    # 커버율이 먼저, 같으면 인기도(추천수+스크랩수)로 가른다.
+    # 점수가 먼저, 같으면 인기도(추천수+스크랩수)로 가른다.
     scored.sort(key=lambda x: (-x[0], -x[1]))
 
-    return [to_response(r, rate) for rate, _, r in scored[:limit]]
+    # 같은 이름이 여러 장 뜨지 않게 거른다. 인덱스에는 RCP_SNO가 다른 별개 레시피로 남아
+    # 있는 게 맞고("만능간장"이라는 이름의 서로 다른 레시피가 실제로 여럿 있다), 화면에
+    # 같은 이름 카드가 세 장 뜨는 것만 막으면 된다. 판정은 추천 이력·즐겨찾기가 쓰는
+    # dedupe_key와 같은 규칙이다 — "김치볶음밥"과 "김치 볶음밥"은 같은 요리다.
+    # recommend가 이 모듈을 import하므로 위에서 되받으면 순환이 된다(recommend는 아직
+    # dedupe_key를 정의하기 전이다). 쓰는 자리에서 늦게 가져온다 — 규칙은 여전히 한 곳이다.
+    from recommend import dedupe_key
+
+    out, seen = [], set()
+    for _, _, rate, recipe in scored:
+        key = dedupe_key(recipe.get("name", ""))
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        out.append(to_response(recipe, rate))
+        if len(out) >= limit:
+            break
+    return out
 
 
 def to_response(recipe, rate):
