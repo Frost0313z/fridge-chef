@@ -1,3 +1,5 @@
+/* Hallmark · macrostructure: Task-focused centered columns · tone: quiet practical · anchor hue: forest green */
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 */
 /* ==========================================================================
    레이아웃 값
    ==========================================================================
@@ -53,6 +55,7 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: clip;
 }
 
 body {
@@ -62,6 +65,7 @@ body {
   background: var(--bg);
   line-height: 1.6;
   transition: background-color 0.15s ease, color 0.15s ease;
+  overflow-x: clip;
 }
 
 /* 애니메이션을 줄이도록 설정한 사용자에게는 테마 전환/부드러운 스크롤을 적용하지 않는다. */
@@ -652,6 +656,40 @@ body:has(.pantry-bar) {
   padding-block: 56px 80px;
 }
 
+/* 본문 글은 왼쪽 정렬을 유지하되 콘텐츠 열 자체는 화면 가운데에 둔다.
+   냉장고와 장보기처럼 세로로 읽는 화면은 이 기본 열만으로 충분하다. */
+.page > * {
+  width: 100%;
+  margin-inline: auto;
+}
+
+/* 추천·식단 화면은 입력할 때는 좁게 집중하고, 결과가 생기면 카드 영역만 넓어진다.
+   마크업을 위한 빈 래퍼를 더 만들지 않고 같은 섹션 안에서 열을 나눈다. */
+body[data-page="recipe"] .recipe-form-section,
+body[data-page="mealplan"] .recipe-form-section {
+  max-width: var(--max-width);
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, var(--content-width))
+    minmax(0, 1fr);
+}
+
+body[data-page="recipe"] .recipe-form-section > *,
+body[data-page="mealplan"] .recipe-form-section > * {
+  grid-column: 2;
+  min-width: 0;
+}
+
+body[data-page="recipe"] .recipe-form-section > .result-grid,
+body[data-page="mealplan"] .recipe-form-section > .mealplan-toolbar,
+body[data-page="mealplan"] .recipe-form-section > .mealplan-edit-status,
+body[data-page="mealplan"] .recipe-form-section > .mealplan-stale,
+body[data-page="mealplan"] .recipe-form-section > #mealplan-result,
+body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
+  grid-column: 1 / -1;
+}
+
 .page-intro h1 {
   font-size: clamp(1.4rem, 3.5vw, 2rem);
   margin: 0 0 14px;
@@ -668,6 +706,12 @@ body:has(.pantry-bar) {
 .page h2 {
   font-size: 1.2rem;
   margin: 0 0 18px;
+}
+
+.page h1,
+.page h2 {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* 이용 방법 단계 번호 (홈의 기능 카드에서 사용) */
@@ -861,6 +905,16 @@ body:has(.pantry-bar) {
   border-radius: 999px;
   padding: 6px 8px 6px 14px;
   font-size: 0.9rem;
+}
+
+/* 하단 냉장고 시트는 밝은 글자를 상속하지만 재료 칩은 흰 표면이다.
+   칩 안에서는 다시 일반 본문색을 써서 흰색 위 흰색이 되지 않게 한다. */
+.pantry-bar .pantry-chip {
+  color: var(--text);
+}
+
+.pantry-bar .undo-btn {
+  color: var(--pantry-sheet-accent);
 }
 
 /* 수량과 며칠 됐는지는 이름보다 한 단계 뒤로 물린다. 훑을 때 찾는 것은 이름이다.
