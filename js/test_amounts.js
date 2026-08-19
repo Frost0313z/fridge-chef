@@ -75,6 +75,10 @@ check("알과 개는 같은 것을 센다", parseAmount("계란 3알"), { value:
 check("l은 ml로 맞춘다", parseAmount("우유 1l"), { value: 1000, unit: "ml" });
 check("수량 없음은 0이 아니라 모름", parseAmount("두부"), null);
 check("숫자 없는 수량 표현", parseAmount("김치 조금"), null);
+// 레시피 데이터가 "적당량"류를 4천 번 넘게 쓴다. 안 떼면 "소금"과 "소금 적당량"이 갈라진다.
+check("적당량도 수량 표현", parseAmount("소금 적당량"), null);
+check("적당량은 이름에 남지 않는다", splitIngredient("소금 적당량").name, "소금");
+check("취향껏도 마찬가지", splitIngredient("설탕 취향껏").name, "설탕");
 
 // 이름 나누기 — 단위 목록을 늘렸을 때 이름이 깎이지 않는지.
 check("대파 1단의 이름", splitIngredient("대파 1단").name, "대파");

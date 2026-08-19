@@ -42,21 +42,41 @@ SOURCES = [
 GROUP_RE = re.compile(r"\[[^\]]*\]")
 
 
+# 수량이 시작되는 자리는 첫 숫자다. 구형 스냅샷(병합 후 코퍼스의 79%)은 BEL 구분자 없이
+# "돼지고기 1/3밥공기양"처럼 한 덩어리로 오는데, parse_line은 아는 단위만 떼므로 모르는
+# 단위어가 이름에 눌러앉는다 — "돼지고기밥공기양", "물C", "가쓰오부시줌". 재료 슬롯의
+# 12.8%가 이렇게 어긋나 있었다(측정: 231130 3만 행).
+AMOUNT_RE = re.compile(r"[0-9]")
+
+# 괄호 안은 수식어지 이름이 아니다. normalize_name이 괄호만 지우고 내용은 붙여버려서
+# "간장(돼지고기양념용)"이 "간장돼지고기양념용"이 된다.
+PAREN_RE = re.compile(r"\([^)]*\)")
+
+
+def head_of(piece):
+    """재료 한 조각에서 이름 쪽만 남긴다 — 첫 숫자 앞까지, 괄호 수식어는 뺀다."""
+    m = AMOUNT_RE.search(piece)
+    return PAREN_RE.sub(" ", piece[: m.start()] if m else piece)
+
+
 def ingredient_names(raw):
     """CKG_MTRL_CN에서 재료 이름만 뽑는다.
 
     원본이 \\x07(BEL)로 이름·수량·단위를 이미 나눠놨다. 이걸 모르고 통째로 parse_line()에
     넣으면 이름이 '소고기\\x07 \\x07g\\x07'로 나와 매칭이 어긋난다(스펙 실측 ⓑ).
     그래서 \\x07로 먼저 자르고, 그러고도 이름 쪽에 수량이 붙어 있는 경우가 있어
-    ("양파 1/2개") 이름만 한 번 더 parse_line에 통과시킨다.
+    ("양파 1/2개") 이름만 한 번 더 head_of + parse_line에 통과시킨다.
     """
     names = []
     for piece in GROUP_RE.sub("|", raw or "").split("|"):
         parts = [p.strip() for p in piece.split("\x07") if p.strip()]
         if not parts:
             continue
-        name, _, _ = parse_line(parts[0])
-        name = normalize_name(name)
+        name = normalize_name(parse_line(head_of(parts[0]))[0])
+        # 이름 자체가 숫자로 시작하면("2배 식초 2큰술") 잘라낸 머리가 빈다. 그 106건은
+        # 버리는 것보다 예전처럼 두는 편이 낫다 — 고치는 3만여 건과 맞바꿀 이유가 없다.
+        if not name:
+            name = normalize_name(parse_line(parts[0])[0])
         # 닫히지 않은 대괄호가 남는 경우가 드물게 있다. 재료 이름에 괄호가 남을 일은 없다.
         if name and "[" not in name and "]" not in name:
             names.append(name)

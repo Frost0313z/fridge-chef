@@ -161,7 +161,8 @@ const QUANTITY_PATTERN = new RegExp(
 
 /* 숫자 없는 수량 표현. 입력칸이 "김치 조금"을 예시로 권하는데 이걸 떼지 않으면
    "김치"와 "김치 조금"이 다른 재료로 취급돼, 권한 대로 적은 사람만 중복이 쌓인다. */
-const VAGUE_AMOUNT_PATTERN = /(조금|약간|살짝|많이|넉넉히|한줌|두줌)/g;
+const VAGUE_AMOUNT_PATTERN =
+  /(조금|약간|살짝|많이|넉넉히|한줌|두줌|적당량|적당히|적당양|취향껏|취향것|소량|듬뿍)/g;
 
 /* 수량·단위·괄호를 걷어내고 재료 이름만 남긴다. 띄어쓰기는 살린다("닭 가슴살"). */
 function stripAmounts(raw) {

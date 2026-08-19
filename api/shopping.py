@@ -45,7 +45,8 @@ _UNIT_PATTERN = "|".join(sorted(_UNITS, key=len, reverse=True))
 _QUANTITY_RE = re.compile(rf"({_NUMBER})\s*({_UNIT_PATTERN})?")
 
 # 숫자 없는 수량 표현. 이름에 남겨두면 "김치"와 "김치 조금"이 다른 재료가 된다.
-_VAGUE_RE = re.compile(r"(조금|약간|살짝|많이|넉넉히|한줌|두줌)")
+# "적당량"류는 레시피 데이터에서 4천 번 넘게 나온다 — 없으면 "소금적당량"이 된다.
+_VAGUE_RE = re.compile(r"(조금|약간|살짝|많이|넉넉히|한줌|두줌|적당량|적당히|적당양|취향껏|취향것|소량|듬뿍)")
 
 # 냉장고 재료는 "계란 2개 (13일 전에 넣음)" 형태로 올라온다. 수량이 아니므로 먼저 걷어낸다.
 _ADDED_NOTE_RE = re.compile(r"\([^)]*넣음[^)]*\)")

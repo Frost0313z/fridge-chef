@@ -337,6 +337,32 @@ def test_parse_line():
     assert shopping.parse_line("두부") == ("두부", None, "")
     # 냉장고 재료에 붙어 오는 "(13일 전에 넣음)"은 수량이 아니다. 13을 수량으로 읽으면 안 된다.
     assert shopping.parse_line("양파 2개 (13일 전에 넣음)") == ("양파", 2.0, "개")
+    # 레시피 데이터에 4천 번 넘게 나오는 표현. 안 떼면 "소금적당량"이 별개 재료가 된다.
+    assert shopping.parse_line("소금 적당량") == ("소금", None, "")
+    assert shopping.parse_line("설탕 취향껏") == ("설탕", None, "")
+
+
+def test_recipe_index_reads_both_snapshot_formats():
+    """코퍼스에 형식이 두 가지다. 구형(79%)은 구분자가 없어 단위어가 이름에 눌러앉았다.
+
+    이게 어긋나면 "물C"·"가쓰오부시줌"이 화면과 장보기 목록에 그대로 나가고,
+    한 글자 재료(물·밥·파)는 find_owned의 2글자 가드에 걸려 매칭에서도 빠진다.
+    """
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
+    import build_recipe_index as builder
+
+    bel = chr(7)
+    신형 = "[재료] 돼지고기{b}250{b}g{b}| 김치{b}1/4{b}포기{b}".format(b=bel)
+    assert builder.ingredient_names(신형) == ["돼지고기", "김치"]
+
+    구형 = "[재료] 물 1C| 파 1뿌리| 돼지고기 1/3밥공기양| 소금 적당량| 간장(돼지고기양념용) 2T"
+    assert builder.ingredient_names(구형) == ["물", "파", "돼지고기", "소금", "간장"]
+
+    # 이름이 숫자로 시작하면 자를 머리가 없다. 버리지 말고 예전 경로로 되돌린다.
+    assert builder.ingredient_names("[재료] 2배 식초 2큰술") == ["배식초"]
+
+    # 대괄호는 재료가 아니라 그룹 라벨이다. 라벨만 지우고 뒤에 붙은 재료는 살린다.
+    assert builder.ingredient_names("[주재료]두부 1모") == ["두부"]
 
 
 def test_shopping_sums_across_meals():
