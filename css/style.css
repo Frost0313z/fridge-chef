@@ -214,27 +214,79 @@ a {
   padding-top: 32px;
 }
 
-.theme-toggle {
+/* 다크모드 스위치. 필(pill) 모양은 "카드·버튼에 과한 pill 금지" 규칙의 유일한 예외다 —
+   OS 표준 토글 패턴이라 각지게 만들면 오히려 낯설어진다.
+   트랙 색은 페이지 테마가 아니라 스위치 자신의 상태로만 정해진다(꺼짐=그린, 켜짐=먹색).
+   --green-600·--ink-900는 원시 토큰이라 다크모드에서도 값이 바뀌지 않아, "지금 라이트/다크
+   중 뭔지"를 페이지 테마와 무관하게 항상 같은 두 색으로 보여줄 수 있다. */
+.theme-switch {
   order: 3;
   flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  /* 버튼은 글자색을 물려받지 않는다(브라우저 기본값이 검정이다). 지정해두지 않으면
-     지금은 내용이 이모지라 티가 안 나지만, 단색 아이콘으로 바꾸는 순간 다크에서 묻힌다. */
-  color: var(--text);
-  font-size: 1.1rem;
+  position: relative;
+  width: 56px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 999px; /* 예외 승인 — 트랙 반지름 스케일(--r-*)에 pill이 없는 이유이기도 하다 */
   cursor: pointer;
   margin-left: 12px;
 }
 
-.theme-toggle:hover {
-  border-color: var(--accent);
+.theme-switch-track {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--green-600);
+  /* 다크 페이지 배경(--bg)과 켜짐 트랙(--ink-900)이 둘 다 어두워 서로 묻힌다 —
+     흰 테두리 한 겹으로 어느 배경 위에서도 트랙 경계가 보이게 한다. */
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14);
+  transition: background var(--dur) var(--ease);
+}
+.theme-switch[aria-checked="true"] .theme-switch-track {
+  background: var(--ink-900);
+}
+.theme-switch:hover .theme-switch-track {
+  filter: brightness(1.08);
+}
+.theme-switch:active .theme-switch-track {
+  filter: brightness(.96);
+}
+
+.theme-switch-knob {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--white-fixed); /* 트랙 색과 무관하게 항상 흰 동그라미 */
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 트랙 56px - 노브 24px - 여백 4px×2 = 24px. 여백을 지켜 노브가 트랙 밖으로 나오지 않는다. */
+  transition: transform 220ms var(--ease);
+}
+.theme-switch[aria-checked="true"] .theme-switch-knob {
+  transform: translateX(24px);
+}
+
+/* 노브 안 해/달 — 위치·색과 같은 상태를 아이콘으로 한 번 더 말해준다. */
+.theme-switch-icon-sun,
+.theme-switch-icon-moon {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+}
+.theme-switch-icon-sun { color: var(--green-600); }
+.theme-switch-icon-moon { color: var(--ink-900); display: none; }
+.theme-switch[aria-checked="true"] .theme-switch-icon-sun { display: none; }
+.theme-switch[aria-checked="true"] .theme-switch-icon-moon { display: block; }
+
+.theme-switch:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 3px;
+  border-radius: 999px;
 }
 
 .nav-toggle {
