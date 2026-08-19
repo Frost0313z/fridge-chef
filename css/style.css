@@ -41,6 +41,12 @@
   max-width: var(--content-width);
 }
 
+/* 홈 화면의 콘텐츠 열은 바깥 컨테이너 안에서 가운데에 둔다. */
+.home-section > *,
+.hero > * {
+  margin-inline: auto;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -287,9 +293,11 @@ a {
   max-width: var(--max-width);
   margin-inline: auto;
   z-index: 40;
-  border-top: 1px solid var(--border);
+  border: 1px solid var(--pantry-sheet-border);
+  border-bottom: 0;
   border-radius: 16px 16px 0 0;
-  background: var(--surface);
+  background: var(--pantry-sheet-bg);
+  color: var(--pantry-sheet-text);
   box-shadow: var(--shadow-sheet);
 }
 
@@ -333,7 +341,7 @@ a {
 /* 누를 수 있다는 반응. 색만으로 알리지 않는다 — 화살표와 손잡이가 이미 형태로 말하고 있고,
    이건 거기에 얹는 확인이다. */
 .pantry-bar > summary:hover {
-  background: var(--bg);
+  background: var(--pantry-sheet-hover);
 }
 
 /* 잡아 끌 수 있다는 표시. 식단 카드에서 스크롤바를 없애고 grab 커서를 둔 것과 같은 규칙이다.
@@ -343,7 +351,7 @@ a {
   width: 52px;
   height: 5px;
   border-radius: 999px;
-  background: var(--text-muted);
+  background: var(--pantry-sheet-muted);
 }
 
 .pantry-bar.is-dragging > summary {
@@ -366,8 +374,8 @@ a {
   content: "";
   width: 9px;
   height: 9px;
-  border-right: 2px solid var(--accent-strong);
-  border-bottom: 2px solid var(--accent-strong);
+  border-right: 2px solid var(--pantry-sheet-accent);
+  border-bottom: 2px solid var(--pantry-sheet-accent);
   transform: translateY(2px) rotate(-135deg);
   transition: transform 0.2s ease;
 }
@@ -415,10 +423,11 @@ body:has(.pantry-bar) {
 
 .pantry-bar-title {
   font-weight: 600;
+  color: var(--pantry-sheet-text);
 }
 
 .pantry-bar-summary {
-  color: var(--text-muted);
+  color: var(--pantry-sheet-muted);
 }
 
 /* 재료가 30개면 시트가 화면을 다 덮는다. 높이를 묶고 안쪽에서 굴린다.
@@ -432,7 +441,7 @@ body:has(.pantry-bar) {
 
 .pantry-bar-empty {
   margin: 10px 0 0;
-  color: var(--text-muted);
+  color: var(--pantry-sheet-muted);
   font-size: 0.88rem;
 }
 
@@ -477,7 +486,7 @@ body:has(.pantry-bar) {
 .pantry-bar-status {
   margin: 8px 0 0;
   font-size: 0.88rem;
-  color: var(--text);
+  color: var(--pantry-sheet-text);
 }
 
 /* 지운 직후에만 나타난다. 확인창을 띄우는 대신 되돌릴 길을 열어둔다(A4). */
@@ -570,7 +579,7 @@ body:has(.pantry-bar) {
 
 .home-section > h2 {
   font-size: 1.2rem;
-  margin: 0 0 20px;
+  margin-block: 0 20px;
 }
 
 .features {

@@ -54,6 +54,14 @@
   --accent-strong: var(--persimmon-600);  /* 흰 글씨 CTA는 이걸 쓴다 */
   --accent-tint:   var(--persimmon-50);
 
+  /* ---- 하단 냉장고 시트: 라이트 팔레트의 포레스트 그린으로 본문과 분리 ---- */
+  --pantry-sheet-bg:     var(--green-700);
+  --pantry-sheet-border: var(--green-600);
+  --pantry-sheet-text:   var(--ivory-50);
+  --pantry-sheet-muted:  var(--green-100);
+  --pantry-sheet-accent: #F5A183;
+  --pantry-sheet-hover:  var(--green-600);
+
   --on-brand:  #FFFFFF;
   --on-accent: #FFFFFF;
 
@@ -150,6 +158,14 @@
   --accent:        #F08256;  /* 7.2:1 */
   --accent-strong: #F5A183;
   --accent-tint:   #32211A;
+
+  /* 다크 화면에서는 페이지보다 밝은 회색으로 시트의 층을 드러낸다. */
+  --pantry-sheet-bg:     #3A3834;
+  --pantry-sheet-border: #8F887A;
+  --pantry-sheet-text:   #F5F1E8;
+  --pantry-sheet-muted:  #D8D2C7;
+  --pantry-sheet-accent: #F5A183;
+  --pantry-sheet-hover:  #47443F;
 
   --on-brand:  #0F1D15;      /* 밝은 브랜드색 위에는 어두운 글씨 */
   --on-accent: #26120A;

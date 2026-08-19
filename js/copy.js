@@ -65,7 +65,6 @@ const COPY = {
     subhead:
       "애매하게 남은 재료만 적어주세요. 지금 바로 만들 수 있는 요리를 찾아드려요.",
     ctaPrimary: "냉장고 채우고 시작하기 →",
-    ctaSecondary: "바로 추천받기",
     note: "있는 재료로, 없는 요리 없어요.",
   },
 
@@ -393,7 +392,7 @@ const COPY = {
      하나로 합쳐야 한다 (이 변경은 Claude Code 쪽에서 마크업까지 같이 처리). */
   FOOTER: {
     line: "냉장고에 있는 대로, 오늘 한끼 완성 · © " + new Date().getFullYear() + " 있는대로",
-    linkedinLabel: "두승현",
+    linkedinLabel: "제작자 링크드인: 두승현",
     linkedinAriaLabel: "두승현의 LinkedIn 프로필로 이동",
     linkedinUrl: "https://www.linkedin.com/in/seunghyeondu/",
   },
