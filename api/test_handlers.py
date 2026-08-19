@@ -18,6 +18,7 @@ os.environ.setdefault("OPENAI_API_KEY", "test-key-not-used")
 import _common  # noqa: E402
 import index  # noqa: E402
 import mealplan  # noqa: E402
+import recipe_match  # noqa: E402
 import recommend  # noqa: E402
 import shopping  # noqa: E402
 
@@ -91,6 +92,10 @@ def test_handle_filters_unknown_ingredient_recipes():
                 {"name": "랍스터파스타", "ingredients": ["랍스터", "생크림"]},
             ]
         }, None
+
+    # 매칭을 비워 AI 경로가 확실히 돌게 한다. 안 그러면 이 테스트가 로컬에 있는 48MB
+    # 인덱스를 읽고, 매칭이 걸리는 날에는 AI를 아예 안 불러 조용히 뜻이 바뀐다.
+    _fake_index([])
 
     original, recommend.call_openai = recommend.call_openai, fake_call
     try:
@@ -466,6 +471,52 @@ def test_recipes_dedupe_applies_to_dropped_too():
         pantry_ingredients="계란",
     )
     assert [r["name"] for r in out] == ["새우볶음밥"], out
+
+
+def _fake_index(recipes):
+    """실제 인덱스 파일(api/recipes_index.json)은 용량 때문에 저장소에 없다.
+    역색인까지 직접 채워서 파일 없이 매칭 로직만 본다."""
+    import collections
+
+    recipe_match._index = recipes
+    recipe_match._inverted = collections.defaultdict(list)
+    for i, r in enumerate(recipes):
+        for n in set(r["ing"]):
+            recipe_match._inverted[n].append(i)
+
+
+def test_match_prefers_using_more_of_the_fridge():
+    """커버율만 보면 재료 적은 레시피가 늘 이긴다. score=(hit/total)*hit이 그걸 뒤집는다 —
+    3개를 다 맞춘 것(3점)보다 8개 중 7개를 맞춘 것(6.1점)이 냉장고를 더 쓴다."""
+    _fake_index([
+        {"id": 1, "name": "간단한것", "ing": ["김치", "밥", "참기름"], "pop": 999},
+        {"id": 2, "name": "제대로된것",
+         "ing": ["김치", "밥", "참기름", "두부", "대파", "계란", "양파", "당근"], "pop": 0},
+    ])
+    out = recipe_match.match(["김치", "밥", "참기름", "두부", "대파", "계란", "양파"])
+    assert [r["name"] for r in out] == ["제대로된것", "간단한것"], out
+
+
+def test_match_drops_duplicate_names():
+    """RCP_SNO가 달라도 화면에 같은 이름 카드가 두 장 뜨면 고장으로 보인다.
+    인덱스에서는 합치지 않고(진짜 다른 레시피다) 응답에서만 거른다."""
+    _fake_index([
+        {"id": 1, "name": "만능간장", "ing": ["간장", "설탕", "물"], "pop": 10},
+        {"id": 2, "name": "만능 간장", "ing": ["간장", "설탕", "마늘"], "pop": 5},
+        {"id": 3, "name": "다른요리", "ing": ["간장", "설탕", "물"], "pop": 1},
+    ])
+    out = recipe_match.match(["간장", "설탕", "물", "마늘"])
+    assert [r["name"] for r in out] == ["만능간장", "다른요리"], out
+
+
+def test_matched_recipe_never_carries_steps():
+    """조리 순서 원문을 우리 응답에 싣지 않는다 — 데이터 라이선스의 ND 조건이라
+    문구 문제가 아니라 지켜야 하는 경계다(docs/spec-recipe-match.md)."""
+    _fake_index([{"id": 7016813, "name": "떡국", "ing": ["떡국떡", "소고기", "계란"], "pop": 1}])
+    out = recipe_match.match(["떡국떡", "소고기", "계란"])
+    assert out[0]["steps"] == [], out
+    assert out[0]["recipeUrl"] == "https://www.10000recipe.com/recipe/7016813", out
+    assert out[0]["source"] == "matched", out
 
 
 if __name__ == "__main__":

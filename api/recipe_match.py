@@ -8,6 +8,7 @@
 매칭된 레시피의 steps는 항상 빈 배열이고, 상세는 만개의레시피 링크로만 안내한다.
 """
 
+import collections
 import json
 import os
 
@@ -25,34 +26,32 @@ MIN_COVERAGE = 0.7
 MIN_INGREDIENTS = 3
 
 _index = None
+_inverted = None
 
 
 def load_index():
     """한 번만 읽고 프로세스에 들고 있는다. 서버리스는 콜드 스타트에서만 이 비용을 낸다.
 
-    파일이 없으면(로컬에서 파이프라인을 안 돌렸거나 배포에 안 실렸으면) None을 돌려주고,
+    같이 만드는 역색인(재료명 -> 레시피 번호)이 매칭 속도를 정한다. 이게 없으면 요청마다
+    레시피 233,283건을 전부 돌며 find_owned를 217만 번 부른다(재료 7개에 약 1.9초).
+    그런데 그 비교의 대상인 고유 재료명은 111,854종뿐이라, 같은 이름을 평균 19번씩 다시
+    비교하고 있었다. 이름 기준으로 한 번만 판정하고 후보만 만지면 356ms가 된다.
+
+    파일이 없으면(로컬에서 파이프라인을 안 돌렸거나 배포에 안 실렸으면) 빈 목록이 되고,
     부르는 쪽은 지금까지 하던 대로 AI 생성으로 간다 — 매칭은 어디까지나 앞단이다.
     """
-    global _index
+    global _index, _inverted
     if _index is None:
-        if not os.path.exists(INDEX_PATH):
-            _index = []
-        else:
+        if os.path.exists(INDEX_PATH):
             with open(INDEX_PATH, encoding="utf-8") as fh:
                 _index = json.load(fh)
-    return _index
-
-
-def coverage(recipe_ings, owned_keys):
-    """레시피 재료 중 사용자가 가진 것의 비율.
-
-    "같은 재료인가" 판정은 shopping.find_owned를 그대로 쓴다 — 장보기·재료 검증(D-0r)과
-    같은 함수다. 규칙을 세 번째로 갈라 쓰면 한 화면은 있다 하고 다른 화면은 없다 한다.
-    """
-    if not recipe_ings:
-        return 0.0
-    hit = sum(1 for ing in recipe_ings if find_owned(ing, owned_keys))
-    return hit / len(recipe_ings)
+        else:
+            _index = []
+        _inverted = collections.defaultdict(list)
+        for i, recipe in enumerate(_index):
+            for name in set(recipe.get("ing") or ()):
+                _inverted[name].append(i)
+    return _index, _inverted
 
 
 def score(hit, total):
@@ -72,15 +71,25 @@ def match(pantry_keys, limit=3):
     if not pantry_keys:
         return []
 
+    index, inverted = load_index()
+
+    # 재료명 사전을 냉장고와 한 번만 대조한다. find_owned는 양방향 부분 문자열이라
+    # 어떤 색인도 못 타므로(그래서 SQLite도 답이 아니었다) 이 한 번은 어차피 남는다.
+    hits = collections.Counter()
+    for name, recipe_ids in inverted.items():
+        if find_owned(name, pantry_keys):
+            for i in recipe_ids:
+                hits[i] += 1
+
     scored = []
-    for recipe in load_index():
-        ings = recipe.get("ing") or []
-        if len(ings) < MIN_INGREDIENTS:
+    for i, hit in hits.items():
+        recipe = index[i]
+        total = len(recipe.get("ing") or ())
+        if total < MIN_INGREDIENTS:
             continue
-        hit = sum(1 for ing in ings if find_owned(ing, pantry_keys))
-        rate = hit / len(ings)
+        rate = hit / total
         if rate >= MIN_COVERAGE:
-            scored.append((score(hit, len(ings)), recipe.get("pop", 0), rate, recipe))
+            scored.append((score(hit, total), recipe.get("pop", 0), rate, recipe))
 
     # 점수가 먼저, 같으면 인기도(추천수+스크랩수)로 가른다.
     scored.sort(key=lambda x: (-x[0], -x[1]))
