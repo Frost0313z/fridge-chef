@@ -116,7 +116,9 @@ CSV 4개(128,400 + 184,991 + 23,192 + 26,093행, RCP_SNO 기준 중복 제거, �
 > **성능 구조는 따로 정리했다.** 위 2번을 레시피마다 도는 것은 요청당 `find_owned` 217만 회라
 > 너무 느리다(재료 7개에 약 1.9초). 고유 재료명을 먼저 한 번만 대조하고 역색인으로 후보를
 > 좁히는 구조로 바꾼다 — SQLite는 쓰지 않는다
-> (→ [SQLite 검토 결과](#sqlite-검토-결과-2026-08-19--쓰지-않는-쪽을-권한다)). **미구현.**
+> (→ [SQLite 검토 결과](#sqlite-검토-결과-2026-08-19--쓰지-않는-쪽을-권한다)).
+> **완료 (2026-08-19)** — `api/recipe_match.py`의 `load_index()`가 재료명→레시피 역색인을
+> 만들고, `match()`는 어휘 선매칭 후 후보만 만진다(재료 7개 2,233ms → 288ms → 216ms).
 
 ### 3. 응답 스키마에 `source` 추가
 
@@ -516,10 +518,13 @@ bug 2에서 정한 점수식 `score = (hit/total) × hit`는 "커버율"과 "실
 1. ~~**구현 전 확인 사항 1~3번을 먼저 실측한다**~~ ✅ 완료 (2026-08-17)
 2. ~~데이터 파이프라인(CSV → 정적 JSON) 스크립트 작성 + 표본 검증~~ ✅ 완료 — `scripts/build_recipe_index.py`
 3. ~~`api/recommend.py`에 매칭 로직 추가, AI 호출은 매칭 실패시로 순서 변경~~ ✅ 완료 — `api/recipe_match.py`
-4. **프론트 배선** — `source` 필드에 따라 카드 표시 분기(매칭이면 링크 CTA, 생성이면 지금과 동일),
-   `copy.js`에 출처 표기 문구 추가 ← **다음 차례**
+4. ~~**프론트 배선** — `source` 필드에 따라 카드 표시 분기(매칭이면 링크 CTA, 생성이면 지금과 동일),
+   `copy.js`에 출처 표기 문구 추가~~ ✅ 완료 (2026-08-19) — `js/recipe.js`의 `matchedDetailHtml`
 5. ~~매칭 성능 — 어휘 선매칭 + 역색인 구조로 교체~~ ✅ 완료 (2026-08-19) — 재료 7개 2,233ms → 288ms
-6. 회귀 테스트 — `api/test_handlers.py`에 매칭 로직 단위 테스트
+6. ~~회귀 테스트 — `api/test_handlers.py`에 매칭 로직 단위 테스트~~ ✅ 완료 —
+   `test_match_prefers_using_more_of_the_fridge`(bug 2 점수식), `test_match_drops_duplicate_names`
+   (bug 1 dedupe), `test_match_counts_duplicate_ingredients_once`(커버율 분모),
+   `test_matched_recipe_never_carries_steps`(ND 경계), `test_recipe_index_reads_both_snapshot_formats`
 
 > [!IMPORTANT]
 > **4번을 5번보다 먼저 한다.** 매칭 로직은 다 돌지만 화면은 아직 AI 경로로 그린다 —
