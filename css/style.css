@@ -1912,13 +1912,27 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   gap: 8px;
 }
 
+/* 테두리·배경은 이 상자(li)가 지고, 별은 그 안에 같이 들어간다 — recipe.js
+   "최근 받은 요리"의 .history-entry/.history-item과 같은 짜임이다. */
 .favorites-list-item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg);
 }
 
-/* 이름을 누르면 그 줄을 고른다 — 별과 겹치지 않게 남는 폭을 전부 쓰는 별도 버튼이다. */
+.favorites-list-item:hover {
+  border-color: var(--accent);
+}
+
+.favorites-list-item.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-tint);
+}
+
+/* 이름을 누르면 그 줄을 고른다. 테두리·배경은 위 상자가 지므로 여기는 없앤다. */
 .favorites-list-select {
   flex: 1;
   min-width: 0;
@@ -1929,20 +1943,11 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   font: inherit;
   text-align: left;
   padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  background: var(--bg);
+  border: none;
+  border-radius: var(--r-md) 0 0 var(--r-md);
+  background: none;
   color: var(--text);
   cursor: pointer;
-}
-
-.favorites-list-select:hover {
-  border-color: var(--border-strong);
-}
-
-.favorites-list-item.is-selected .favorites-list-select {
-  border-color: var(--accent);
-  background: var(--accent-tint);
 }
 
 .favorites-list-name {
