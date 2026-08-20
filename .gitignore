@@ -31,5 +31,7 @@ Thumbs.db
 data/kadx-recipes/
 /TB_RECIPE_SEARCH*.csv
 api/recipes_index.json
+# 위 원본을 업로드용으로 쪼개 담아둔 임시 폴더 — 같은 이유로 커밋하지 않는다.
+/DB/
 
 .vercel

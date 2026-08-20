@@ -518,6 +518,30 @@ def _fake_index(recipes):
             recipe_match._inverted[n].append(i)
 
 
+def test_load_index_logs_when_missing():
+    """인덱스 파일이 없으면 AI 전용 폴백은 그대로 두되, vercel logs에서 보이는 흔적을
+    남긴다 — 2026-08-20에 이 흔적이 없어서 배포가 조용히 새는 걸 한참 몰랐다."""
+    import contextlib
+    import io
+
+    original_index = recipe_match._index
+    original_inverted = recipe_match._inverted
+    original_path = recipe_match.INDEX_PATH
+    recipe_match._index = None
+    recipe_match._inverted = None
+    recipe_match.INDEX_PATH = "definitely/does/not/exist.json"
+    try:
+        captured = io.StringIO()
+        with contextlib.redirect_stderr(captured):
+            index, inverted = recipe_match.load_index()
+        assert index == [] and dict(inverted) == {}, (index, inverted)
+        assert "recipes_index.json not found" in captured.getvalue(), captured.getvalue()
+    finally:
+        recipe_match._index = original_index
+        recipe_match._inverted = original_inverted
+        recipe_match.INDEX_PATH = original_path
+
+
 def test_match_prefers_using_more_of_the_fridge():
     """커버율만 보면 재료 적은 레시피가 늘 이긴다. score=(hit/total)*hit이 그걸 뒤집는다 —
     3개를 다 맞춘 것(3점)보다 8개 중 7개를 맞춘 것(6.1점)이 냉장고를 더 쓴다."""

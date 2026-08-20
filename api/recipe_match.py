@@ -11,6 +11,7 @@
 import collections
 import json
 import os
+import sys
 
 from shopping import find_owned
 
@@ -39,6 +40,9 @@ def load_index():
 
     파일이 없으면(로컬에서 파이프라인을 안 돌렸거나 배포에 안 실렸으면) 빈 목록이 되고,
     부르는 쪽은 지금까지 하던 대로 AI 생성으로 간다 — 매칭은 어디까지나 앞단이다.
+    이 폴백 자체는 의도한 동작이라 그대로 두지만, 소리 없이 일어나면 "매칭이 왜 한 번도
+    안 걸리지?"를 직접 두드려보기 전까지 아무도 모른다(실제로 배포 한 번이 이렇게 새고
+    한동안 안 잡혔다). 그래서 로그 한 줄은 남긴다 — vercel logs에서 바로 보인다.
     """
     global _index, _inverted
     if _index is None:
@@ -46,6 +50,7 @@ def load_index():
             with open(INDEX_PATH, encoding="utf-8") as fh:
                 _index = json.load(fh)
         else:
+            print(f"recipes_index.json not found at {INDEX_PATH} — falling back to AI-only", file=sys.stderr)
             _index = []
         _inverted = collections.defaultdict(list)
         for i, recipe in enumerate(_index):

@@ -208,6 +208,15 @@ python -m http.server 8000
 같은 파일의 `routes`에는 보안 헤더(`X-Content-Type-Options`·`X-Frame-Options`·`Referrer-Policy`)와
 `/api/<이름>` → `api/index.py?route=<이름>` 라우팅이 들어 있습니다.
 
+> [!WARNING]
+> **운영 배포 전 체크리스트 — `api/recipes_index.json`이 로컬에 있는지 먼저 확인하세요.**
+> 이 파일(레시피 매칭용 전처리 인덱스, 46MB대)은 KADX 원본의 파생물이라 `.gitignore`에
+> 있고 git에는 없습니다. `python scripts/build_recipe_index.py`로 로컬에서 직접 만들어야
+> 하는데, Vercel CLI는 git이 아니라 **로컬 폴더를 그대로 올리기** 때문에 이 파일이 없는
+> 채로 배포하면 레시피 매칭이 조용히 AI 전용 폴백으로 빠집니다 — 에러도 안 나고 화면도
+> 멀쩡해서, 실제로 2026-08-20에 이렇게 배포된 채로 한동안 몰랐습니다("배포했다"와
+> "동작한다"는 다른 확인입니다). 아래 `deploy.sh`가 이 확인을 대신 해줍니다.
+
 ```bash
 npm install -g vercel     # 최초 1회
 vercel login              # 브라우저 인증
@@ -215,8 +224,12 @@ vercel login              # 브라우저 인증
 vercel                    # 프리뷰 배포 (프로젝트 최초 연결)
 vercel env add OPENAI_API_KEY production   # 서버에서 쓸 API 키 등록
 
-vercel --prod             # 운영 배포
+./scripts/deploy.sh       # 운영 배포 — recipes_index.json 없으면 여기서 멈춘다
 ```
+
+> `deploy.sh`는 `api/recipes_index.json` 존재만 확인하고 `vercel --prod`를 그대로 실행합니다.
+> 파일이 없으면 KADX CSV를 받아 인덱스를 만드는 순서를 안내하고 배포하지 않은 채 종료합니다.
+> 급하게 `vercel --prod`를 직접 쳐도 되지만, 그러면 이 확인을 건너뜁니다.
 
 > [!IMPORTANT]
 > `OPENAI_API_KEY`를 등록하지 않으면 화면은 뜨지만 AI 기능이 "지금은 AI가 답을 만들지 못해요. 사용자 잘못이 아니라 저희 쪽 문제예요."로 응답합니다(`error: "server_misconfigured"`). 화면 문구에 키 이야기를 쓰지 않는 이유는 [UI/UX 원칙 C1](docs/UIUX원칙.md#c1-개발자가-아닌-사용자-측면에서-만든다-)에 적어두었고, 원인 구분은 응답의 `error` 코드로 합니다.
@@ -251,7 +264,7 @@ vercel inspect https://fridge-chef-gamma.vercel.app         # 배포 상태·별
 ```bash
 # (a) 원인을 알고 코드로 고칠 수 있다 → 고쳐서 다시 배포
 git commit -am "fix: ..." && git push
-vercel --prod
+./scripts/deploy.sh
 
 # (b) 원인은 모르겠고 방금 배포부터 깨졌다 → 직전 배포로 즉시 되돌리기
 vercel rollback <직전_배포URL>
