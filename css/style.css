@@ -941,6 +941,24 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   box-shadow: inset 0 0 0 1px var(--accent);
 }
 
+/* 텍스트 입력과 같은 급의 대안으로 보이도록 바로 아래, 별도 줄에 둔다
+   (docs/spec-pantry-photo-import.md §0 — 입력창 옆 아이콘 버튼으로 욱여넣지 않는다).
+   <button>이라 .cta-button의 <a> 기본값에 없는 리셋을 더한다. */
+.pantry-import-btn {
+  display: block;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  margin-top: 10px;
+  font-size: 0.9rem;
+  padding: 10px 18px;
+}
+
+.pantry-import-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .pantry-chips {
   margin-top: 14px;
   display: flex;
@@ -1538,6 +1556,178 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   margin: 4px 0 0;
 }
 
+/* --------------------------------------------------------------------------
+   사진으로 재료 등록 — 확인 모달 (docs/spec-pantry-photo-import.md §4)
+   --------------------------------------------------------------------------
+   구조는 .meal-dialog와 동일하다(배경 막을 ::backdrop이 아니라 자신에게 칠하는 이유 등
+   같은 근거). 이 화면 전용 스타일이라 클래스는 새로 만든다. */
+.pantry-import-dialog {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 16px;
+  border: 0;
+  background: var(--scrim);
+  color: var(--text);
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease), display var(--dur) allow-discrete,
+    overlay var(--dur) allow-discrete;
+}
+
+.pantry-import-dialog::backdrop {
+  background: transparent;
+}
+
+.pantry-import-dialog[open] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+}
+
+@starting-style {
+  .pantry-import-dialog[open] {
+    opacity: 0;
+  }
+}
+
+.pantry-import-dialog-panel {
+  width: min(440px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pantry-import-dialog-panel {
+    transform: translateY(8px);
+    transition: transform var(--dur) var(--ease);
+  }
+
+  .pantry-import-dialog[open] .pantry-import-dialog-panel {
+    transform: none;
+  }
+
+  @starting-style {
+    .pantry-import-dialog[open] .pantry-import-dialog-panel {
+      transform: translateY(8px);
+    }
+  }
+}
+
+.pantry-import-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pantry-import-dialog-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.pantry-import-dialog-close {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -8px -8px 0 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.pantry-import-dialog-close:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.pantry-import-dialog-close:active {
+  background: var(--bg);
+}
+
+.pantry-import-dialog-hint {
+  margin: 10px 0 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.pantry-import-dialog-date {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.pantry-import-list {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pantry-import-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 체크박스 자체 크기를 키운다 — 이 화면의 유일한 방어선이라(핵심 원칙 4) 잘못 눌러
+   실수로 빠뜨리는 일이 적어야 한다. */
+.pantry-import-item input[type="checkbox"] {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  accent-color: var(--brand);
+}
+
+.pantry-import-item input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  padding: 8px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* 체크 해제된 줄은 "이건 안 담긴다"가 이름 색으로도 읽혀야 한다. */
+.pantry-import-item:has(input[type="checkbox"]:not(:checked)) input[type="text"] {
+  color: var(--text-subtle);
+}
+
+.pantry-import-dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+/* .cta-button은 기본으로 <a>를 가정한다(recipe-form·mealplan-form과 같은 이유로
+   여기서도 <button> 리셋을 더한다). */
+#pantry-import-form .cta-button {
+  border: none;
+  font: inherit;
+  cursor: pointer;
+}
+
 /* ==========================================================================
    식단 편집 모드
    ==========================================================================
@@ -2056,6 +2246,13 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   flex-wrap: wrap;
   color: var(--text-muted);
   font-size: 0.85rem;
+}
+
+/* display:flex가 UA의 [hidden]{display:none}을 이겨서, 속성만으로는 안 숨는다
+   (.meal-brief[hidden]과 같은 자리). createWaitIndicator().stop()이 hidden만 켜므로
+   이 규칙이 없으면 요청이 끝난 뒤에도 "N초 지남" 표시가 화면에 남는다 — 실제로 그랬다. */
+.loading-wait[hidden] {
+  display: none;
 }
 
 .loading-elapsed {

@@ -67,6 +67,15 @@
         <input type="text" id="pantry-input" data-copy="PANTRY.inputPlaceholder" data-copy-attr="placeholder" placeholder="예) 계란, 대파, 김치, 두부" />
         <button type="button" id="pantry-add-btn" data-copy="PANTRY.addButton">넣기</button>
       </div>
+
+      <!-- capture 속성을 일부러 안 넣는다 — 넣으면 모바일에서 카메라만 강제로 열려
+           쿠팡 캡처 같은 갤러리 이미지를 고를 수 없다. 없으면 OS가 촬영/갤러리를 함께
+           보여줘서 버튼 하나로 영수증 촬영·구매내역 캡처를 다 처리한다. -->
+      <button type="button" id="pantry-import-btn" class="cta-button cta-button-secondary pantry-import-btn"
+        data-copy="PANTRY.photoImportButton">사진으로 재료 등록</button>
+      <input type="file" id="pantry-import-input" accept="image/*" hidden />
+      <p id="pantry-import-loading" class="loading" role="status" aria-live="polite" data-copy="PANTRY.importLoading" hidden>사진에서 재료를 찾고 있어요…</p>
+
       <p id="pantry-status" class="pantry-status" role="status" aria-live="polite" hidden></p>
 
       <div class="pantry-list-head">
@@ -103,6 +112,34 @@
         aria-label="두승현의 LinkedIn 프로필로 이동">제작자 링크드인: 두승현</a>
     </div>
   </footer>
+
+  <!-- mealplan.html의 #meal-dialog와 같은 구조(backdrop·panel·head·close 버튼)를 그대로
+       본떴다. 스타일은 .meal-dialog 전용 스코프라 클래스는 새로 만들되(.pantry-import-dialog)
+       초점 가두기·Esc 닫기는 <dialog> 기본 동작을 그대로 재사용한다. 안쪽 목록은
+       js/shared.js가 채운다. -->
+  <dialog id="pantry-import-dialog" class="pantry-import-dialog" aria-labelledby="pantry-import-dialog-title">
+    <div class="pantry-import-dialog-panel" tabindex="-1" autofocus>
+      <div class="pantry-import-dialog-head">
+        <p id="pantry-import-dialog-title" class="pantry-import-dialog-title" data-copy="PANTRY.importDialogTitle">사진에서 찾은 재료</p>
+        <button type="button" id="pantry-import-dialog-close" class="pantry-import-dialog-close"
+          data-copy="MEALPLAN.close" data-copy-attr="aria-label" aria-label="닫기">
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor"
+            stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false">
+            <path d="M4 4l8 8M12 4l-8 8" />
+          </svg>
+        </button>
+      </div>
+      <p class="pantry-import-dialog-hint" data-copy="PANTRY.importDialogHint">체크된 재료만 냉장고에 들어가요. 다른 재료로 잘못 읽었다면 이름을 고쳐주세요.</p>
+      <p id="pantry-import-dialog-date" class="pantry-import-dialog-date"></p>
+      <form id="pantry-import-form">
+        <ul id="pantry-import-list" class="pantry-import-list"></ul>
+        <div class="pantry-import-dialog-actions">
+          <button type="button" id="pantry-import-cancel" class="link-button" data-copy="PANTRY.importCancel">취소</button>
+          <button type="submit" class="cta-button" data-copy="PANTRY.importConfirm">냉장고에 담기</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
 
   <script src="js/copy.js"></script>
   <script src="js/main.js"></script>

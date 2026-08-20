@@ -106,6 +106,22 @@ const COPY = {
     barEmpty: "아직 넣어둔 재료가 없어요. 아래에 적으면 바로 들어가요.",
     barPlaceholder: "재료 추가 (쉼표로 여러 개)",
     barInputLabel: "냉장고에 추가할 재료",
+
+    /* 사진으로 재료 등록 (docs/spec-pantry-photo-import.md). capture 속성을 안 붙인
+       파일 입력이라 버튼 하나가 촬영·갤러리 선택을 다 처리한다. */
+    photoImportButton: "사진으로 재료 등록",
+    importLoading: "사진에서 재료를 찾고 있어요…",
+    importDialogTitle: "사진에서 찾은 재료",
+    // 체크 해제·이름 수정이 이 기능의 유일한 방어선이라는 것을 짧게라도 알려준다(핵심 원칙 4).
+    importDialogHint: "체크된 재료만 냉장고에 들어가요. 다른 재료로 잘못 읽었다면 이름을 고쳐주세요.",
+    importPurchasedOn: (date) => `${date}에 산 것으로 기록돼요.`,
+    importItemNameLabel: "재료 이름",
+    importItemCheckLabel: (name) => `${name} 포함`,
+    importConfirm: "냉장고에 담기",
+    importCancel: "취소",
+    importSaved: (names) => `${names}을(를) 냉장고에 넣었어요.`,
+    // 어휘에 하나도 안 걸려 추출 결과가 전부 걸러졌을 때(§엣지 케이스)
+    importEmpty: "사진에서 요리 재료로 쓸 만한 걸 못 찾았어요. 손으로 적어주세요.",
   },
 
   // index.html "이렇게 쓰면 돼요" 3단계

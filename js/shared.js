@@ -508,6 +508,26 @@ function addToPantry(rawValue) {
   return { empty: false, added, updated, unchanged, stored: changed ? savePantry(pantry) : true };
 }
 
+/* 사진 인식 확인 화면(docs/spec-pantry-photo-import.md §4)에서 사용자가 체크·수정을
+   끝낸 뒤에만 부른다. 수량은 사진에서 알 수 없으므로 항상 비운다. 이미 있는 이름이면
+   새 줄을 또 만들지 않고 구매일만 최신으로 올린다 — "방금 또 샀다"는 "먼저 먹어라"
+   신호와 같은 방향이라 갱신하는 쪽이 자연스럽다. */
+function confirmPantryImport(names, purchaseDate) {
+  const addedAt = typeof purchaseDate === "string" && purchaseDate ? purchaseDate : todayISO();
+  const pantry = loadPantry();
+
+  names.forEach((raw) => {
+    const name = String(raw).trim();
+    if (!name) return;
+    const key = normalizeIngredient(name);
+    const at = pantry.findIndex((p) => normalizeIngredient(p.name) === key);
+    if (at < 0) pantry.push({ name, amount: "", addedAt });
+    else pantry[at] = { ...pantry[at], addedAt };
+  });
+
+  return savePantry(pantry);
+}
+
 /* 방금 뺀 재료들. 되돌리기 버튼을 그릴지도 이 값으로 판단한다.
    한 번에 여러 개가 빠질 수 있어(요리 하나가 재료 여럿을 쓴다) 배열로 들고 있는다 —
    되돌리기 자리를 둘로 나누면 어느 쪽이 되살아나는지 알 수 없어진다.
@@ -1153,7 +1173,117 @@ function initPantry() {
     });
   }
 
+  initPantryImport({ setPantry: (next) => (pantry = next), render, setStatus });
+
   render();
+}
+
+/* 사진으로 재료 등록 (docs/spec-pantry-photo-import.md). 비전 호출과 어휘 대조·문턱값
+   필터링은 서버(api/pantry_import.py)가 다 하므로, 여기서는 파일을 데이터 URL로 바꿔
+   보내는 것과, 결과를 사용자가 체크·수정으로 확인할 때까지 냉장고에 반영하지 않는 것만
+   맡는다 — "재료는 맞는데 다른 재료로 오독"하는 오류(예: 유부↔어묵)는 코드로 못 거르고
+   사용자 확인만이 유일한 방어선이다(핵심 원칙 4). initPantry()의 pantry·render·setStatus를
+   그대로 넘겨받아 같은 상태를 공유한다 — 목록을 따로 들고 있으면 새로고침 없이는 안 맞는다. */
+function initPantryImport({ setPantry, render, setStatus }) {
+  const importBtn = document.getElementById("pantry-import-btn");
+  const importInput = document.getElementById("pantry-import-input");
+  const importLoadingEl = document.getElementById("pantry-import-loading");
+  const importDialog = document.getElementById("pantry-import-dialog");
+  if (!importBtn || !importInput || !importDialog) return;
+
+  const IMPORT_TIMEOUT_MS = 25000; // 서버 비전 호출 20초 + 여유(recipe.js와 같은 방침)
+
+  const importListEl = document.getElementById("pantry-import-list");
+  const importDateEl = document.getElementById("pantry-import-dialog-date");
+  const importForm = document.getElementById("pantry-import-form");
+  const importWait = createWaitIndicator(importLoadingEl, IMPORT_TIMEOUT_MS);
+  let importPurchaseDate = null;
+
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function importItemRowHtml(name) {
+    const safe = escapeHtml(name);
+    return `<li class="pantry-import-item">
+      <input type="checkbox" checked aria-label="${escapeHtml(COPY.PANTRY.importItemCheckLabel(name))}" />
+      <input type="text" aria-label="${escapeHtml(COPY.PANTRY.importItemNameLabel)}" value="${safe}" />
+    </li>`;
+  }
+
+  function openImportDialog(items, purchaseDate) {
+    importPurchaseDate = purchaseDate;
+    importDateEl.textContent = COPY.PANTRY.importPurchasedOn(purchaseDate || todayISO());
+    importListEl.innerHTML = items.map(importItemRowHtml).join("");
+    importDialog.showModal();
+  }
+
+  function closeImportDialog() {
+    importDialog.close();
+  }
+
+  importBtn.addEventListener("click", () => importInput.click());
+
+  importInput.addEventListener("change", async () => {
+    const file = importInput.files && importInput.files[0];
+    importInput.value = ""; // 같은 파일을 다시 골라도 change가 다시 나게 한다
+    if (!file) return;
+
+    const dataUrl = await readFileAsDataUrl(file);
+
+    setStatus("");
+    importBtn.disabled = true;
+    importLoadingEl.hidden = false;
+    importWait.start();
+
+    const result = await postJson("/api/pantryImport", { image: dataUrl }, IMPORT_TIMEOUT_MS);
+
+    importLoadingEl.hidden = true;
+    importWait.stop();
+    importBtn.disabled = false;
+
+    if (!result.ok) {
+      setStatus(result.message);
+      return;
+    }
+    const items = (result.data && result.data.items) || [];
+    if (!items.length) {
+      setStatus(COPY.PANTRY.importEmpty);
+      return;
+    }
+    openImportDialog(items, result.data.purchaseDate);
+  });
+
+  document.getElementById("pantry-import-dialog-close").addEventListener("click", closeImportDialog);
+  document.getElementById("pantry-import-cancel").addEventListener("click", closeImportDialog);
+
+  /* 배경을 눌러 닫는다 — mealplan.js의 #meal-dialog와 같은 판정(대상이 다이얼로그
+     자신이면 패널 바깥 = 배경이다). */
+  importDialog.addEventListener("click", (e) => {
+    if (e.target === importDialog) closeImportDialog();
+  });
+
+  importForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const rows = [...importListEl.querySelectorAll(".pantry-import-item")];
+    const names = rows
+      .filter((row) => row.querySelector('input[type="checkbox"]').checked)
+      .map((row) => row.querySelector('input[type="text"]').value.trim())
+      .filter(Boolean);
+
+    closeImportDialog();
+    if (!names.length) return;
+
+    const stored = confirmPantryImport(names, importPurchaseDate);
+    setPantry(loadPantry());
+    render();
+    setStatus(stored ? COPY.PANTRY.importSaved(names.join(", ")) : COPY.COOKED.failed);
+  });
 }
 
 /* ── 식단 날짜 이름 ────────────────────────────────────────────────────────────
