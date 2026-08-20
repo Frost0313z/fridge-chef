@@ -57,6 +57,8 @@
     <section class="page-intro">
       <h1 data-copy="UI.mealplanTitle">이번 주 저녁, 미리 정해둘까요?</h1>
       <p data-copy="UI.mealplanIntro">냉장고에 있는 재료를 최대한 쓰고, 부족한 것만 장보기로 모아드려요.</p>
+      <button type="button" id="favorites-view-btn" class="link-button"
+        data-copy="MEALPLAN.viewFavorites">즐겨찾기 보기</button>
     </section>
 
     <section class="recipe-form-section">
@@ -143,6 +145,26 @@
         </button>
       </div>
       <div id="meal-dialog-body" class="meal-dialog-body"></div>
+    </div>
+  </dialog>
+
+  <!-- 즐겨찾기 전체 목록 모달(docs/UIUX원칙.md D-0s). 구조는 #meal-dialog·#pantry-import-dialog와
+       같다(배경 막·초점 가두기·Esc 닫기 근거도 같다). 세 번째 사용 사례라 클래스는 새로
+       만들되(.favorites-dialog) 톤은 그대로 맞춘다. 안쪽 목록은 js/mealplan.js가 채운다. -->
+  <dialog id="favorites-dialog" class="favorites-dialog" aria-labelledby="favorites-dialog-title">
+    <div class="favorites-dialog-panel" tabindex="-1" autofocus>
+      <div class="favorites-dialog-head">
+        <p id="favorites-dialog-title" class="favorites-dialog-title" data-copy="FAVORITES.listDialogTitle">즐겨찾기한 요리</p>
+        <button type="button" id="favorites-dialog-close" class="favorites-dialog-close"
+          data-copy="MEALPLAN.close" data-copy-attr="aria-label" aria-label="닫기">
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor"
+            stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false">
+            <path d="M4 4l8 8M12 4l-8 8" />
+          </svg>
+        </button>
+      </div>
+      <p id="favorites-list-empty" class="favorites-list-empty" data-copy="FAVORITES.listEmpty" hidden>아직 담아둔 즐겨찾기가 없어요. 레시피 결과에서 별을 눌러 담아보세요.</p>
+      <ul id="favorites-list" class="favorites-list"></ul>
     </div>
   </dialog>
 

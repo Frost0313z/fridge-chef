@@ -90,6 +90,53 @@ document.addEventListener("DOMContentLoaded", () => {
     if (opener) opener.focus();
   });
 
+  /* 즐겨찾기 전체 목록 모달(D-0s). 빈 칸 팝업 안에서만 보이던 것을 페이지 어디서든
+     훑어볼 수 있게 한다 — #meal-dialog·#pantry-import-dialog와 같은 <dialog> 패턴이라
+     초점 가두기·Esc 닫기·배경 클릭 닫기 근거도 같다. */
+  const favoritesBtn = document.getElementById("favorites-view-btn");
+  const favoritesDialog = document.getElementById("favorites-dialog");
+  const favoritesListEl = document.getElementById("favorites-list");
+  const favoritesEmptyEl = document.getElementById("favorites-list-empty");
+
+  function favoriteRowHtml(r, i) {
+    const timeHtml = r.time ? `<p class="favorites-list-time">⏱ ${escapeHtml(r.time)}</p>` : "";
+    return `<li class="favorites-list-item">
+      <div class="favorites-list-info">
+        <p class="favorites-list-name">${escapeHtml(r.name)}</p>
+        ${timeHtml}
+      </div>
+      ${favoriteToggleHtml(r.name, `data-favorite-list-index="${i}"`)}
+    </li>`;
+  }
+
+  function renderFavoritesList() {
+    const items = loadFavorites();
+    favoritesListEl.innerHTML = items.map(favoriteRowHtml).join("");
+    favoritesEmptyEl.hidden = items.length > 0;
+  }
+
+  favoritesBtn.addEventListener("click", () => {
+    renderFavoritesList();
+    favoritesDialog.showModal();
+  });
+
+  document.getElementById("favorites-dialog-close").addEventListener("click", () => favoritesDialog.close());
+  favoritesDialog.addEventListener("click", (e) => {
+    if (e.target === favoritesDialog) favoritesDialog.close();
+  });
+
+  /* 읽기 전용 목록이라 할 수 있는 조작은 별 해제뿐이다 — 누르면 즐겨찾기에서
+     빠지므로 목록에서도 그 줄이 사라져야 한다. 인덱스가 밀리는 문제를 피하려고
+     자리만 바꾸지 않고 목록 전체를 다시 그린다. */
+  favoritesListEl.addEventListener("click", (e) => {
+    const btn = e.target.closest(".fav-toggle");
+    if (!btn) return;
+    const recipe = loadFavorites()[Number(btn.dataset.favoriteListIndex)];
+    if (!recipe) return;
+    toggleFavorite(recipe);
+    renderFavoritesList();
+  });
+
   /* 냉장고는 조회 바에서도 바뀐다(추가·삭제·되돌리기). 부족 여부를 저장하지 않고 그때그때
      세므로, 바뀔 때 상태 줄만 다시 그리면 양쪽 방향이 모두 맞는다. */
   onPantryChanged(refreshPlanStates);

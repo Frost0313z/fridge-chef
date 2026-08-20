@@ -751,6 +751,11 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   color: var(--text-muted);
 }
 
+.page-intro .link-button {
+  display: inline-block;
+  margin-top: 12px;
+}
+
 .page section + section {
   margin-top: 48px;
 }
@@ -1766,6 +1771,147 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   border: none;
   font: inherit;
   cursor: pointer;
+}
+
+/* --------------------------------------------------------------------------
+   즐겨찾기 전체 목록 모달 (docs/UIUX원칙.md D-0s)
+   --------------------------------------------------------------------------
+   구조는 .meal-dialog·.pantry-import-dialog와 동일하다. 이 화면 전용 스타일이라
+   클래스는 새로 만든다. */
+.favorites-dialog {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 16px;
+  border: 0;
+  background: var(--scrim);
+  color: var(--text);
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease), display var(--dur) allow-discrete,
+    overlay var(--dur) allow-discrete;
+}
+
+.favorites-dialog::backdrop {
+  background: transparent;
+}
+
+.favorites-dialog[open] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+}
+
+@starting-style {
+  .favorites-dialog[open] {
+    opacity: 0;
+  }
+}
+
+.favorites-dialog-panel {
+  width: min(440px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .favorites-dialog-panel {
+    transform: translateY(8px);
+    transition: transform var(--dur) var(--ease);
+  }
+
+  .favorites-dialog[open] .favorites-dialog-panel {
+    transform: none;
+  }
+
+  @starting-style {
+    .favorites-dialog[open] .favorites-dialog-panel {
+      transform: translateY(8px);
+    }
+  }
+}
+
+.favorites-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.favorites-dialog-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.favorites-dialog-close {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -8px -8px 0 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.favorites-dialog-close:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.favorites-dialog-close:active {
+  background: var(--bg);
+}
+
+.favorites-list-empty {
+  margin: 14px 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.favorites-list {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.favorites-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg);
+}
+
+.favorites-list-name {
+  margin: 0;
+}
+
+.favorites-list-time {
+  margin: 2px 0 0;
+  color: var(--accent-strong);
+  font-size: 0.82rem;
+  font-weight: 600;
 }
 
 /* ==========================================================================
