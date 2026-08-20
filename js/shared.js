@@ -1201,10 +1201,25 @@ function initPantryImport({ setPantry, render, setStatus }) {
 
   /* 휴대폰 카메라 원본(수 MB~수십 MB)을 그대로 base64로 실으면 Vercel 서버리스
      요청 본문 제한(4.5MB)에 걸려 413이 난다 — 응답이 JSON이 아니라 postJson이
-     COPY.UI.error로 뭉뚱그려 "문제가 생겼다"로만 보인다. 긴 변을 1600px로 줄이고
-     JPEG로 다시 인코딩해 여유 있게 제한 아래로 낮춘다. */
+     COPY.UI.error로 뭉뚱그려 "문제가 생겼다"로만 보인다.
+     스크린샷(쿠팡 주문내역 등)은 대개 PNG라 이미 이 제한 아래라서 원본 그대로
+     보내야 한다 — 무조건 리사이즈하면 작은 글씨가 손실 압축에 뭉개져서 인식이
+     안 된다(실측: 쿠팡 스크린샷에서 재료를 하나도 못 찾음). 진짜 문제였던
+     "용량이 큰 원본"일 때만 줄인다. */
   function readFileAsDataUrl(file) {
-    const MAX_DIM = 1600;
+    const SKIP_RESIZE_UNDER_BYTES = 3 * 1024 * 1024; // base64로도 4.5MB 제한 아래
+    const MAX_DIM = 2048; // OpenAI 비전이 내부적으로 맞추는 상한과 같다 — 더 줄이면 어차피 손해
+    const QUALITY = 0.9;
+
+    if (file.size < SKIP_RESIZE_UNDER_BYTES) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+    }
+
     return new Promise((resolve, reject) => {
       const img = new Image();
       const objectUrl = URL.createObjectURL(file);
@@ -1217,7 +1232,7 @@ function initPantryImport({ setPantry, render, setStatus }) {
         canvas.width = w;
         canvas.height = h;
         canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL("image/jpeg", 0.82));
+        resolve(canvas.toDataURL("image/jpeg", QUALITY));
       };
       img.onerror = () => {
         URL.revokeObjectURL(objectUrl);
