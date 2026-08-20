@@ -116,6 +116,15 @@ def test_exclude_prompt():
     assert "계란말이, 계란찜" in with_exclude, with_exclude
 
 
+def test_category_prompt():
+    """요리 종류를 지정했을 때만 조건 문장이 들어간다. "상관없음"이면 생략한다."""
+    without = recommend.build_user_prompt("계란", "한 끼", "상관없음", False, category="상관없음")
+    assert "요리 종류" not in without, without
+
+    with_category = recommend.build_user_prompt("계란", "한 끼", "상관없음", False, category="국/탕")
+    assert "요리 종류: 국/탕에 해당하는 요리로 추천해줘" in with_category, with_category
+
+
 def test_exclude_payload_is_guarded():
     """exclude가 배열이 아니거나 쓰레기가 섞여도 죽지 않는다."""
     seen = {}
@@ -552,6 +561,25 @@ def test_match_prefers_using_more_of_the_fridge():
     ])
     out = recipe_match.match(["김치", "밥", "참기름", "두부", "대파", "계란", "양파"])
     assert [r["name"] for r in out] == ["제대로된것", "간단한것"], out
+
+
+def test_match_filters_by_category():
+    """요리 종류를 지정하면 cat이 정확히 일치하는 레시피만 남는다. "상관없음"이거나
+    비어 있으면 지금처럼 전체가 후보다."""
+    _fake_index([
+        {"id": 1, "name": "김치찌개", "ing": ["김치", "돼지고기", "두부"], "cat": "찌개", "pop": 0},
+        {"id": 2, "name": "김치볶음밥", "ing": ["김치", "밥", "참기름"], "cat": "밥/죽/떡", "pop": 0},
+    ])
+    pantry = ["김치", "돼지고기", "두부", "밥", "참기름"]
+
+    out = recipe_match.match(pantry, category="찌개")
+    assert [r["name"] for r in out] == ["김치찌개"], out
+
+    out = recipe_match.match(pantry, category="상관없음")
+    assert {r["name"] for r in out} == {"김치찌개", "김치볶음밥"}, out
+
+    out = recipe_match.match(pantry)
+    assert {r["name"] for r in out} == {"김치찌개", "김치볶음밥"}, out
 
 
 def test_match_counts_duplicate_ingredients_once():

@@ -129,6 +129,9 @@ def main():
                 "ing": ings,
                 "time": (row.get("CKG_TIME_NM") or "").strip(),
                 "inbun": (row.get("CKG_INBUN_NM") or "").strip(),
+                # 요리 종류 필터용 (docs/spec-recipe-match.md "요리 종류 필터" 절). 원본 그대로
+                # 저장한다 — 큐레이션한 13개 밖의 값(기타·과자 등)도 "상관없음" 매칭에는 쓰인다.
+                "cat": (row.get("CKG_KND_ACTO_NM") or "").strip(),
                 # 후보가 여럿일 때 2차 정렬용. 추천수+스크랩수를 하나로 합쳐 들고 간다.
                 "pop": to_int(row.get("RCMM_CNT")) + to_int(row.get("SRAP_CNT")),
             }

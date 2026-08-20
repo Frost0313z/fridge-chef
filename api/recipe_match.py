@@ -83,8 +83,13 @@ def score(hit, total):
     return (hit / total) * hit if total else 0.0
 
 
-def match(pantry_keys, limit=3):
-    """냉장고 재료로 만들 수 있는 실제 레시피를 찾는다. 없으면 빈 배열."""
+def match(pantry_keys, limit=3, category=None):
+    """냉장고 재료로 만들 수 있는 실제 레시피를 찾는다. 없으면 빈 배열.
+
+    category가 주어지면(값이 있고 "상관없음"이 아니면) CKG_KND_ACTO_NM(cat)이 정확히
+    같은 레시피만 후보로 남긴다. 큐레이션한 13개 밖의 원본 값(기타·과자 등)은 UI에
+    선택지로 없으므로 여기로 들어올 일이 없다 — 걸러도 정확히 일치해야 하므로 별도
+    화이트리스트 검증은 하지 않는다."""
     if not pantry_keys:
         return []
 
@@ -101,6 +106,8 @@ def match(pantry_keys, limit=3):
     scored = []
     for i, hit in hits.items():
         recipe = index[i]
+        if category and category != "상관없음" and recipe.get("cat") != category:
+            continue
         # hit은 set(ing)로 만든 색인 기준(중복 재료명 1회) 이므로 분모도 같은 기준이어야
         # 한다. 원본 리스트 길이를 쓰면 중복 재료가 있는 레시피의 커버율이 실제보다 낮게 나온다.
         total = len(set(recipe.get("ing") or ()))

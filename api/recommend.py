@@ -2,7 +2,7 @@
 POST /api/recommend
 입력한 재료로 AI가 만들 수 있는 요리를 추천하는 Vercel Serverless Function.
 
-요청 페이로드: {"ingredients": str, "portion": str, "timeLimit": str, "healthy": bool}
+요청 페이로드: {"ingredients": str, "portion": str, "timeLimit": str, "category": str, "healthy": bool}
 반환(200): {"recipes": [{"name": str, "searchKeyword": str, "time": str, "ingredients": [str], "steps": [str]}]}
 반환(4xx/5xx): {"error": str, "message": str}  # message는 화면에 그대로 표시할 한국어 안내문
 """
@@ -149,13 +149,15 @@ def sanitize_recipes(raw, pantry_ingredients=None):
     return (recipes or dropped)[:MAX_RECIPES]
 
 
-def build_user_prompt(ingredients, portion, time_limit, healthy, exclude=()):
+def build_user_prompt(ingredients, portion, time_limit, healthy, exclude=(), category=None):
     lines = [
         f"보유 재료: {ingredients}",
         # 혼자 먹는다는 전제이므로 "몇 인분"이 아니라 "몇 끼 분량"으로 전달한다.
         f"만들 분량: 혼자 먹을 {portion} 분량 (남으면 다음 끼니에 먹음)",
         f"희망 조리 시간: {time_limit}",
     ]
+    if category and category != "상관없음":
+        lines.append(f"요리 종류: {category}에 해당하는 요리로 추천해줘")
     if healthy:
         lines.append(HEALTHY_HINT)
     # "다른 요리 추천받기"를 눌렀는데 같은 요리가 다시 나오면 버튼이 거짓말이 된다.
@@ -174,6 +176,7 @@ def handle(payload):
 
     portion = (payload.get("portion") or "한 끼").strip()
     time_limit = (payload.get("timeLimit") or "상관없음").strip()
+    category = (payload.get("category") or "상관없음").strip()
     healthy = bool(payload.get("healthy"))
 
     # 프롬프트에 그대로 들어가므로 개수를 제한한다. 이력이 5개라 실제로는 넘칠 일이 없다.
@@ -187,7 +190,7 @@ def handle(payload):
     실제로 존재하는 레시피라 AI 생성물보다 믿을 수 있고, 비용·속도도 아낀다.
     매칭과 생성을 한 응답에 섞지 않는다 — 섞으면 카드마다 있는 것과 없는 것(조리 순서)이
     달라져 화면 규칙이 둘이 된다."""
-    matched = recipe_match.match(recipe_match.pantry_keys_from(ingredients), limit=MAX_RECIPES)
+    matched = recipe_match.match(recipe_match.pantry_keys_from(ingredients), limit=MAX_RECIPES, category=category)
     if exclude:
         # "다른 요리 보기"로 다시 부른 경우. 방금 보여준 것을 빼야 버튼 문구가 거짓말이 아니다.
         skip = {dedupe_key(x) for x in exclude}
@@ -198,7 +201,7 @@ def handle(payload):
 
     data, error = call_openai(
         SYSTEM_PROMPT,
-        build_user_prompt(ingredients, portion, time_limit, healthy, exclude),
+        build_user_prompt(ingredients, portion, time_limit, healthy, exclude, category),
         timeout=15.0,
         temperature=0.7,
     )

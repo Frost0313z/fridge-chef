@@ -9,6 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const portionEl = document.getElementById("portion");
   const timeLimitEl = document.getElementById("timeLimit");
+  const categoryEl = document.getElementById("category");
   const healthyEl = document.getElementById("healthy");
   const submitBtn = document.getElementById("submit-btn");
   const loadingEl = document.getElementById("loading");
@@ -28,11 +29,13 @@ document.addEventListener("DOMContentLoaded", () => {
   portionEl.addEventListener("change", () => savePrefs({ portion: portionEl.value }));
   healthyEl.addEventListener("change", () => savePrefs({ healthy: healthyEl.checked }));
   timeLimitEl.addEventListener("change", () => savePrefs({ timeLimit: timeLimitEl.value }));
+  categoryEl.addEventListener("change", () => savePrefs({ category: categoryEl.value }));
 
   function restorePreferences() {
     const prefs = loadPrefs();
     setSelectValue(portionEl, prefs.portion);
     setSelectValue(timeLimitEl, prefs.timeLimit);
+    setSelectValue(categoryEl, prefs.category);
     healthyEl.checked = Boolean(prefs.healthy);
   }
 
@@ -85,6 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ingredients,
         portion: portionEl.value,
         timeLimit: timeLimitEl.value,
+        category: categoryEl.value,
         healthy: healthyEl.checked,
         exclude,
       },

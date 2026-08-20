@@ -424,6 +424,7 @@ const COPY = {
     portion: "만들 분량",
     portionPerMeal: "한 끼당 만들 분량",
     timeLimit: "희망 조리 시간",
+    category: "요리 종류",
     days: "계획할 일수",
     healthy: "건강 관리 중이에요 (기름지지 않고 칼로리 낮은 요리로)",
 
@@ -439,6 +440,23 @@ const COPY = {
     days3: "3일",
     days5: "5일",
     days7: "7일",
+
+    /* 요리 종류 필터. KADX 원본 CKG_KND_ACTO_NM 16개 값 중 "한 끼 요리"와 맞지 않는
+       차/음료/술·과자·양념/소스/잼·기타 4개를 뺀 13개(docs/spec-recipe-match.md). */
+    categoryAny: "상관없음",
+    categorySideDishLight: "밑반찬",
+    categorySideDishMain: "메인반찬",
+    categoryRicePorridgeTteok: "밥/죽/떡",
+    categorySoup: "국/탕",
+    categoryBread: "빵",
+    categoryNoodleDumpling: "면/만두",
+    categoryDessert: "디저트",
+    categoryStew: "찌개",
+    categoryKimchiJangPreserve: "김치/젓갈/장류",
+    categorySalad: "샐러드",
+    categoryWestern: "양식",
+    categoryFusion: "퓨전",
+    categorySoupBase: "스프",
   },
 
   /* 푸터: <footer>에 data-copy="FOOTER.line" 하나만 붙인다 (태그라인+저작권 한 줄로 병합, 2026-08-14 결정).
