@@ -14,6 +14,7 @@ POST /api/pantryImport
 """
 
 import re
+import sys
 
 from _common import call_openai
 from recipe_match import vocab_with_min_occurrence
@@ -90,4 +91,10 @@ def handle(payload):
     purchase_date = data.get("purchaseDate")
     purchase_date = purchase_date if isinstance(purchase_date, str) and _DATE_RE.match(purchase_date) else None
 
-    return 200, {"items": normalize_and_filter(raw_items), "purchaseDate": purchase_date}
+    filtered = normalize_and_filter(raw_items)
+    if not filtered:
+        # 결과가 빈 이유가 비전이 아예 못 찾은 건지, 어휘 대조에서 걸러진 건지는
+        # 응답만 보면 구분이 안 된다 — recipe_match.load_index()의 stderr 로그와 같은 방침.
+        print(f"pantry_import: raw={raw_items!r} -> filtered=[]", file=sys.stderr)
+
+    return 200, {"items": filtered, "purchaseDate": purchase_date}
