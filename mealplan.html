@@ -92,43 +92,45 @@
     </section>
 
     <section class="recipe-form-section">
-      <form id="mealplan-form" novalidate>
-        <!-- <option>은 보이는 글자만 COPY에서 받는다. value는 그대로 서버 프롬프트로
-             나가므로 건드리지 않는다 — 바꾸면 AI가 받는 지시가 달라진다. -->
-        <div class="form-row">
-          <div class="form-field">
-            <label for="days" data-copy="FORM.days">계획할 일수</label>
-            <select id="days" name="days">
-              <option value="3" data-copy="FORM.days3">3일</option>
-              <option value="5" selected data-copy="FORM.days5">5일</option>
-              <option value="7" data-copy="FORM.days7">7일</option>
-            </select>
+      <div class="list-card mealplan-form-card">
+        <form id="mealplan-form" novalidate>
+          <!-- <option>은 보이는 글자만 COPY에서 받는다. value는 그대로 서버 프롬프트로
+               나가므로 건드리지 않는다 — 바꾸면 AI가 받는 지시가 달라진다. -->
+          <div class="form-row">
+            <div class="form-field">
+              <label for="days" data-copy="FORM.days">계획할 일수</label>
+              <select id="days" name="days">
+                <option value="3" data-copy="FORM.days3">3일</option>
+                <option value="5" selected data-copy="FORM.days5">5일</option>
+                <option value="7" data-copy="FORM.days7">7일</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="mp-portion" data-copy="FORM.portionPerMeal">한 끼당 만들 분량</label>
+              <select id="mp-portion" name="portion">
+                <option value="한 끼" data-copy="FORM.portionOne">한 끼</option>
+                <option value="두 끼" data-copy="FORM.portionTwoMealplan">두 끼 (다음 끼니까지)</option>
+                <option value="3~4끼" data-copy="FORM.portionFew">3~4끼 (며칠치)</option>
+              </select>
+            </div>
           </div>
-          <div class="form-field">
-            <label for="mp-portion" data-copy="FORM.portionPerMeal">한 끼당 만들 분량</label>
-            <select id="mp-portion" name="portion">
-              <option value="한 끼" data-copy="FORM.portionOne">한 끼</option>
-              <option value="두 끼" data-copy="FORM.portionTwoMealplan">두 끼 (다음 끼니까지)</option>
-              <option value="3~4끼" data-copy="FORM.portionFew">3~4끼 (며칠치)</option>
-            </select>
-          </div>
-        </div>
 
-        <!-- 문구를 <span>으로 감싼다. <label>에 직접 걸면 textContent를 덮어쓰면서
-             안에 있는 <input type="checkbox">가 통째로 지워진다. -->
-        <label class="form-check">
-          <input type="checkbox" id="mp-healthy" name="healthy" />
-          <span data-copy="FORM.healthy">건강 관리 중이에요 (기름지지 않고 칼로리 낮은 요리로)</span>
-        </label>
+          <!-- 문구를 <span>으로 감싼다. <label>에 직접 걸면 textContent를 덮어쓰면서
+               안에 있는 <input type="checkbox">가 통째로 지워진다. -->
+          <label class="form-check">
+            <input type="checkbox" id="mp-healthy" name="healthy" />
+            <span data-copy="FORM.healthy">건강 관리 중이에요 (기름지지 않고 칼로리 낮은 요리로)</span>
+          </label>
 
-        <button type="submit" id="mealplan-submit-btn" class="cta-button" data-copy="UI.submitMealplan">식단 짜기</button>
-        <button type="button" id="mealplan-clear-btn" class="link-button link-button-muted mealplan-clear-btn" data-copy="UI.clearPlan" hidden>계획 지우기</button>
-      </form>
+          <button type="submit" id="mealplan-submit-btn" class="cta-button" data-copy="UI.submitMealplan">식단 짜기</button>
+          <button type="button" id="mealplan-clear-btn" class="link-button link-button-muted mealplan-clear-btn" data-copy="UI.clearPlan" hidden>계획 지우기</button>
+        </form>
 
-      <p id="mealplan-loading" class="loading" role="status" aria-live="polite" data-copy="UI.loadingMealplan" hidden>며칠치 저녁을 짜고 있어요…</p>
-      <p id="mealplan-error" class="error-message" role="alert" hidden></p>
+        <p id="mealplan-loading" class="loading" role="status" aria-live="polite" data-copy="UI.loadingMealplan" hidden>며칠치 저녁을 짜고 있어요…</p>
+        <p id="mealplan-error" class="error-message" role="alert" hidden></p>
 
-      <p id="mealplan-empty" class="result-empty" data-copy="UI.emptyMealplan">아직 짜둔 식단이 없어요. 위에서 며칠치 저녁을 정해보세요.</p>
+        <p id="mealplan-empty" class="result-empty" data-copy="UI.emptyMealplan">아직 짜둔 식단이 없어요. 위에서 며칠치 저녁을 정해보세요.</p>
+      </div>
 
       <div id="mealplan-toolbar" class="mealplan-toolbar" hidden>
         <h2 class="mealplan-toolbar-title" data-copy="UI.mealPlanTitle">이번 주 식단</h2>
