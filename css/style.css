@@ -947,14 +947,37 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   margin: 0 0 6px;
 }
 
+/* 낱개 카드(칩·이력 항목·장보기 줄)만 표면색이고 감싸는 배경이 없어 붕 뜬 느낌이던
+   세 영역(냉장고 재료 목록·레시피 추천 이력·장보기 리스트)에 공통으로 쓰는 카드.
+   .recipe-card/.history-entry와 같은 surface+border+r-lg+shadow-sm 조합 그대로 —
+   새 색·새 그림자 값을 만들지 않는다. */
+.list-card {
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+}
+
 /* 제목과 수량 토글을 한 줄에. 토글은 목록을 보는 방식이지 새 행동이 아니므로
-   제목 옆에 조용히 둔다(주 버튼처럼 채우지 않는다). */
+   제목 옆에 조용히 둔다(주 버튼처럼 채우지 않는다). margin-top은 .pantry-list-card가
+   진다 — 카드 밖 여백이라 헤더 자체가 아니라 카드 쪽 책임이다. */
 .pantry-list-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.pantry-list-card {
   margin-top: 32px;
+}
+
+/* 하단 냉장고 시트(.pantry-bar)와 공유하는 클래스라 .pantry-chip 기본값은 바꾸지 않는다.
+   이 카드 안에서만 표면 밑 단계(--bg)로 내려 카드와 구분한다 — .recipe-card .ing-tag와
+   같은 짜임. */
+.pantry-list-card .pantry-chip {
+  background: var(--bg);
 }
 
 .pantry-list-title {
@@ -1168,7 +1191,10 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   padding: 6px 14px 6px 12px;
   border: none;
   border-radius: var(--r-md); /* 버튼 10px */
-  background: var(--surface);
+  /* .pantry-list-card(--surface) 안에서 쓰이므로 --bg로 내려 카드와 구분한다.
+     --border-strong은 bg·surface 어느 쪽 위에 있어도 3:1을 넘기도록 잡혀 있다
+     (tokens.css) — 배경을 바꿔도 이 보더 값은 그대로 유효하다. */
+  background: var(--bg);
   color: var(--accent-strong);
   box-shadow: inset 0 0 0 1px var(--border-strong); /* 상호작용 요소 — D-2 #20, D-0o의 남겨둔 메모 여기서 해소 */
   cursor: pointer;
@@ -2333,11 +2359,12 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 
 /* 한 줄이 [이름·수량][검색·샀어요] 한 행이었는데, 그 아래 "왜 사야 하나요?"가 접혀 붙었다.
    가로 정렬은 안쪽 행이 그대로 맡고, 바깥은 위아래로 쌓기만 한다. */
+/* #shopping-result(.list-card, --surface) 안에 있으므로 --bg로 내려 카드와 구분한다. */
 .shopping-item {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: var(--surface);
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   padding: 12px 16px;
@@ -2990,14 +3017,15 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   margin: 0;
 }
 
-/* 이력 항목과 별. 항목 버튼 안에 별을 넣을 수 없어 한 겹 감싼 자리다. */
+/* 이력 항목과 별. 항목 버튼 안에 별을 넣을 수 없어 한 겹 감싼 자리다.
+   .history-list-card(--surface) 안에 있으므로 --bg로 내려 카드와 구분한다. */
 .history-entry {
   display: flex;
   align-items: center;
   gap: 4px;
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
-  background: var(--surface);
+  background: var(--bg);
 }
 
 /* 테두리·배경은 위 .history-entry가 진다 — 두 겹이 되면 상자 안에 상자가 보인다. */

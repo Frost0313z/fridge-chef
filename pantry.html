@@ -91,35 +91,37 @@
 
       <p id="pantry-status" class="pantry-status" role="status" aria-live="polite" hidden></p>
 
-      <div class="pantry-list-head">
-        <h2 class="pantry-list-title">
-          <span data-copy="PANTRY.listTitle">지금 들어있는 재료</span>
-          <!-- data-copy를 h2에 직접 걸면 이 아이콘까지 지워진다(FORM.healthy 체크박스와 같은 이유) -->
-          <span class="info-tooltip">
-            <button type="button" class="info-tooltip-btn" aria-describedby="pantry-age-tooltip"
-              data-copy-attr="aria-label:PANTRY.ageInfoAria" aria-label="오래된 재료 표시 안내">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                stroke-linejoin="round" aria-hidden="true" focusable="false">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-                <line x1="12" y1="17" x2="12.01" y2="17" />
-              </svg>
-            </button>
-            <span class="info-tooltip-bubble" role="tooltip" id="pantry-age-tooltip"
-              data-copy="PANTRY.ageInfo">넣은 지 오래된 재료에는 며칠 됐는지 배지가 붙어요. 14일이 지나면 색이 진해져서, 먼저 먹어야 할 재료를 한눈에 알 수 있어요.</span>
-          </span>
-        </h2>
-        <button type="button" id="pantry-amount-toggle" class="pill-toggle pantry-amount-toggle"
-          aria-pressed="false" data-copy="PANTRY.detailOn">자세히</button>
-      </div>
-      <div id="pantry-chips" class="pantry-chips"></div>
-      <div id="pantry-limit-note" hidden></div>
-      <div id="pantry-empty" class="pantry-empty">
-        <p data-copy="PANTRY.empty">아직 넣어둔 재료가 없어요. 두세 개만 적어도 충분해요.</p>
-        <p class="pantry-example-label" data-copy="PANTRY.exampleLabel">눌러서 바로 넣기</p>
-        <!-- 버튼은 shared.js가 COPY.PANTRY.examples로 그린다. 여기에 이름을 적어두면
-             바로 위 입력칸의 placeholder와 조용히 어긋난다 — 실제로 그랬다. -->
-        <div id="pantry-examples" class="pantry-examples"></div>
+      <div class="list-card pantry-list-card">
+        <div class="pantry-list-head">
+          <h2 class="pantry-list-title">
+            <span data-copy="PANTRY.listTitle">지금 들어있는 재료</span>
+            <!-- data-copy를 h2에 직접 걸면 이 아이콘까지 지워진다(FORM.healthy 체크박스와 같은 이유) -->
+            <span class="info-tooltip">
+              <button type="button" class="info-tooltip-btn" aria-describedby="pantry-age-tooltip"
+                data-copy-attr="aria-label:PANTRY.ageInfoAria" aria-label="오래된 재료 표시 안내">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round" aria-hidden="true" focusable="false">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+              </button>
+              <span class="info-tooltip-bubble" role="tooltip" id="pantry-age-tooltip"
+                data-copy="PANTRY.ageInfo">넣은 지 오래된 재료에는 며칠 됐는지 배지가 붙어요. 14일이 지나면 색이 진해져서, 먼저 먹어야 할 재료를 한눈에 알 수 있어요.</span>
+            </span>
+          </h2>
+          <button type="button" id="pantry-amount-toggle" class="pill-toggle pantry-amount-toggle"
+            aria-pressed="false" data-copy="PANTRY.detailOn">자세히</button>
+        </div>
+        <div id="pantry-chips" class="pantry-chips"></div>
+        <div id="pantry-limit-note" hidden></div>
+        <div id="pantry-empty" class="pantry-empty">
+          <p data-copy="PANTRY.empty">아직 넣어둔 재료가 없어요. 두세 개만 적어도 충분해요.</p>
+          <p class="pantry-example-label" data-copy="PANTRY.exampleLabel">눌러서 바로 넣기</p>
+          <!-- 버튼은 shared.js가 COPY.PANTRY.examples로 그린다. 여기에 이름을 적어두면
+               바로 위 입력칸의 placeholder와 조용히 어긋난다 — 실제로 그랬다. -->
+          <div id="pantry-examples" class="pantry-examples"></div>
+        </div>
       </div>
     </section>
 

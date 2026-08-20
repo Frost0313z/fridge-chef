@@ -1544,18 +1544,14 @@ function initInfoTooltips() {
     const bubble = wrap.querySelector(".info-tooltip-bubble");
     if (!btn || !bubble) return;
 
-    btn.setAttribute("aria-expanded", "false");
-
     function show() {
       clearTimeout(hideTimer);
       bubble.classList.add("is-visible");
       positionInfoTooltip(btn, bubble);
-      btn.setAttribute("aria-expanded", "true");
     }
     function hide() {
       clearTimeout(hideTimer);
       bubble.classList.remove("is-visible");
-      btn.setAttribute("aria-expanded", "false");
     }
 
     btn.addEventListener("focus", show);

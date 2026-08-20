@@ -153,12 +153,14 @@
     </section>
 
     <section class="history">
-      <div class="history-header">
-        <h2 data-copy="UI.historyTitle">최근 받은 요리</h2>
-        <button type="button" id="history-clear-btn" class="link-button link-button-muted" data-copy="UI.clearAll">전체 지우기</button>
+      <div class="list-card history-list-card">
+        <div class="history-header">
+          <h2 data-copy="UI.historyTitle">최근 받은 요리</h2>
+          <button type="button" id="history-clear-btn" class="link-button link-button-muted" data-copy="UI.clearAll">전체 지우기</button>
+        </div>
+        <p id="history-empty" class="history-empty" data-copy="UI.emptyHistory">아직 받은 추천이 없어요.</p>
+        <div id="history-list" class="history-list"></div>
       </div>
-      <p id="history-empty" class="history-empty" data-copy="UI.emptyHistory">아직 받은 추천이 없어요.</p>
-      <div id="history-list" class="history-list"></div>
     </section>
   </main>
 
