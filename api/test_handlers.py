@@ -116,6 +116,15 @@ def test_exclude_prompt():
     assert "계란말이, 계란찜" in with_exclude, with_exclude
 
 
+def test_healthy_is_disabled():
+    """건강 관리 필터는 UI/UX와 함께 뺐다(2026-08-20) — healthy=True를 줘도 프롬프트에
+    아무 영향이 없어야 한다. 되살릴 때 이 테스트부터 고쳐야 한다는 신호가 된다."""
+    with_true = recommend.build_user_prompt("계란", "한 끼", "상관없음", True)
+    without = recommend.build_user_prompt("계란", "한 끼", "상관없음", False)
+    assert with_true == without, (with_true, without)
+    assert "건강" not in with_true, with_true
+
+
 def test_category_prompt():
     """요리 종류를 지정했을 때만 조건 문장이 들어간다. "상관없음"이면 생략한다."""
     without = recommend.build_user_prompt("계란", "한 끼", "상관없음", False, category="상관없음")
