@@ -74,22 +74,24 @@
     </section>
 
     <section class="pantry-page">
-      <h2 data-copy="PANTRY.addSectionTitle">재료 넣기</h2>
-      <p class="pantry-hint"><span data-copy="PANTRY.amountHint">쉼표로 구분하면 여러 개를 한 번에 넣을 수 있어요.</span> <strong data-copy="PANTRY.amountHintStrong">"계란 2개"처럼 수량을 함께 적으면</strong> <span data-copy="PANTRY.amountHintTail">식단을 짤 때 모자란 재료를 더 정확히 골라드려요.</span></p>
-      <div class="pantry-input-row">
-        <input type="text" id="pantry-input" data-copy="PANTRY.inputPlaceholder" data-copy-attr="placeholder" placeholder="예) 계란, 대파, 김치, 두부" />
-        <button type="button" id="pantry-add-btn" data-copy="PANTRY.addButton">넣기</button>
+      <div class="list-card pantry-add-card">
+        <h2 data-copy="PANTRY.addSectionTitle">재료 넣기</h2>
+        <p class="pantry-hint"><span data-copy="PANTRY.amountHint">쉼표로 구분하면 여러 개를 한 번에 넣을 수 있어요.</span> <strong data-copy="PANTRY.amountHintStrong">"계란 2개"처럼 수량을 함께 적으면</strong> <span data-copy="PANTRY.amountHintTail">식단을 짤 때 모자란 재료를 더 정확히 골라드려요.</span></p>
+        <div class="pantry-input-row">
+          <input type="text" id="pantry-input" data-copy="PANTRY.inputPlaceholder" data-copy-attr="placeholder" placeholder="예) 계란, 대파, 김치, 두부" />
+          <button type="button" id="pantry-add-btn" data-copy="PANTRY.addButton">넣기</button>
+        </div>
+
+        <!-- capture 속성을 일부러 안 넣는다 — 넣으면 모바일에서 카메라만 강제로 열려
+             쿠팡 캡처 같은 갤러리 이미지를 고를 수 없다. 없으면 OS가 촬영/갤러리를 함께
+             보여줘서 버튼 하나로 영수증 촬영·구매내역 캡처를 다 처리한다. -->
+        <button type="button" id="pantry-import-btn" class="cta-button cta-button-secondary pantry-import-btn"
+          data-copy="PANTRY.photoImportButton">사진으로 재료 등록</button>
+        <input type="file" id="pantry-import-input" accept="image/*" hidden />
+        <p id="pantry-import-loading" class="loading" role="status" aria-live="polite" data-copy="PANTRY.importLoading" hidden>사진에서 재료를 찾고 있어요…</p>
+
+        <p id="pantry-status" class="pantry-status" role="status" aria-live="polite" hidden></p>
       </div>
-
-      <!-- capture 속성을 일부러 안 넣는다 — 넣으면 모바일에서 카메라만 강제로 열려
-           쿠팡 캡처 같은 갤러리 이미지를 고를 수 없다. 없으면 OS가 촬영/갤러리를 함께
-           보여줘서 버튼 하나로 영수증 촬영·구매내역 캡처를 다 처리한다. -->
-      <button type="button" id="pantry-import-btn" class="cta-button cta-button-secondary pantry-import-btn"
-        data-copy="PANTRY.photoImportButton">사진으로 재료 등록</button>
-      <input type="file" id="pantry-import-input" accept="image/*" hidden />
-      <p id="pantry-import-loading" class="loading" role="status" aria-live="polite" data-copy="PANTRY.importLoading" hidden>사진에서 재료를 찾고 있어요…</p>
-
-      <p id="pantry-status" class="pantry-status" role="status" aria-live="polite" hidden></p>
 
       <div class="list-card pantry-list-card">
         <div class="pantry-list-head">

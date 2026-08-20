@@ -1030,6 +1030,8 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   gap: 10px;
 }
 
+/* .pantry-add-card(--surface) 안에 있으므로 --bg로 내려 카드와 구분한다.
+   .pantry-input-row는 이 페이지에서만 쓰는 선택자라 스코프 없이 바로 바꿔도 된다. */
 .pantry-input-row input {
   flex: 1;
   min-width: 0;
@@ -1037,7 +1039,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   padding: 10px 14px;
   border: 1px solid var(--border-strong); /* 상호작용 요소 — WCAG 1.4.11 */
   border-radius: var(--r-md);
-  background: var(--surface);
+  background: var(--bg);
   color: var(--text);
 }
 
@@ -1052,7 +1054,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   padding: 10px 18px;
   border: none;
   border-radius: var(--r-md);
-  background: var(--surface);
+  background: var(--bg);
   color: var(--accent-strong);
   box-shadow: inset 0 0 0 1px var(--border-strong); /* 상호작용 요소 — D-2 #20 */
   cursor: pointer;
@@ -1078,6 +1080,17 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 .pantry-import-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* .cta-button-secondary는 여러 페이지가 공유하는 클래스라 기본값(--surface)은 바꾸지
+   않는다. .pantry-add-card(--surface) 안에서만 --bg로 내려 카드와 구분한다 — 호버 색도
+   기본 규칙과 반대로 뒤집어 눌림 효과를 유지한다. */
+.pantry-add-card .pantry-import-btn {
+  background: var(--bg);
+}
+
+.pantry-add-card .pantry-import-btn:hover {
+  background: var(--surface);
 }
 
 .pantry-chips {
