@@ -1712,6 +1712,46 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   color: var(--text-subtle);
 }
 
+/* .pantry-chip-remove와 같은 무게 — 줄을 통째로 지운다(체크 해제와 달리 되돌릴 수 없다). */
+.pantry-import-remove {
+  flex: none;
+  position: relative;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.pantry-import-remove:hover {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.pantry-import-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.pantry-import-add-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
 .pantry-import-dialog-actions {
   display: flex;
   align-items: center;

@@ -1247,6 +1247,7 @@ function initPantryImport({ setPantry, render, setStatus }) {
     return `<li class="pantry-import-item">
       <input type="checkbox" checked aria-label="${escapeHtml(COPY.PANTRY.importItemCheckLabel(name))}" />
       <input type="text" aria-label="${escapeHtml(COPY.PANTRY.importItemNameLabel)}" value="${safe}" />
+      <button type="button" class="pantry-import-remove" aria-label="${escapeHtml(COPY.PANTRY.importRemoveItem)}">×</button>
     </li>`;
   }
 
@@ -1255,6 +1256,21 @@ function initPantryImport({ setPantry, render, setStatus }) {
     importDateEl.textContent = COPY.PANTRY.importPurchasedOn(purchaseDate || todayISO());
     importListEl.innerHTML = items.map(importItemRowHtml).join("");
     importDialog.showModal();
+  }
+
+  // 사진에서 놓친 재료를 손으로 보태거나, 잘못 잡힌 줄을 아예 지울 수 있게 한다 —
+  // 체크 해제만으로는 "빠진 항목 추가"가 안 됐다.
+  importListEl.addEventListener("click", (e) => {
+    const removeBtn = e.target.closest(".pantry-import-remove");
+    if (removeBtn) removeBtn.closest(".pantry-import-item").remove();
+  });
+
+  const importAddBtn = document.getElementById("pantry-import-add");
+  if (importAddBtn) {
+    importAddBtn.addEventListener("click", () => {
+      importListEl.insertAdjacentHTML("beforeend", importItemRowHtml(""));
+      importListEl.lastElementChild.querySelector('input[type="text"]').focus();
+    });
   }
 
   function closeImportDialog() {
