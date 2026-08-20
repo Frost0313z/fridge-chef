@@ -200,8 +200,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function setPlanVisible(hasPlan) {
     emptyEl.hidden = hasPlan;
     nextEl.hidden = !hasPlan;
-    clearBtn.hidden = !hasPlan;
-    toolbarEl.hidden = !hasPlan;
+    toolbarEl.hidden = !hasPlan; // clearBtn은 이 안에 있어 같이 나타나고 사라진다
     if (!hasPlan) setEditMode(false);
   }
 

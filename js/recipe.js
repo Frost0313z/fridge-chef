@@ -252,6 +252,10 @@ let historyItems = [];
 function setHistory(items) {
   historyItems = items.slice(0, HISTORY_LIMIT);
   saveJson(HISTORY_KEY, historyItems);
+  /* 목록이 통째로 바뀌면 인덱스가 어긋나므로, 직전 삭제의 되돌리기 자리도 같이 지운다. */
+  lastRemovedHistoryItem = null;
+  const statusEl = document.getElementById("history-status");
+  if (statusEl) statusEl.hidden = true;
   renderHistory();
 }
 
@@ -263,6 +267,28 @@ function addToHistory(recipes) {
     next.unshift(r);
   });
   setHistory(next);
+}
+
+/* 재료함 칩의 개별 × 삭제(removeFromPantry)와 같은 짜임 — 확인창 대신 되돌리기를 둔다. */
+let lastRemovedHistoryItem = null;
+
+function removeFromHistory(index) {
+  if (!(index >= 0 && index < historyItems.length)) return null;
+  const [item] = historyItems.splice(index, 1);
+  lastRemovedHistoryItem = { item, index };
+  saveJson(HISTORY_KEY, historyItems);
+  renderHistory();
+  return item;
+}
+
+function undoRemoveHistory() {
+  if (!lastRemovedHistoryItem) return null;
+  const { item, index } = lastRemovedHistoryItem;
+  historyItems.splice(index, 0, item);
+  lastRemovedHistoryItem = null;
+  saveJson(HISTORY_KEY, historyItems);
+  renderHistory();
+  return item;
 }
 
 function renderHistory() {
@@ -282,6 +308,8 @@ function renderHistory() {
         <span class="history-item-time">⏱ ${escapeHtml(r.time || "")}</span>
       </button>
       ${favoriteToggleHtml(r.name, `data-history-index="${index}"`)}
+      <button type="button" class="history-remove" data-index="${index}"
+        aria-label="${escapeHtml(COPY.UI.historyRemove(r.name))}">×</button>
     </div>
   `
     )
@@ -291,13 +319,36 @@ function renderHistory() {
 function initHistory() {
   const listEl = document.getElementById("history-list");
   const clearBtn = document.getElementById("history-clear-btn");
+  const statusEl = document.getElementById("history-status");
   const resultEl = document.getElementById("result");
   if (!listEl) return;
 
   historyItems = loadHistory();
   renderHistory();
 
+  function setStatus(message, canUndo) {
+    if (!statusEl) return;
+    statusEl.innerHTML = statusHtml(message, canUndo);
+    statusEl.hidden = !message;
+  }
+
+  if (statusEl) {
+    statusEl.addEventListener("click", (e) => {
+      if (!e.target.closest(".undo-btn")) return;
+      const undone = undoRemoveHistory();
+      if (!undone) return;
+      setStatus(COPY.UI.historyRestored(undone.name));
+    });
+  }
+
   listEl.addEventListener("click", (e) => {
+    const removeBtn = e.target.closest(".history-remove");
+    if (removeBtn) {
+      const removed = removeFromHistory(Number(removeBtn.dataset.index));
+      if (removed) setStatus(COPY.UI.historyRemoved(removed.name), true);
+      return;
+    }
+
     const btn = e.target.closest(".history-item");
     if (!btn) return;
     const recipe = historyItems[Number(btn.dataset.index)];

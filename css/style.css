@@ -124,7 +124,7 @@ a {
   background: var(--accent-strong);
   color: var(--on-accent);
   font-weight: 600;
-  padding: 10px 18px;
+  padding: var(--sp-10) var(--sp-18);
   border-radius: 0 0 10px 10px;
   transition: top 0.15s ease;
 }
@@ -167,7 +167,7 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 1.15rem;
+  font-size: var(--fs-115);
   font-weight: 700;
 }
 
@@ -195,7 +195,7 @@ a {
 .nav-menu a {
   font-weight: 500;
   color: var(--text-muted);
-  padding: 6px 2px;
+  padding: var(--sp-6) var(--sp-2);
   border-bottom: 2px solid transparent;
 }
 
@@ -305,7 +305,7 @@ a {
   display: none;
   flex-direction: column;
   justify-content: center;
-  gap: 5px;
+  gap: var(--sp-5);
   width: 40px;
   height: 40px;
   background: none;
@@ -386,13 +386,13 @@ a {
    ① 눈에 띄는 손잡이 막대 ② 위를 가리키는 화살표 ③ 눌리는 것처럼 보이는 반응.
    하나만으로는 라벨처럼 읽히고 만다. */
 .pantry-bar > summary {
-  padding-block: 14px 18px;
+  padding-block: var(--sp-14) var(--sp-18);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: var(--sp-10);
   cursor: grab;
-  font-size: 0.95rem;
+  font-size: var(--fs-95);
   touch-action: none;
   border-radius: 16px 16px 0 0;
   transition: background-color 0.15s ease;
@@ -506,9 +506,9 @@ body:has(.pantry-bar) {
 }
 
 .pantry-bar-empty {
-  margin: 10px 0 0;
+  margin: var(--sp-10) 0 0;
   color: var(--pantry-sheet-muted);
-  font-size: 0.88rem;
+  font-size: var(--fs-88);
 }
 
 /* 냉장고 화면과 같은 조작을 여기서도 한다. 다른 것은 삭제에 되돌리기가 붙는다는 점뿐이다. */
@@ -523,7 +523,7 @@ body:has(.pantry-bar) {
   min-width: 0;
   min-height: 44px;
   font: inherit;
-  font-size: 0.9rem;
+  font-size: var(--fs-90);
   padding: 0 12px;
   border: 1px solid var(--border-strong); /* 상호작용 요소 — WCAG 1.4.11 */
   border-radius: var(--r-md);
@@ -534,9 +534,9 @@ body:has(.pantry-bar) {
 .pantry-bar-add button {
   flex: none;
   min-height: 44px;
-  padding: 0 18px;
+  padding: 0 var(--sp-18);
   font: inherit;
-  font-size: 0.9rem;
+  font-size: var(--fs-90);
   font-weight: 700;
   border: none;
   border-radius: var(--r-md);
@@ -551,25 +551,25 @@ body:has(.pantry-bar) {
 
 .pantry-bar-status {
   margin: 8px 0 0;
-  font-size: 0.88rem;
+  font-size: var(--fs-88);
   color: var(--pantry-sheet-text);
 }
 
 /* 지운 직후에만 나타난다. 확인창을 띄우는 대신 되돌릴 길을 열어둔다(A4). */
 .undo-btn {
-  margin-left: 6px;
+  margin-left: var(--sp-6);
 }
 
 /* 상한을 넘었을 때만 나타난다. 오류가 아니라 알아둘 사실이므로 빨강을 쓰지 않는다. */
 .pantry-limit-note {
   margin: 12px 0 0;
-  padding: 10px 14px;
+  padding: var(--sp-10) var(--sp-14);
   border: 1px solid var(--border);
   border-left: 3px solid var(--accent);
   border-radius: var(--r-md);
   background: var(--bg);
   color: var(--text);
-  font-size: 0.88rem;
+  font-size: var(--fs-88);
 }
 
 /* ==========================================================================
@@ -581,16 +581,16 @@ body:has(.pantry-bar) {
 }
 
 .hero h1 {
-  font-size: clamp(1.6rem, 4vw, 2.6rem);
+  font-size: var(--fs-hero);
   /* margin 단축 속성을 쓰면 위 .hero > * 의 margin-inline: auto 가 0으로 덮여
      가운데 정렬이 풀린다. 세로 여백만 건드린다. */
-  margin-block: 0 18px;
+  margin-block: 0 var(--sp-18);
 }
 
 .hero-sub {
   margin-block: 0 32px;
   color: var(--text-muted);
-  font-size: 1.05rem;
+  font-size: var(--fs-105);
 }
 
 .cta-button {
@@ -598,7 +598,7 @@ body:has(.pantry-bar) {
   background: var(--accent-strong);
   color: var(--on-accent);
   font-weight: 700;
-  padding: 14px 28px;
+  padding: var(--sp-14) var(--sp-28);
   /* 버튼은 10px. 과한 pill은 카드·버튼에 쓰지 않는다(칩·손잡이 등 나머지 pill은 그대로 둔다) */
   border-radius: var(--r-md);
   transition: filter var(--dur) var(--ease);
@@ -638,7 +638,7 @@ body:has(.pantry-bar) {
 }
 
 .home-section > h2 {
-  font-size: 1.2rem;
+  font-size: var(--fs-120);
   margin-block: 0 20px;
 }
 
@@ -652,7 +652,7 @@ body:has(.pantry-bar) {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
-  padding: 28px 22px;
+  padding: var(--sp-28) var(--sp-22);
 }
 
 /* 이전에는 이모지 아이콘이었다. 순서가 있는 3단계이므로 번호가 더 정확하고,
@@ -662,14 +662,14 @@ body:has(.pantry-bar) {
 }
 
 .feature-card h3 {
-  font-size: 1.05rem;
+  font-size: var(--fs-105);
   margin: 0 0 8px;
 }
 
 .feature-card p {
   margin: 0;
   color: var(--text-muted);
-  font-size: 0.95rem;
+  font-size: var(--fs-95);
 }
 
 /* ==========================================================================
@@ -682,23 +682,23 @@ body:has(.pantry-bar) {
   padding: 28px 20px;
   text-align: center;
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: var(--fs-90);
 }
 
 .footer-credit {
   margin-top: 12px;
   display: flex;
   justify-content: center;
-  gap: 18px;
+  gap: var(--sp-18);
   flex-wrap: wrap;
 }
 
 .footer-credit a {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--sp-6);
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: var(--fs-85);
 }
 
 .footer-credit a:hover {
@@ -747,8 +747,8 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 }
 
 .page-intro h1 {
-  font-size: clamp(1.4rem, 3.5vw, 2rem);
-  margin: 0 0 14px;
+  font-size: var(--fs-page-h1);
+  margin: 0 0 var(--sp-14);
 }
 
 .page-intro p {
@@ -806,14 +806,14 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   z-index: 60;
   width: max-content;
   max-width: min(260px, calc(100vw - 32px));
-  padding: 10px 12px;
+  padding: var(--sp-10) var(--sp-12);
   border-radius: var(--r-md);
   background: var(--surface);
   box-shadow: var(--shadow-md);
   /* h1의 명조·자간·굵기를 상속받는다 — 이 안은 본문이므로 고딕으로 되돌린다
      (CLAUDE.md: 라벨·UI는 크기와 무관하게 항상 고딕). */
   font-family: var(--font-sans);
-  font-size: 0.85rem;
+  font-size: var(--fs-85);
   font-weight: 400;
   line-height: 1.5;
   letter-spacing: normal;
@@ -842,8 +842,8 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 }
 
 .page h2 {
-  font-size: 1.2rem;
-  margin: 0 0 18px;
+  font-size: var(--fs-120);
+  margin: 0 0 var(--sp-18);
 }
 
 .page h1,
@@ -871,8 +871,8 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
-  padding: 14px 16px;
-  margin-bottom: 10px;
+  padding: var(--sp-14) var(--sp-16);
+  margin-bottom: var(--sp-10);
 }
 
 .faq summary {
@@ -885,8 +885,8 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
    낱개 리스트를 --bg로 내려 감싸던 것과 같은 조합(surface 안엔 bg), 다만 여기는
    경계를 보태 "안에 또 있다"는 느낌을 더 준다. */
 .faq-answer {
-  margin-top: 10px;
-  padding: 10px 12px;
+  margin-top: var(--sp-10);
+  padding: var(--sp-10) var(--sp-12);
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
@@ -895,7 +895,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 .faq-answer p {
   margin: 0;
   color: var(--text-muted);
-  font-size: 0.95rem;
+  font-size: var(--fs-95);
 }
 
 /* 텍스트 링크처럼 보이는 버튼. 되돌리기 · 이력 전체 지우기 · 계획 지우기가 모두 이 모양이다.
@@ -920,7 +920,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 
 /* 지우는 쪽. 평소에는 조용히 있다가 누르려 할 때만 빨강으로 무엇을 하는지 알린다. */
 .link-button-muted {
-  font-size: 0.85rem;
+  font-size: var(--fs-85);
   font-weight: 400;
   color: var(--text-muted);
 }
@@ -935,7 +935,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 .pill-toggle {
   flex: none;
   font: inherit;
-  font-size: 0.85rem;
+  font-size: var(--fs-85);
   font-weight: 600;
   min-height: 40px;
   padding: 0 16px;
@@ -955,8 +955,8 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
    ========================================================================== */
 /* 냉장고 페이지의 본체. 이 페이지의 주 행동이므로 접지 않고 펼쳐 둔다. */
 .pantry-page h2 {
-  font-size: 1.1rem;
-  margin: 0 0 6px;
+  font-size: var(--fs-110);
+  margin: 0 0 var(--sp-6);
 }
 
 /* 낱개 카드(칩·이력 항목·장보기 줄)만 표면색이고 감싸는 배경이 없어 붕 뜬 느낌이던
@@ -1011,7 +1011,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 }
 
 .page-next p {
-  margin: 0 0 14px;
+  margin: 0 0 var(--sp-14);
   color: var(--text-muted);
 }
 
@@ -1020,14 +1020,14 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 }
 
 .pantry-hint {
-  margin: 0 0 14px;
+  margin: 0 0 var(--sp-14);
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: var(--fs-90);
 }
 
 .pantry-input-row {
   display: flex;
-  gap: 10px;
+  gap: var(--sp-10);
 }
 
 /* .pantry-add-card(--surface) 안에 있으므로 --bg로 내려 카드와 구분한다.
@@ -1036,7 +1036,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   flex: 1;
   min-width: 0;
   font: inherit;
-  padding: 10px 14px;
+  padding: var(--sp-10) var(--sp-14);
   border: 1px solid var(--border-strong); /* 상호작용 요소 — WCAG 1.4.11 */
   border-radius: var(--r-md);
   background: var(--bg);
@@ -1051,7 +1051,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   white-space: nowrap;
   font: inherit;
   font-weight: 600;
-  padding: 10px 18px;
+  padding: var(--sp-10) var(--sp-18);
   border: none;
   border-radius: var(--r-md);
   background: var(--bg);
@@ -1072,9 +1072,9 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   border: none;
   font: inherit;
   cursor: pointer;
-  margin-top: 10px;
-  font-size: 0.9rem;
-  padding: 10px 18px;
+  margin-top: var(--sp-10);
+  font-size: var(--fs-90);
+  padding: var(--sp-10) var(--sp-18);
 }
 
 .pantry-import-btn:disabled {
@@ -1094,7 +1094,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 }
 
 .pantry-chips {
-  margin-top: 14px;
+  margin-top: var(--sp-14);
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -1103,12 +1103,12 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 .pantry-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--sp-6);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 6px 8px 6px 14px;
-  font-size: 0.9rem;
+  padding: var(--sp-6) var(--sp-8) var(--sp-6) var(--sp-14);
+  font-size: var(--fs-90);
 }
 
 /* 하단 냉장고 시트는 밝은 글자를 상속하지만 재료 칩은 흰 표면이다.
@@ -1124,7 +1124,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 /* 수량과 며칠 됐는지는 이름보다 한 단계 뒤로 물린다. 훑을 때 찾는 것은 이름이다.
    색만 바꾸면 "계란2개"처럼 붙어 보이므로 앞에 여백을 준다. */
 .pantry-chip-meta {
-  margin-left: 5px;
+  margin-left: var(--sp-5);
   color: var(--text-muted);
   font-size: 0.82em;
   font-weight: 400;
@@ -1134,8 +1134,8 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
    7~13일은 아직 무채색이다 — 오류가 아니라 알아둘 사실이라, 이 구간까지 물들이면
    정작 먼저 먹어야 하는 재료(14일+)가 안 도드라진다. */
 .pantry-chip-age {
-  margin-left: 6px;
-  padding: 2px 7px;
+  margin-left: var(--sp-6);
+  padding: var(--sp-2) var(--sp-7);
   border-radius: 999px;
   background: var(--bg);
   color: var(--text-muted);
@@ -1158,7 +1158,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   border: none;
   background: none;
   color: var(--text-muted);
-  font-size: 1rem;
+  font-size: var(--fs-body);
   line-height: 1;
   width: 20px;
   height: 20px;
@@ -1174,13 +1174,13 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 .pantry-status {
   margin: 12px 0 0;
   color: var(--accent-strong);
-  font-size: 0.9rem;
+  font-size: var(--fs-90);
 }
 
 .pantry-empty {
-  margin-top: 14px;
+  margin-top: var(--sp-14);
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: var(--fs-90);
 }
 
 .pantry-empty p {
@@ -1189,7 +1189,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 
 .pantry-example-label {
   margin-top: 16px !important;
-  font-size: 0.85rem;
+  font-size: var(--fs-85);
 }
 
 .pantry-examples {
@@ -1209,11 +1209,11 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
      2) 방향 — 칩은 오른쪽에 빼는 ×, 여기는 왼쪽에 더하는 + */
 .pantry-example {
   font: inherit;
-  font-size: 0.9rem;
+  font-size: var(--fs-90);
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 6px 14px 6px 12px;
+  padding: var(--sp-6) var(--sp-14) var(--sp-6) var(--sp-12);
   border: none;
   border-radius: var(--r-md); /* 버튼 10px */
   /* .pantry-list-card(--surface) 안에서 쓰이므로 --bg로 내려 카드와 구분한다.
@@ -1232,22 +1232,13 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 /* 칩의 ×(.pantry-chip-remove)와 같은 무게로 보이게 둔다 — 한쪽만 굵으면 두 부호가
    짝으로 읽히지 않는다. 색은 버튼 글자색을 그대로 물려받는다. */
 .pantry-example-plus {
-  font-size: 1rem;
+  font-size: var(--fs-body);
   line-height: 1;
 }
-
 
 /* ==========================================================================
    주간 식단 계획
    ========================================================================== */
-/* 모양은 .link-button .link-button-muted가 준다. 여기서는 자리만 잡는다. */
-.mealplan-clear-btn {
-  margin-top: 10px;
-}
-
-.mealplan-clear-btn:not([hidden]) {
-  display: block;
-}
 
 /* 날짜는 좌 → 우로 이어 붙인다. 5·7일치를 아래로 접으면 "이번 주"가 여러 덩어리로
    쪼개져서, 3일차 다음이 왼쪽 끝으로 돌아가 시간 순서가 끊긴다.
@@ -1333,15 +1324,15 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
-  padding: 18px;
+  padding: var(--sp-18);
 }
 
 .mealplan-day-card h3 {
   margin: 0 0 4px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
+  gap: var(--sp-6);
+  font-size: var(--fs-85);
   color: var(--accent-strong);
   font-weight: 700;
 }
@@ -1349,22 +1340,22 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 /* 계획한 날짜가 전부 지났을 때만 나온다. 장보기의 .shopping-stale과 같은 생김새를 쓴다 —
    "이 화면의 내용이 지금과 어긋난다"는 같은 뜻이므로 같게 보여야 한다([C5]). */
 .mealplan-stale {
-  margin: 0 0 14px;
+  margin: 0 0 var(--sp-14);
   padding: 12px 16px;
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   background: var(--bg);
-  font-size: 0.9rem;
+  font-size: var(--fs-90);
 }
 
 /* 오늘·내일에만 붙는다. 날짜를 다 읽고 오늘을 찾아내게 하는 대신 먼저 눈에 띄게 한다.
    냉장고 칩의 "13일 전" 배지와 같은 생김새를 쓴다 — 같은 뜻("이 날짜가 지금 중요하다")을
    화면마다 다르게 그리면 규칙을 두 번 배워야 한다([C5]). */
 .mealplan-day-badge {
-  font-size: 0.7rem;
+  font-size: var(--fs-70);
   font-weight: 700;
   line-height: 1;
-  padding: 3px 7px;
+  padding: var(--sp-3) var(--sp-7);
   border-radius: 999px;
   /* 주 버튼과 같은 짝(--accent-strong 채움 + --on-accent 글씨)이다.
      0.7rem짜리 작은 글씨라 대비 여유가 필요한데 이 조합이 라이트 5.11:1 · 다크 8.79:1이다.
@@ -1381,7 +1372,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 
 .mealplan-day-card h3 + .meal-slot {
   border-top: none;
-  padding-top: 6px;
+  padding-top: var(--sp-6);
 }
 
 .meal-head {
@@ -1397,7 +1388,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
    아니고, "이것만 더 있으면 된다"는 알림이다. */
 .meal-state {
   margin: 8px 0 0;
-  font-size: 0.8rem;
+  font-size: var(--fs-80);
   line-height: 1.5;
 }
 
@@ -1417,12 +1408,12 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   flex: none;
   min-width: 3.4em;
   text-align: center;
-  font-size: 0.75rem;
+  font-size: var(--fs-75);
   font-weight: 700;
   color: var(--text-muted);
   background: var(--bg);
   border-radius: 999px;
-  padding: 3px 9px;
+  padding: var(--sp-3) var(--sp-9);
 }
 
 .meal-label-morning {
@@ -1442,14 +1433,14 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 
 .meal-menu {
   font-weight: 700;
-  font-size: 1rem;
+  font-size: var(--fs-body);
 }
 
 /* 메뉴 이름 자체가 레시피로 나가는 링크다. 별도 링크 줄을 두지 않아 21칸이 그만큼 짧아진다. */
 .meal-menu-link {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--sp-5);
   min-height: 32px; /* 본문 속 링크가 아니라 독립된 조작이므로 누를 높이를 확보한다 */
   color: var(--text);
 }
@@ -1468,8 +1459,8 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 
 .mealplan-day-card ul {
   margin: 0;
-  padding-left: 18px;
-  font-size: 0.88rem;
+  padding-left: var(--sp-18);
+  font-size: var(--fs-88);
   color: var(--text-muted);
 }
 
@@ -1480,7 +1471,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 }
 
 .meal-empty-text {
-  font-size: 0.82rem;
+  font-size: var(--fs-82);
   color: var(--text-muted);
 }
 
@@ -1557,7 +1548,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   gap: 4px;
   margin: 4px 0 0;
   padding-right: 20px;
-  font-size: 0.78rem;
+  font-size: var(--fs-78);
   line-height: 1.4;
 }
 
@@ -1665,7 +1656,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 /* 날짜 칸 제목(.mealplan-day-card h3)과 같은 것을 말하는 자리라 같은 생김새를 쓴다. */
 .meal-dialog-title {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--fs-85);
   font-weight: 700;
   color: var(--accent-strong);
 }
@@ -1778,7 +1769,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 
 .pantry-import-dialog-title {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: var(--fs-105);
   font-weight: 700;
 }
 
@@ -1808,20 +1799,20 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 }
 
 .pantry-import-dialog-hint {
-  margin: 10px 0 0;
+  margin: var(--sp-10) 0 0;
   color: var(--text-muted);
-  font-size: 0.88rem;
+  font-size: var(--fs-88);
 }
 
 .pantry-import-dialog-date {
   margin: 4px 0 0;
   color: var(--text-muted);
-  font-size: 0.82rem;
+  font-size: var(--fs-82);
 }
 
 .pantry-import-list {
   list-style: none;
-  margin: 14px 0 0;
+  margin: var(--sp-14) 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -1831,7 +1822,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 .pantry-import-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--sp-10);
 }
 
 /* 체크박스 자체 크기를 키운다 — 이 화면의 유일한 방어선이라(핵심 원칙 4) 잘못 눌러
@@ -1866,7 +1857,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   border: none;
   background: none;
   color: var(--text-muted);
-  font-size: 1rem;
+  font-size: var(--fs-body);
   line-height: 1;
   width: 20px;
   height: 20px;
@@ -1883,14 +1874,14 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin-top: 10px;
+  margin-top: var(--sp-10);
   border: 1px dashed var(--border-strong);
   border-radius: var(--r-sm);
   background: none;
   color: var(--text-muted);
   font: inherit;
-  font-size: 0.85rem;
-  padding: 8px 14px;
+  font-size: var(--fs-85);
+  padding: var(--sp-8) var(--sp-14);
   cursor: pointer;
 }
 
@@ -1903,8 +1894,8 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 14px;
-  margin-top: 18px;
+  gap: var(--sp-14);
+  margin-top: var(--sp-18);
 }
 
 /* .cta-button은 기본으로 <a>를 가정한다(recipe-form·mealplan-form과 같은 이유로
@@ -1991,7 +1982,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 
 .favorites-dialog-title {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: var(--fs-105);
   font-weight: 700;
 }
 
@@ -2021,9 +2012,9 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 }
 
 .favorites-list-empty {
-  margin: 14px 0 0;
+  margin: var(--sp-14) 0 0;
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: var(--fs-90);
 }
 
 /* 왼쪽 목록(고정 너비, 넘치면 스스로 스크롤) + 오른쪽 상세 카드(남는 폭을 다 쓴다).
@@ -2032,7 +2023,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   display: flex;
   align-items: flex-start;
   gap: 20px;
-  margin-top: 14px;
+  margin-top: var(--sp-14);
 }
 
 /* display:flex(작성자 규칙)가 항상 UA의 [hidden]{display:none}을 이긴다 — 이 프로젝트에
@@ -2081,10 +2072,10 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
+  gap: var(--sp-2);
   font: inherit;
   text-align: left;
-  padding: 8px 10px;
+  padding: var(--sp-8) var(--sp-10);
   border: none;
   border-radius: var(--r-md) 0 0 var(--r-md);
   background: none;
@@ -2093,7 +2084,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 }
 
 .favorites-list-name {
-  font-size: 0.92rem;
+  font-size: var(--fs-92);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2102,7 +2093,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 
 .favorites-list-time {
   color: var(--accent-strong);
-  font-size: 0.78rem;
+  font-size: var(--fs-78);
   font-weight: 600;
 }
 
@@ -2120,7 +2111,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 .favorites-detail-empty {
   margin: 0;
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: var(--fs-90);
 }
 
 .favorites-detail-name {
@@ -2150,9 +2141,18 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   display: none;
 }
 
+/* "메뉴 바꾸기"·"계획 지우기"를 한데 묶는다 — 계획 지우기가 입력 폼 버튼 줄에 예고 없이
+   끼어들던 것을(D-2 #12) 결과가 나타날 때 같이 나타나는 이 툴바로 옮겨, 하나의 규칙으로
+   합쳤다: "결과가 생기면 결과 쪽 관리 버튼도 같이 나타난다." */
+.mealplan-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .mealplan-toolbar-title {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: var(--fs-110);
 }
 
 /* 켜져 있는 동안은 버튼 자체가 상태 표시다. */
@@ -2163,12 +2163,12 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 }
 
 .mealplan-edit-status {
-  margin: 10px 0 0;
-  padding: 10px 14px;
+  margin: var(--sp-10) 0 0;
+  padding: var(--sp-10) var(--sp-14);
   border-radius: var(--r-md);
   background: var(--bg);
   border: 1px solid var(--border);
-  font-size: 0.88rem;
+  font-size: var(--fs-88);
 }
 
 .meal-slot-edit {
@@ -2192,7 +2192,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   flex: 1;
   min-width: 0;
   min-height: 44px;
-  padding: 8px 10px;
+  padding: var(--sp-8) var(--sp-10);
   border-radius: var(--r-md);
   border: 1px solid var(--border);
   background: var(--surface);
@@ -2261,7 +2261,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 /* 넣기는 지우기와 달리 되돌릴 일이 없는 조작이라 경고색을 쓰지 않는다.
    + 하나로 충분한 이유는 옆 본문이 이미 "비어 있음"이라고 말하고 있기 때문이다. */
 .meal-add {
-  font-size: 1.2rem;
+  font-size: var(--fs-120);
   line-height: 1;
   color: var(--accent-strong);
 }
@@ -2274,7 +2274,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 /* 메뉴를 직접 넣는 자리. 열려 있는 동안에는 이 칸이 화면의 초점이므로
    점선 대신 실선으로 바꿔 "지금 여기에 적는 중"을 분명히 한다. */
 .meal-slot-add {
-  padding: 12px 10px;
+  padding: var(--sp-12) var(--sp-10);
   border: 1px solid var(--accent-strong);
   border-radius: var(--r-md);
   background: var(--bg);
@@ -2282,8 +2282,8 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 
 .meal-add-label {
   display: block;
-  margin-bottom: 6px;
-  font-size: 0.82rem;
+  margin-bottom: var(--sp-6);
+  font-size: var(--fs-82);
   font-weight: 600;
   color: var(--text-muted);
 }
@@ -2291,7 +2291,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 .meal-add-input {
   width: 100%;
   font: inherit;
-  font-size: 0.95rem;
+  font-size: var(--fs-95);
   min-height: 44px;
   padding: 0 12px;
   border: 1px solid var(--border-strong); /* 상호작용 요소 — WCAG 1.4.11 */
@@ -2304,15 +2304,15 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: 10px;
+  margin-top: var(--sp-10);
 }
 
 .meal-add-confirm {
   font: inherit;
-  font-size: 0.88rem;
+  font-size: var(--fs-88);
   font-weight: 700;
   min-height: 40px;
-  padding: 0 18px;
+  padding: 0 var(--sp-18);
   border: none;
   border-radius: var(--r-md);
   background: var(--accent-strong);
@@ -2327,22 +2327,22 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 /* 이미 추천받아 둔 요리를 그대로 쓰는 쪽이 손으로 적는 것보다 빠르고 정확하다.
    그래서 입력칸 아래에 붙여, 적기 전에 눈에 들어오게 한다. */
 .meal-add-recent {
-  margin-top: 14px;
+  margin-top: var(--sp-14);
   padding-top: 12px;
   border-top: 1px solid var(--border);
 }
 
 .meal-add-recent-title {
   margin: 0 0 8px;
-  font-size: 0.8rem;
+  font-size: var(--fs-80);
   color: var(--text-muted);
 }
 
 .meal-add-recent-item {
   font: inherit;
-  font-size: 0.85rem;
+  font-size: var(--fs-85);
   min-height: 36px;
-  margin: 0 6px 6px 0;
+  margin: 0 var(--sp-6) var(--sp-6) 0;
   padding: 0 12px;
   border: 1px solid var(--border-strong); /* 상호작용 요소 — D-2 #20 */
   border-radius: 999px;
@@ -2358,25 +2358,25 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 
 /* 식단을 고친 뒤의 장보기 목록은 계획과 다를 수 있다. 그 사실을 목록보다 먼저 말한다. */
 .shopping-stale {
-  margin: 0 0 14px;
+  margin: 0 0 var(--sp-14);
   padding: 12px 16px;
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   background: var(--bg);
-  font-size: 0.9rem;
+  font-size: var(--fs-90);
 }
 
 .shopping-list-hint {
-  margin: 0 0 14px;
+  margin: 0 0 var(--sp-14);
   color: var(--text-muted);
-  font-size: 0.88rem;
+  font-size: var(--fs-88);
 }
 
 /* "샀어요"를 누른 뒤 무엇이 냉장고에 들어갔는지 알려주는 줄. 목록에서 줄이 사라지는 것도
    반응이지만, 단위가 달라 합치지 못한 때처럼 목록이 그대로인 경우가 있다(원칙 3). */
 .shopping-status {
   margin: 12px 0 0;
-  font-size: 0.88rem;
+  font-size: var(--fs-88);
   color: var(--text);
 }
 
@@ -2414,52 +2414,52 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 .shopping-why > summary {
   cursor: pointer;
   width: fit-content;
-  font-size: 0.82rem;
+  font-size: var(--fs-82);
   color: var(--text-muted);
 }
 
 /* 펼친 내용은 요약보다 안쪽으로 들여, 어디까지가 근거인지 눈으로 끊기게 한다. */
 .shopping-why-sum {
   margin: 8px 0 0;
-  padding-left: 14px;
+  padding-left: var(--sp-14);
   border-left: 2px solid var(--border);
-  font-size: 0.85rem;
+  font-size: var(--fs-85);
   line-height: 1.6;
 }
 
 .shopping-why-uses {
-  margin: 6px 0 0;
-  padding-left: 14px;
+  margin: var(--sp-6) 0 0;
+  padding-left: var(--sp-14);
   border-left: 2px solid var(--border);
   list-style: none;
-  font-size: 0.85rem;
+  font-size: var(--fs-85);
   color: var(--text-muted);
 }
 
 .shopping-why-uses li {
-  padding: 2px 0;
+  padding: var(--sp-2) 0;
 }
 
 .shopping-item-actions {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--sp-14);
 }
 
 .shopping-item a {
   color: var(--accent-strong);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: var(--fs-90);
 }
 
 /* 사고 나면 눌러서 바로 냉장고에 넣는다. 리스트에서 즉시 사라지므로
    "샀다"는 사실이 화면에 반영된다(C3). */
 .shopping-bought-btn {
   font: inherit;
-  font-size: 0.85rem;
+  font-size: var(--fs-85);
   font-weight: 600;
-  padding: 6px 12px;
+  padding: var(--sp-6) var(--sp-12);
   border: none;
   border-radius: 999px;
   background: var(--surface);
@@ -2476,17 +2476,17 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 .shopping-empty,
 .result-empty {
   color: var(--text-muted);
-  font-size: 0.95rem;
+  font-size: var(--fs-95);
 }
 
 .page-next-inline {
-  margin-top: 18px;
+  margin-top: var(--sp-18);
 }
 
 .mealplan-next {
   margin-top: 24px;
   color: var(--text-muted);
-  font-size: 0.95rem;
+  font-size: var(--fs-95);
 }
 
 .mealplan-next a {
@@ -2497,7 +2497,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 
 .shopping-item-none {
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: var(--fs-90);
 }
 
 /* ==========================================================================
@@ -2511,23 +2511,23 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 6px;
+  margin-bottom: var(--sp-6);
 }
 
 .history-header h2 {
-  font-size: 1.1rem;
+  font-size: var(--fs-110);
   margin: 0;
 }
 
 .history-empty {
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: var(--fs-90);
 }
 
 .history-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: var(--sp-10);
 }
 
 .history-item {
@@ -2536,7 +2536,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   gap: 4px;
   text-align: left;
   font: inherit;
-  padding: 10px 16px;
+  padding: var(--sp-10) var(--sp-16);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   background: var(--surface);
@@ -2550,11 +2550,11 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 
 .history-item-name {
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: var(--fs-95);
 }
 
 .history-item-time {
-  font-size: 0.8rem;
+  font-size: var(--fs-80);
   color: var(--text-muted);
 }
 
@@ -2565,13 +2565,13 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 #mealplan-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--sp-10);
 }
 
 #recipe-form label,
 #mealplan-form label {
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: var(--fs-95);
 }
 
 #recipe-form textarea,
@@ -2579,7 +2579,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 #mealplan-form select {
   width: 100%;
   font: inherit;
-  padding: 12px 14px;
+  padding: var(--sp-12) var(--sp-14);
   /* 경계를 알아봐야 하는 상호작용 요소는 장식용 --border(1.1~1.3:1)가 아니라
      --border-strong을 쓴다. 페이지 배경 위든 카드 위든 3:1을 넘도록 맞춰진 값이다(WCAG 1.4.11). */
   border: 1px solid var(--border-strong);
@@ -2605,7 +2605,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 
 .form-row {
   display: flex;
-  gap: 14px;
+  gap: var(--sp-14);
 }
 
 /* 세대 구성과 무관한 축 하나만 남긴 선택지라, 드롭다운 대신 체크박스로 둔다.
@@ -2615,7 +2615,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   align-items: center;
   gap: 8px;
   font-weight: 400;
-  font-size: 0.95rem;
+  font-size: var(--fs-95);
   cursor: pointer;
 }
 
@@ -2630,7 +2630,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--sp-6);
 }
 
 #recipe-form .cta-button,
@@ -2638,7 +2638,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   border: none;
   font: inherit;
   cursor: pointer;
-  margin-top: 6px;
+  margin-top: var(--sp-6);
   align-self: flex-start;
 }
 
@@ -2656,13 +2656,13 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 /* 기다리는 동안의 경과·마감 표시. 본문보다 작고 흐리게 둔다 —
    기다리는 사람이 읽어야 할 것은 위의 "무엇을 하고 있는지"가 먼저다. */
 .loading-wait {
-  margin-top: 6px;
+  margin-top: var(--sp-6);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--sp-10);
   flex-wrap: wrap;
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: var(--fs-85);
 }
 
 /* display:flex가 UA의 [hidden]{display:none}을 이겨서, 속성만으로는 안 숨는다
@@ -2706,17 +2706,17 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   border: 1px solid var(--danger-border);
   border-radius: var(--r-md);
   padding: 12px 16px;
-  font-size: 0.95rem;
+  font-size: var(--fs-95);
 }
 
 .error-fallback {
-  margin-top: 10px;
+  margin-top: var(--sp-10);
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: var(--fs-90);
 }
 
 .rerecommend-btn {
-  margin-top: 18px;
+  margin-top: var(--sp-18);
 }
 
 /* .cta-button의 display:inline-block이 UA 스타일시트의 [hidden]{display:none}보다
@@ -2745,7 +2745,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   margin-top: 28px;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 18px;
+  gap: var(--sp-18);
 }
 
 .recipe-card {
@@ -2757,13 +2757,13 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 
 .recipe-card h3 {
   margin: 0 0 4px;
-  font-size: 1.05rem;
+  font-size: var(--fs-105);
 }
 
 .recipe-time {
   margin: 0 0 12px;
   color: var(--accent-strong);
-  font-size: 0.9rem;
+  font-size: var(--fs-90);
   font-weight: 600;
 }
 
@@ -2771,8 +2771,8 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
    순서)를 같은 생김새로 보여준다. */
 .recipe-card h4,
 .favorites-detail h4 {
-  margin: 14px 0 6px;
-  font-size: 0.9rem;
+  margin: var(--sp-14) 0 var(--sp-6);
+  font-size: var(--fs-90);
   color: var(--text-muted);
 }
 
@@ -2782,7 +2782,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 .favorites-detail ol {
   margin: 0;
   padding-left: 20px;
-  font-size: 0.92rem;
+  font-size: var(--fs-92);
 }
 
 .recipe-card li + li,
@@ -2793,10 +2793,10 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 /* 상세 레시피로 넘어가는 링크. 장보기 리스트의 쿠팡 링크와 같은 시각 언어를 쓴다. */
 .recipe-search-link {
   display: inline-block;
-  margin-top: 14px;
+  margin-top: var(--sp-14);
   color: var(--accent-strong);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: var(--fs-90);
 }
 
 .recipe-search-link:hover {
@@ -2811,12 +2811,12 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 
 .recipe-card .ing-tag {
   margin-left: 4px;
-  padding: 1px 6px;
+  padding: var(--sp-1) var(--sp-6);
   border-radius: 999px;
   background: var(--bg);
   border: 1px solid var(--border);
   color: var(--accent-strong);
-  font-size: 0.75rem;
+  font-size: var(--fs-75);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -2848,7 +2848,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 .savings-amount {
   margin: 0;
   color: var(--accent-strong);
-  font-size: 1.6rem;
+  font-size: var(--fs-160);
   font-weight: 700;
   /* 금액은 제목급 크기라 명조를 써도 되는 자리지만, 숫자는 고딕이 읽기 낫다. */
   font-variant-numeric: tabular-nums;
@@ -2857,14 +2857,14 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 /* 치킨 환산. 월간을 볼 때만 나온다(js/main.js의 renderSavings 참고). */
 .savings-chicken {
   margin: 4px 0 0;
-  font-size: 0.95rem;
+  font-size: var(--fs-95);
   font-weight: 600;
 }
 
 .savings-note {
   margin: 12px 0 0;
   color: var(--text-muted);
-  font-size: 0.8rem;
+  font-size: var(--fs-80);
   line-height: 1.6;
 }
 
@@ -2887,7 +2887,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   list-style: none;
   cursor: pointer;
   color: var(--accent-strong);
-  font-size: 0.9rem;
+  font-size: var(--fs-90);
   font-weight: 600;
 }
 
@@ -2909,14 +2909,14 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 
 .cooked-question {
   margin: 0;
-  font-size: 0.92rem;
+  font-size: var(--fs-92);
   font-weight: 600;
 }
 
 .cooked-hint {
   margin: 4px 0 0;
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: var(--fs-85);
 }
 
 /* 재료 줄은 폼 체크박스와 같은 모양을 쓴다(.form-check). 여기서는 목록 기호만 걷어낸다.
@@ -2942,7 +2942,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 .cooked-status {
   margin: 12px 0 0;
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: var(--fs-85);
 }
 
 /* ==========================================================================
@@ -2960,7 +2960,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 .backup-intro {
   margin: 0;
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: var(--fs-90);
 }
 
 .backup-actions {
@@ -2975,7 +2975,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 .backup-status {
   margin: 16px 0 0;
   color: var(--accent-strong);
-  font-size: 0.9rem;
+  font-size: var(--fs-90);
   line-height: 1.6;
 }
 
@@ -2984,7 +2984,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 .recipe-matched-note {
   margin: 16px 0 0;
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: var(--fs-85);
   line-height: 1.6;
 }
 
@@ -2997,7 +2997,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 .recipe-source {
   margin: 8px 0 0;
   color: var(--text-muted);
-  font-size: 0.78rem;
+  font-size: var(--fs-78);
 }
 
 /* ==========================================================================
@@ -3082,11 +3082,42 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   border-color: transparent;
 }
 
+/* 재료함 칩의 .pantry-chip-remove와 같은 무게 — 같은 뜻(줄을 통째로 지운다)을
+   화면마다 다르게 그리면 규칙을 두 번 배워야 한다([C5], D-3 #14). */
+.history-remove {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-right: 4px;
+  padding: 0;
+  border: none;
+  border-radius: var(--r-md);
+  background: none;
+  color: var(--text-muted);
+  font-size: var(--fs-body);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.history-remove:hover {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.history-status {
+  margin: 0 0 var(--sp-10);
+  color: var(--accent-strong);
+  font-size: var(--fs-90);
+}
+
 /* 즐겨찾기가 가득 찼을 때만 나온다. 평소에는 별 모양이 바뀌는 것 자체가 반응이다. */
 .favorite-status {
   margin: 16px 0 0;
   color: var(--accent-strong);
-  font-size: 0.9rem;
+  font-size: var(--fs-90);
 }
 
 /* ==========================================================================
@@ -3129,7 +3160,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   }
 
   .nav-menu a {
-    padding: 14px 20px;
+    padding: var(--sp-14) var(--sp-20);
     border-bottom: 1px solid var(--border);
     width: 100%;
   }
@@ -3144,7 +3175,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 
   .form-row {
     flex-direction: column;
-    gap: 10px;
+    gap: var(--sp-10);
   }
 
   .result-grid {

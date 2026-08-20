@@ -123,7 +123,6 @@
           </label>
 
           <button type="submit" id="mealplan-submit-btn" class="cta-button" data-copy="UI.submitMealplan">식단 짜기</button>
-          <button type="button" id="mealplan-clear-btn" class="link-button link-button-muted mealplan-clear-btn" data-copy="UI.clearPlan" hidden>계획 지우기</button>
         </form>
 
         <p id="mealplan-loading" class="loading" role="status" aria-live="polite" data-copy="UI.loadingMealplan" hidden>며칠치 저녁을 짜고 있어요…</p>
@@ -134,7 +133,10 @@
 
       <div id="mealplan-toolbar" class="mealplan-toolbar" hidden>
         <h2 class="mealplan-toolbar-title" data-copy="UI.mealPlanTitle">이번 주 식단</h2>
-        <button type="button" id="mealplan-edit-btn" class="pill-toggle mealplan-edit-btn" aria-pressed="false" data-copy="UI.editMenu">메뉴 바꾸기</button>
+        <div class="mealplan-toolbar-actions">
+          <button type="button" id="mealplan-edit-btn" class="pill-toggle mealplan-edit-btn" aria-pressed="false" data-copy="UI.editMenu">메뉴 바꾸기</button>
+          <button type="button" id="mealplan-clear-btn" class="link-button link-button-muted mealplan-clear-btn" data-copy="UI.clearPlan">계획 지우기</button>
+        </div>
       </div>
       <p id="mealplan-edit-status" class="mealplan-edit-status" role="status" hidden></p>
       <p id="mealplan-stale" class="mealplan-stale" data-copy="UI.mealplanStale" hidden>계획한 날짜가 모두 지났어요. 새로 짜면 오늘부터 다시 정해드려요.</p>

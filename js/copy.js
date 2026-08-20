@@ -207,6 +207,10 @@ const COPY = {
     rerecommend: "다른 요리 보기",
     historyTitle: "최근 받은 요리",
     clearAll: "전체 지우기",
+    // 재료함 칩의 개별 × 삭제와 같은 짜임(D-3 #14) — 확인창 대신 되돌리기를 둔다
+    historyRemove: (name) => `${name} 이력에서 지우기`,
+    historyRemoved: (name) => `${name}을(를) 이력에서 지웠어요.`,
+    historyRestored: (name) => `${name}을(를) 다시 넣었어요.`,
 
     // 식단 화면
     mealplanTitle: "이번 주 저녁, 미리 정해둘까요?",
