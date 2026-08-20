@@ -746,14 +746,6 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   grid-column: 1 / -1;
 }
 
-/* .info-tooltip-bubble의 기준점. 아이콘(.info-tooltip) 자체를 기준으로 삼으면 제목이
-   길어 아이콘이 화면 오른쪽에 붙을 때 박스가 뷰포트 밖으로 잘렸다(mealplan 390px 실측 —
-   "이번 주 저녁, 미리 정해둘까요?"). 이 섹션은 항상 뷰포트 안에 있으므로, 여기를
-   기준으로 가운데 정렬하면 아이콘 위치와 무관하게 항상 안전하다. */
-.page-intro {
-  position: relative;
-}
-
 .page-intro h1 {
   font-size: clamp(1.4rem, 3.5vw, 2rem);
   margin: 0 0 14px;
@@ -771,10 +763,15 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 /* 제목·소제목 옆 ? 아이콘 — 화면에 다 못 담는 "왜 이렇게 동작하는지"를 미리 알려준다.
    레시피 추천의 매칭 출처 안내로 처음 만들었고(2026-08-20), 냉장고·식단 계획·장보기도
    각자 안 보이는 동작이 있어 같은 컴포넌트를 재사용한다(4번째 자리부터는 재사용이 새로
-   베끼는 것보다 싸다). 호버·포커스 둘 다로 열려야 하므로 :focus-within을 쓴다(마우스
-   없이도 Tab으로 접근 가능). */
+   베끼는 것보다 싸다).
+
+   위치는 js/shared.js의 initInfoTooltips()가 계산해서 top/left 인라인 스타일로 넣는다 —
+   CSS만으로 "아이콘 옆"과 "항상 뷰포트 안"을 동시에 만족시킬 방법이 없었다. 아이콘을
+   기준으로 고정하면 제목이 길어 아이콘이 화면 오른쪽에 붙는 페이지(식단 계획)에서 모바일
+   화면 밖으로 잘렸고, 뷰포트 중앙 기준으로 고치니 이번엔 아이콘과 멀리 떨어져 보였다
+   (2026-08-20 사용자 리포트) — 그래서 position: fixed로 두고 JS가 아이콘 위치를 읽어
+   뷰포트 안으로 clamp한 좌표를 직접 계산한다. */
 .info-tooltip {
-  /* 위치 기준은 이 아이콘이 아니라 .page-intro/.pantry-list-head다 — 위 주석 참고. */
   display: inline-flex;
   vertical-align: middle;
   margin-left: 4px;
@@ -805,12 +802,8 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 }
 
 .info-tooltip-bubble {
-  position: absolute;
-  top: calc(100% + 8px);
-  /* 아이콘 기준 가운데 정렬 — 왼쪽 맞춤(left: 0)이면 아이콘이 화면 오른쪽에 가까울 때
-     박스가 뷰포트 밖으로 잘렸다(390px 모바일 실측). 너비도 뷰포트에 맞춰 줄인다. */
-  left: 50%;
-  z-index: 5;
+  position: fixed;
+  z-index: 60;
   width: max-content;
   max-width: min(260px, calc(100vw - 32px));
   padding: 10px 12px;
@@ -827,16 +820,15 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   color: var(--text);
   opacity: 0;
   visibility: hidden;
-  transform: translateX(-50%) translateY(-4px);
+  transform: translateY(-4px);
   transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease), visibility var(--dur);
   pointer-events: none;
 }
 
-.info-tooltip:hover .info-tooltip-bubble,
-.info-tooltip:focus-within .info-tooltip-bubble {
+.info-tooltip-bubble.is-visible {
   opacity: 1;
   visibility: visible;
-  transform: translateX(-50%) translateY(0);
+  transform: translateY(0);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -958,7 +950,6 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 /* 제목과 수량 토글을 한 줄에. 토글은 목록을 보는 방식이지 새 행동이 아니므로
    제목 옆에 조용히 둔다(주 버튼처럼 채우지 않는다). */
 .pantry-list-head {
-  position: relative; /* .info-tooltip-bubble의 기준점 — .page-intro와 같은 이유 */
   display: flex;
   align-items: center;
   justify-content: space-between;

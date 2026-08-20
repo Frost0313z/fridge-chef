@@ -1516,10 +1516,67 @@ function favoriteToggleHtml(name, extraAttrs = "") {
     aria-label="${escapeHtml(label)}" ${extraAttrs}>${STAR_ICON}</button>`;
 }
 
+/* 물음표 아이콘 툴팁(.info-tooltip, css/style.css). 위치를 CSS만으로 풀 수 없었다 —
+   아이콘 기준으로 고정하면 제목이 길어 아이콘이 화면 오른쪽에 붙는 페이지(식단 계획)에서
+   모바일 화면 밖으로 잘렸고, 뷰포트 중앙 기준으로 고치니 아이콘과 멀리 떨어져 보였다는
+   피드백을 받았다(2026-08-20). fixed로 띄우고 아이콘의 실제 화면 좌표를 읽어 오른쪽
+   아래에 붙이되, 뷰포트를 벗어나려 하면 안으로 당긴다. */
+function positionInfoTooltip(btn, bubble) {
+  const margin = 8;
+  const iconRect = btn.getBoundingClientRect();
+  const bubbleWidth = bubble.getBoundingClientRect().width;
+  const maxLeft = window.innerWidth - bubbleWidth - margin;
+  const left = Math.min(Math.max(iconRect.left, margin), Math.max(maxLeft, margin));
+  bubble.style.left = `${left}px`;
+  bubble.style.top = `${iconRect.bottom + margin}px`;
+}
+
+/* 마우스는 호버·포커스로 즉시 열고 떼면 닫는다. 터치 기기는 hover가 없어 탭으로 열고
+   몇 초 뒤 저절로 닫는다 — 켜둔 채로 화면에 계속 떠 있으면 다음 조작을 가린다. */
+const INFO_TOOLTIP_AUTO_HIDE_MS = 4000;
+
+function initInfoTooltips() {
+  const isTouch = window.matchMedia("(hover: none)").matches;
+  let hideTimer = null;
+
+  document.querySelectorAll(".info-tooltip").forEach((wrap) => {
+    const btn = wrap.querySelector(".info-tooltip-btn");
+    const bubble = wrap.querySelector(".info-tooltip-bubble");
+    if (!btn || !bubble) return;
+
+    btn.setAttribute("aria-expanded", "false");
+
+    function show() {
+      clearTimeout(hideTimer);
+      bubble.classList.add("is-visible");
+      positionInfoTooltip(btn, bubble);
+      btn.setAttribute("aria-expanded", "true");
+    }
+    function hide() {
+      clearTimeout(hideTimer);
+      bubble.classList.remove("is-visible");
+      btn.setAttribute("aria-expanded", "false");
+    }
+
+    btn.addEventListener("focus", show);
+    btn.addEventListener("blur", hide);
+    btn.addEventListener("mouseenter", show);
+    btn.addEventListener("mouseleave", hide);
+
+    if (isTouch) {
+      btn.addEventListener("click", () => {
+        show();
+        hideTimer = setTimeout(hide, INFO_TOOLTIP_AUTO_HIDE_MS);
+      });
+    }
+  });
+}
+
 /* 페이지마다 초기화 호출을 적어두면 페이지가 늘 때 빠뜨리기 쉽다.
    해당 요소가 있는 페이지에서만 알아서 동작하게 둔다. */
 document.addEventListener("DOMContentLoaded", () => {
   initPantry(); // 냉장고 페이지 (요소가 없으면 즉시 반환)
   renderPantryBar(); // 나머지 기능 페이지의 조회 바
   initPantryBar();
+  initInfoTooltips();
 });
