@@ -157,6 +157,11 @@ a {
 /* 워드마크 = 심벌(냉장고 문) + 이름. 이모지 로고를 단색 SVG로 바꾼 자리다 —
    이모지는 기기마다 그림이 달라서 브랜드가 될 수 없다.
    심벌은 stroke를 currentColor로 두어 링크 색·다크 모드·hover를 그대로 따라간다. */
+/* CLAUDE.md의 "명조는 24px 이상에만" 규칙에 대한 의도적 예외다. .brand는 tokens.css의
+   `.logo, .brand, h1` 규칙으로 명조가 걸리는데 실제 크기는 18.4px(1.15rem)로 24px 미만이다.
+   본문 제목이 아니라 압축된 로고 마크라 헤더 높이(--header-height: 64px) 안에서 24px로
+   키우면 답답해진다 — 로고는 크기 규칙의 적용 대상이 아니라고 본다(2026-08-20 UI 점검에서
+   발견한 규칙 충돌의 해소). 시각 변경은 없다. */
 .brand {
   margin-right: auto;
   display: inline-flex;
@@ -521,7 +526,7 @@ body:has(.pantry-bar) {
   font-size: 0.9rem;
   padding: 0 12px;
   border: 1px solid var(--border-strong); /* 상호작용 요소 — WCAG 1.4.11 */
-  border-radius: 10px;
+  border-radius: var(--r-md);
   background: var(--surface);
   color: var(--text);
 }
@@ -534,7 +539,7 @@ body:has(.pantry-bar) {
   font-size: 0.9rem;
   font-weight: 700;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--r-md);
   background: var(--accent-strong);
   color: var(--on-accent);
   cursor: pointer;
@@ -561,7 +566,7 @@ body:has(.pantry-bar) {
   padding: 10px 14px;
   border: 1px solid var(--border);
   border-left: 3px solid var(--accent);
-  border-radius: 10px;
+  border-radius: var(--r-md);
   background: var(--bg);
   color: var(--text);
   font-size: 0.88rem;
@@ -788,7 +793,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 .faq details {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-md);
   padding: 14px 16px;
   margin-bottom: 10px;
 }
@@ -919,7 +924,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   font: inherit;
   padding: 10px 14px;
   border: 1px solid var(--border-strong); /* 상호작용 요소 — WCAG 1.4.11 */
-  border-radius: 10px;
+  border-radius: var(--r-md);
   background: var(--surface);
   color: var(--text);
 }
@@ -934,10 +939,10 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   font-weight: 600;
   padding: 10px 18px;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--r-md);
   background: var(--surface);
   color: var(--accent-strong);
-  box-shadow: inset 0 0 0 1px var(--border);
+  box-shadow: inset 0 0 0 1px var(--border-strong); /* 상호작용 요소 — D-2 #20 */
   cursor: pointer;
 }
 
@@ -1088,7 +1093,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   border-radius: var(--r-md); /* 버튼 10px */
   background: var(--surface);
   color: var(--accent-strong);
-  box-shadow: inset 0 0 0 1px var(--border);
+  box-shadow: inset 0 0 0 1px var(--border-strong); /* 상호작용 요소 — D-2 #20, D-0o의 남겨둔 메모 여기서 해소 */
   cursor: pointer;
 }
 
@@ -1219,7 +1224,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   margin: 0 0 14px;
   padding: 12px 16px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-md);
   background: var(--bg);
   font-size: 0.9rem;
 }
@@ -2025,7 +2030,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 .mealplan-edit-status {
   margin: 10px 0 0;
   padding: 10px 14px;
-  border-radius: 10px;
+  border-radius: var(--r-md);
   background: var(--bg);
   border: 1px solid var(--border);
   font-size: 0.88rem;
@@ -2053,7 +2058,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   min-width: 0;
   min-height: 44px;
   padding: 8px 10px;
-  border-radius: 10px;
+  border-radius: var(--r-md);
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
@@ -2097,14 +2102,15 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 }
 
 /* 칸 옆의 정사각 조작 버튼. 지우기(×)와 넣기(+)가 같은 자리·같은 크기라
-   빈 자리와 찬 자리가 섞여 있어도 오른쪽 열이 흐트러지지 않는다. */
+   빈 자리와 찬 자리가 섞여 있어도 오른쪽 열이 흐트러지지 않는다.
+   상호작용 요소라 경계는 --border-strong(WCAG 1.4.11, D-2 #20 참고 — --border는 1.1~1.4:1로 미달). */
 .meal-delete,
 .meal-add {
   font: inherit;
   flex: none;
   width: 44px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-strong);
   background: var(--surface);
   cursor: pointer;
 }
@@ -2135,7 +2141,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 .meal-slot-add {
   padding: 12px 10px;
   border: 1px solid var(--accent-strong);
-  border-radius: 10px;
+  border-radius: var(--r-md);
   background: var(--bg);
 }
 
@@ -2154,7 +2160,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   min-height: 44px;
   padding: 0 12px;
   border: 1px solid var(--border-strong); /* 상호작용 요소 — WCAG 1.4.11 */
-  border-radius: 10px;
+  border-radius: var(--r-md);
   background: var(--surface);
   color: var(--text);
 }
@@ -2173,7 +2179,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   min-height: 40px;
   padding: 0 18px;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--r-md);
   background: var(--accent-strong);
   color: var(--on-accent);
   cursor: pointer;
@@ -2203,7 +2209,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   min-height: 36px;
   margin: 0 6px 6px 0;
   padding: 0 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong); /* 상호작용 요소 — D-2 #20 */
   border-radius: 999px;
   background: var(--surface);
   color: var(--text);
@@ -2220,7 +2226,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   margin: 0 0 14px;
   padding: 12px 16px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-md);
   background: var(--bg);
   font-size: 0.9rem;
 }
@@ -2256,7 +2262,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   gap: 8px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-md);
   padding: 12px 16px;
 }
 
@@ -2396,7 +2402,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   font: inherit;
   padding: 10px 16px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--r-lg);
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
@@ -2441,7 +2447,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   /* 경계를 알아봐야 하는 상호작용 요소는 장식용 --border(1.1~1.3:1)가 아니라
      --border-strong을 쓴다. 페이지 배경 위든 카드 위든 3:1을 넘도록 맞춰진 값이다(WCAG 1.4.11). */
   border: 1px solid var(--border-strong);
-  border-radius: 10px;
+  border-radius: var(--r-md);
   background: var(--surface);
   color: var(--text);
   resize: vertical;
@@ -2555,7 +2561,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   background: var(--danger-bg);
   color: var(--danger);
   border: 1px solid var(--danger-border);
-  border-radius: 10px;
+  border-radius: var(--r-md);
   padding: 12px 16px;
   font-size: 0.95rem;
 }
@@ -2913,7 +2919,7 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   align-items: center;
   gap: 4px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--r-lg);
   background: var(--surface);
 }
 
