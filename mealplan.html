@@ -69,7 +69,23 @@
 
   <main id="main" class="page">
     <section class="page-intro">
-      <h1 data-copy="UI.mealplanTitle">이번 주 저녁, 미리 정해둘까요?</h1>
+      <h1>
+        <span data-copy="UI.mealplanTitle">이번 주 저녁, 미리 정해둘까요?</span>
+        <!-- data-copy를 h1에 직접 걸면 이 아이콘까지 지워진다(FORM.healthy 체크박스와 같은 이유) -->
+        <span class="info-tooltip">
+          <button type="button" class="info-tooltip-btn" aria-describedby="mealplan-source-tooltip"
+            data-copy-attr="aria-label:MEALPLAN.planInfoAria" aria-label="식단 추천 방식 안내">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+          </button>
+          <span class="info-tooltip-bubble" role="tooltip" id="mealplan-source-tooltip"
+            data-copy="MEALPLAN.planInfo">냉장고에 오래 넣어둔 재료가 있으면, 그 재료를 먼저 쓰는 메뉴를 우선 넣어드려요.</span>
+        </span>
+      </h1>
       <p data-copy="UI.mealplanIntro">냉장고에 있는 재료를 최대한 쓰고, 부족한 것만 장보기로 모아드려요.</p>
       <button type="button" id="favorites-view-btn" class="link-button"
         data-copy="MEALPLAN.viewFavorites">즐겨찾기 보기</button>

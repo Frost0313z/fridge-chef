@@ -98,6 +98,10 @@ const COPY = {
     amountHintTail: "식단을 짤 때 모자란 재료를 더 정확히 골라드려요.",
     addButton: "넣기",
     listTitle: "지금 들어있는 재료",
+    // "지금 들어있는 재료" 옆 ? 아이콘. 배지·강조색이 왜 붙는지는 화면 어디에도 안 적혀
+    // 있었다(pantry-chip-age-danger, PANTRY_AGE_DANGER_DAYS=14 — js/shared.js).
+    ageInfoAria: "오래된 재료 표시 안내",
+    ageInfo: "넣은 지 오래된 재료에는 며칠 됐는지 배지가 붙어요. 14일이 지나면 색이 진해져서, 먼저 먹어야 할 재료를 한눈에 알 수 있어요.",
     detailOn: "자세히",
     detailOff: "간단히",
     exampleLabel: "눌러서 바로 넣기",
@@ -218,6 +222,10 @@ const COPY = {
     // 장보기 화면
     shoppingTitle: "뭘 사야 할까요?",
     shoppingIntro: "식단에 필요한 양에서 냉장고에 있는 만큼을 뺀 부족한 만큼만 모았어요. 사고 나면 \"샀어요\"를 눌러 냉장고에 넣어주세요.",
+    // 폼 제목 옆 ? 아이콘. 수량 없이 넣은 재료는 통째로 못 빼는 경우가 있다는 게
+    // shoppingNoQuantityBefore 같은 예외 문구에만 있어서, 문제가 생기기 전엔 안 보였다.
+    shoppingCalcInfoAria: "장보기 계산 방식 안내",
+    shoppingCalcInfo: '냉장고 재료에 "계란 2개"처럼 수량을 적어두면, 여기서 뺄 양을 더 정확하게 계산해요.',
     shoppingHint: "자동으로 담기지는 않아요. 누르면 쿠팡 검색 결과가 새 탭에서 열려요.",
     shoppingStale: "식단을 고쳐서 이 목록이 지금 계획과 다를 수 있어요.",
     shoppingRefresh: "장보기 다시 뽑기",
@@ -328,6 +336,11 @@ const COPY = {
   MEALPLAN: {
     done: "해먹었어요",
     short: (names) => `괜찮아요, ${names}만 더 있으면 이 요리도 만들 수 있어요.`,
+
+    // 폼 제목 옆 ? 아이콘. api/mealplan.py의 SYSTEM_PROMPT가 오래된 재료를 우선 쓰라고
+    // AI에 지시하지만, 화면에는 그 사실이 안 적혀 있었다.
+    planInfoAria: "식단 추천 방식 안내",
+    planInfo: "냉장고에 오래 넣어둔 재료가 있으면, 그 재료를 먼저 쓰는 메뉴를 우선 넣어드려요.",
 
     /* 그리드 칸에 남기는 짧은 표시. 위의 긴 문구는 모달이 맡는다 —
        21칸에 문장을 늘어놓으면 정작 "이번 주 뭐 먹지"가 안 읽힌다(C2). */
