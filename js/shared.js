@@ -106,6 +106,11 @@ function pantryAgoLabel(addedAt) {
    시점이 되므로 7일로 둔다. */
 const PANTRY_AGE_NOTICE_DAYS = 7;
 
+/* 14일부터는 "알아두면 좋은 사실"을 넘어 "먼저 확인해야 할 것"이 된다고 보고 색을
+   더 강하게 준다(사용자 요청). 7~13일은 여전히 무채색이다 — 이 구간까지 강하게
+   칠하면 정작 봐야 할 오래된 것이 안 도드라진다. */
+const PANTRY_AGE_DANGER_DAYS = 14;
+
 /* 오래된 것만 말한다. 목록은 넣은 순서 그대로라 오래된 재료가 이미 위에 있고,
    여기에 며칠 됐는지만 붙이면 "뭐부터 먹지"의 답이 된다. */
 function pantryAgeText(item) {
@@ -793,6 +798,8 @@ function pantryChipsHtml(pantry, withDetails) {
       /* 오래된 재료에만 붙는다. 자세히 보기와 무관하게 항상 보인다 —
          "몇 개 있나"는 골라 볼 정보지만 "이거 상하겠다"는 놓치면 안 되는 정보다. */
       const badge = pantryAgeText(item);
+      const days = daysSince(item.addedAt);
+      const isDanger = days !== null && days >= PANTRY_AGE_DANGER_DAYS;
 
       /* 자세히 보기에서 이름 뒤에 붙는 것들. 배지가 이미 며칠 됐는지 말하고 있으면
          같은 말을 두 번 하지 않는다. */
@@ -805,7 +812,7 @@ function pantryChipsHtml(pantry, withDetails) {
       <span class="pantry-chip">
         ${escapeHtml(item.name)}
         ${meta ? `<span class="pantry-chip-meta">${escapeHtml(meta)}</span>` : ""}
-        ${badge ? `<span class="pantry-chip-age">${badge}</span>` : ""}
+        ${badge ? `<span class="pantry-chip-age${isDanger ? " pantry-chip-age-danger" : ""}">${badge}</span>` : ""}
         <button type="button" class="pantry-chip-remove" data-index="${index}"
           aria-label="${escapeHtml(pantryText(item))} 삭제">×</button>
       </span>`;

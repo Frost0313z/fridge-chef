@@ -46,6 +46,7 @@ const {
   loadSavings, addSavings, undoSavings, chickenText,
   savingsTotal, savingsWeek, savingsMonth, weekStartISO, todayISO,
   loadFavorites, isFavorite, toggleFavorite,
+  pantryChipsHtml,
 } = sandbox;
 
 /* copy.js의 COPY는 const라 전역 객체에 붙지 않는다(함수 선언만 붙는다).
@@ -350,6 +351,22 @@ check("손상된 값은 빈 목록으로 본다", loadFavorites(), []);
 store[FAV] = JSON.stringify([]);
 toggleFavorite({ name: "순두부찌개", recipeUrl: "https://www.10000recipe.com/recipe/6841712", steps: [] });
 check("매칭 레시피의 원본 주소를 잃지 않는다", loadFavorites()[0].recipeUrl, "https://www.10000recipe.com/recipe/6841712");
+
+// 넣은 지 오래된 재료 배지 — 7일 미만은 배지 없음, 7~13일은 무채색, 14일+ 만 강조색(D 요청).
+function daysAgoISO(n) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+const freshChip = pantryChipsHtml([{ name: "갓넣음", amount: "", addedAt: daysAgoISO(6) }], false);
+check("6일은 배지가 안 붙는다", freshChip.includes("pantry-chip-age"), false);
+
+const noticeChip = pantryChipsHtml([{ name: "일주일째", amount: "", addedAt: daysAgoISO(8) }], false);
+check("8일은 배지가 붙는다", noticeChip.includes("pantry-chip-age"), true);
+check("8일은 아직 강조색이 아니다", noticeChip.includes("pantry-chip-age-danger"), false);
+
+const dangerChip = pantryChipsHtml([{ name: "오래됨", amount: "", addedAt: daysAgoISO(14) }], false);
+check("14일부터는 강조색이 붙는다", dangerChip.includes("pantry-chip-age-danger"), true);
 
 console.log(failed ? `\n${failed}개 실패` : "\nall passed");
 process.exit(failed ? 1 : 0);

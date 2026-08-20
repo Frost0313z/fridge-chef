@@ -1001,7 +1001,8 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 }
 
 /* 넣은 지 오래된 재료에만 붙는다. 수량(글자색만 다름)과 형태로 구분되도록 옅은 판을 깐다.
-   오류가 아니라 알아둘 사실이므로 빨강을 쓰지 않는다 — 재료는 상한 게 아니라 오래된 것뿐이다. */
+   7~13일은 아직 무채색이다 — 오류가 아니라 알아둘 사실이라, 이 구간까지 물들이면
+   정작 먼저 먹어야 하는 재료(14일+)가 안 도드라진다. */
 .pantry-chip-age {
   margin-left: 6px;
   padding: 2px 7px;
@@ -1011,6 +1012,15 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   font-size: 0.75em;
   font-weight: 600;
   white-space: nowrap;
+}
+
+/* 14일부터는 "먼저 확인해야 할 것"이라 강조한다(사용자 요청). 글자 색만으로 정보를
+   전달하지 않도록 배지 안 숫자·"N일 전" 자체가 이미 근거이고, 색은 그 위에 얹는 추가
+   강조다(WCAG 1.4.1). .pantry-chip-remove:hover와 같은 --danger 짝을 쓴다 —
+   새 빨강을 만들지 않고 이미 있는 "경고" 의미를 그대로 가져온다. */
+.pantry-chip-age-danger {
+  background: var(--danger-bg);
+  color: var(--danger);
 }
 
 .pantry-chip-remove {
