@@ -164,7 +164,11 @@
         </button>
       </div>
       <p id="favorites-list-empty" class="favorites-list-empty" data-copy="FAVORITES.listEmpty" hidden>아직 담아둔 즐겨찾기가 없어요. 레시피 결과에서 별을 눌러 담아보세요.</p>
-      <ul id="favorites-list" class="favorites-list"></ul>
+      <!-- 왼쪽은 목록(고르기+별 해제), 오른쪽은 고른 요리의 상세 카드다. -->
+      <div id="favorites-dialog-body" class="favorites-dialog-body">
+        <ul id="favorites-list" class="favorites-list"></ul>
+        <div id="favorites-detail" class="favorites-detail"></div>
+      </div>
     </div>
   </dialog>
 

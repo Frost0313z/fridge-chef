@@ -321,6 +321,31 @@ function recipeSearchLinkHtml(name, searchKeyword) {
     aria-label="${escapeHtml(query)} 레시피를 만개의레시피에서 찾아보기">만개의레시피에서 찾아보기 →</a>`;
 }
 
+/* recipe.js의 결과 카드와 mealplan.js의 즐겨찾기 상세 카드가 똑같이 쓴다.
+
+   실제 레시피와 매칭된 것은 조리 순서를 우리 화면에 적지 않는다. 데이터 라이선스
+   (CC BY-NC-ND)의 ND 조건이라 원문을 재구성해서 보여줄 수 없다 — 그래서 서버가
+   steps를 빈 배열로 내려보내고, 화면은 그 자리에 원본으로 가는 링크(recipeUrl)를
+   주 행동으로 놓는다. 링크는 이름으로 만든 검색 URL과 달리 그 레시피로 바로 간다.
+   출처도 밝힌다(BY 조건이자, "이건 누가 지어낸 게 아니다"라는 정보이기도 하다).
+
+   AI가 추천한 것은 조리 순서가 있고 recipeUrl이 없다(toggleFavorite 참고) — 두 조건은
+   겹치지 않으므로 steps 유무만으로 갈림길을 갈라도 된다. */
+function recipeStepsOrLinkHtml(r) {
+  if ((r.steps || []).length) {
+    return `<h4>${escapeHtml(COPY.UI.recipeStepsHeading)}</h4>
+      <ol>${r.steps.map((s) => `<li>${escapeHtml(s)}</li>`).join("")}</ol>
+      ${recipeSearchLinkHtml(r.name, r.searchKeyword)}`;
+  }
+  if (r.recipeUrl) {
+    return `<p class="recipe-matched-note">${escapeHtml(COPY.UI.matchedNote)}</p>
+      <a class="recipe-search-link recipe-matched-link" href="${escapeHtml(r.recipeUrl)}"
+        target="_blank" rel="noopener noreferrer">${escapeHtml(COPY.UI.matchedLink)}</a>
+      <p class="recipe-source">${escapeHtml(COPY.UI.matchedSource)}</p>`;
+  }
+  return recipeSearchLinkHtml(r.name, r.searchKeyword);
+}
+
 /* 새 탭으로 나간다는 표시. 이모지 대신 SVG인 이유는 두 가지다 — 이모지는 기기마다 모양이 달라
    크기·정렬이 흔들리고, 이 서비스는 이미 이모지를 쓰는 자리가 많아 규칙을 정해야 할 상태다
    (UI/UX 원칙 체크리스트 10번). 5줄이면 되는 것에 아이콘 라이브러리를 들이지 않는다. */

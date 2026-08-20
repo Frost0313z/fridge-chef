@@ -92,30 +92,60 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* 즐겨찾기 전체 목록 모달(D-0s). 빈 칸 팝업 안에서만 보이던 것을 페이지 어디서든
      훑어볼 수 있게 한다 — #meal-dialog·#pantry-import-dialog와 같은 <dialog> 패턴이라
-     초점 가두기·Esc 닫기·배경 클릭 닫기 근거도 같다. */
+     초점 가두기·Esc 닫기·배경 클릭 닫기 근거도 같다.
+     왼쪽은 고르는 목록, 오른쪽은 고른 요리의 상세 카드다(recipe.js의 recipeCardHtml과
+     같은 정보를 보여주지만, 냉장고 보유 여부 표시·"해먹었어요"는 여기 목적과 달라 뺐다 —
+     이 화면은 "뭘 즐겨찾기했는지 훑어보기"이지 조리 체크리스트가 아니다). */
   const favoritesBtn = document.getElementById("favorites-view-btn");
   const favoritesDialog = document.getElementById("favorites-dialog");
+  const favoritesBodyEl = document.getElementById("favorites-dialog-body");
   const favoritesListEl = document.getElementById("favorites-list");
+  const favoritesDetailEl = document.getElementById("favorites-detail");
   const favoritesEmptyEl = document.getElementById("favorites-list-empty");
+  let favoritesSelectedIndex = 0;
 
-  function favoriteRowHtml(r, i) {
-    const timeHtml = r.time ? `<p class="favorites-list-time">⏱ ${escapeHtml(r.time)}</p>` : "";
-    return `<li class="favorites-list-item">
-      <div class="favorites-list-info">
-        <p class="favorites-list-name">${escapeHtml(r.name)}</p>
+  function favoriteListRowHtml(r, i, selected) {
+    const timeHtml = r.time ? `<span class="favorites-list-time">⏱ ${escapeHtml(r.time)}</span>` : "";
+    return `<li class="favorites-list-item${selected ? " is-selected" : ""}">
+      <button type="button" class="favorites-list-select" data-index="${i}" aria-pressed="${selected}">
+        <span class="favorites-list-name">${escapeHtml(r.name)}</span>
         ${timeHtml}
-      </div>
+      </button>
       ${favoriteToggleHtml(r.name, `data-favorite-list-index="${i}"`)}
     </li>`;
   }
 
+  /* 링크·조리 순서 갈림길은 shared.js의 recipeStepsOrLinkHtml이 recipe.js 카드와 함께 쓴다. */
+  function favoriteDetailHtml(r) {
+    if (!r) return `<p class="favorites-detail-empty">${escapeHtml(COPY.FAVORITES.detailEmpty)}</p>`;
+
+    const timeHtml = r.time ? `<p class="recipe-time">⏱ ${escapeHtml(r.time)}</p>` : "";
+    const ingredientsHtml = (r.ingredients || []).length
+      ? `<h4>${escapeHtml(COPY.FAVORITES.detailIngredients)}</h4>
+         <ul>${r.ingredients.map((ing) => `<li>${escapeHtml(ing)}</li>`).join("")}</ul>`
+      : "";
+
+    return `<h3 class="favorites-detail-name">${escapeHtml(r.name)}</h3>${timeHtml}${ingredientsHtml}${recipeStepsOrLinkHtml(r)}`;
+  }
+
   function renderFavoritesList() {
     const items = loadFavorites();
-    favoritesListEl.innerHTML = items.map(favoriteRowHtml).join("");
     favoritesEmptyEl.hidden = items.length > 0;
+    favoritesBodyEl.hidden = items.length === 0;
+    if (!items.length) {
+      favoritesListEl.innerHTML = "";
+      favoritesDetailEl.innerHTML = "";
+      return;
+    }
+    if (favoritesSelectedIndex >= items.length) favoritesSelectedIndex = items.length - 1;
+    favoritesListEl.innerHTML = items
+      .map((r, i) => favoriteListRowHtml(r, i, i === favoritesSelectedIndex))
+      .join("");
+    favoritesDetailEl.innerHTML = favoriteDetailHtml(items[favoritesSelectedIndex]);
   }
 
   favoritesBtn.addEventListener("click", () => {
+    favoritesSelectedIndex = 0;
     renderFavoritesList();
     favoritesDialog.showModal();
   });
@@ -125,16 +155,22 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target === favoritesDialog) favoritesDialog.close();
   });
 
-  /* 읽기 전용 목록이라 할 수 있는 조작은 별 해제뿐이다 — 누르면 즐겨찾기에서
-     빠지므로 목록에서도 그 줄이 사라져야 한다. 인덱스가 밀리는 문제를 피하려고
-     자리만 바꾸지 않고 목록 전체를 다시 그린다. */
+  /* 별을 누르면 즐겨찾기에서 빠지므로 목록에서도 그 줄이 사라져야 한다. 인덱스가
+     밀리는 문제를 피하려고 자리만 바꾸지 않고 목록·상세를 통째로 다시 그린다.
+     이름을 누르면 그 줄을 고른 것으로 보고 오른쪽 상세만 바뀐다. */
   favoritesListEl.addEventListener("click", (e) => {
-    const btn = e.target.closest(".fav-toggle");
-    if (!btn) return;
-    const recipe = loadFavorites()[Number(btn.dataset.favoriteListIndex)];
-    if (!recipe) return;
-    toggleFavorite(recipe);
-    renderFavoritesList();
+    const star = e.target.closest(".fav-toggle");
+    if (star) {
+      const recipe = loadFavorites()[Number(star.dataset.favoriteListIndex)];
+      if (recipe) toggleFavorite(recipe);
+      renderFavoritesList();
+      return;
+    }
+    const selectBtn = e.target.closest(".favorites-list-select");
+    if (selectBtn) {
+      favoritesSelectedIndex = Number(selectBtn.dataset.index);
+      renderFavoritesList();
+    }
   });
 
   /* 냉장고는 조회 바에서도 바뀐다(추가·삭제·되돌리기). 부족 여부를 저장하지 않고 그때그때

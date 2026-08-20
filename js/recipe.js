@@ -149,26 +149,6 @@ function ingredientLiHtml(name, pantryNames) {
    (이력 목록이 historyItems를 들고 있는 것과 같은 이유). */
 let shownRecipes = [];
 
-/* 실제 레시피와 매칭된 카드. AI 생성 카드와 다른 점은 두 가지다.
-
-   ① 조리 순서를 우리 화면에 적지 않는다. 데이터 라이선스(CC BY-NC-ND)의 ND 조건이라
-      원문을 재구성해서 보여줄 수 없다 — 그래서 서버가 steps를 빈 배열로 내려보내고,
-      화면은 그 자리에 원본으로 가는 링크를 주 행동으로 놓는다.
-   ② 출처를 밝힌다. BY 조건이고, 사용자에게도 "이건 누가 지어낸 게 아니다"라는 정보다.
-
-   링크는 서버가 준 recipeUrl(레시피 고유 주소)을 쓴다. 이름으로 만든 검색 URL과 다르다 —
-   검색은 엉뚱한 결과가 나올 수 있지만 이건 그 레시피로 바로 간다. */
-function matchedDetailHtml(r) {
-  const url = r.recipeUrl;
-  if (!url) return recipeSearchLinkHtml(r.name, r.searchKeyword);
-
-  return `
-      <p class="recipe-matched-note">${escapeHtml(COPY.UI.matchedNote)}</p>
-      <a class="recipe-search-link recipe-matched-link" href="${escapeHtml(url)}"
-        target="_blank" rel="noopener noreferrer">${escapeHtml(COPY.UI.matchedLink)}</a>
-      <p class="recipe-source">${escapeHtml(COPY.UI.matchedSource)}</p>`;
-}
-
 function recipeCardHtml(r, pantryNames = [], index = 0) {
   return `
     <article class="recipe-card" data-recipe-index="${index}">
@@ -181,13 +161,7 @@ function recipeCardHtml(r, pantryNames = [], index = 0) {
       <ul class="recipe-ingredients">${(r.ingredients || [])
         .map((i) => ingredientLiHtml(i, pantryNames))
         .join("")}</ul>
-      ${
-        (r.steps || []).length
-          ? `<h4>조리 순서</h4>
-      <ol>${r.steps.map((s) => `<li>${escapeHtml(s)}</li>`).join("")}</ol>
-      ${recipeSearchLinkHtml(r.name, r.searchKeyword)}`
-          : matchedDetailHtml(r)
-      }
+      ${recipeStepsOrLinkHtml(r)}
       ${cookedHtml(r.ingredients, pantryNames)}
     </article>
   `;
