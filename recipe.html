@@ -90,58 +90,61 @@
     </section>
 
     <section class="recipe-form-section">
-      <form id="recipe-form" novalidate>
-        <!-- <option>은 보이는 글자만 COPY에서 받는다. value는 그대로 서버 프롬프트로
-             나가므로 건드리지 않는다 — 바꾸면 AI가 받는 지시가 달라진다. -->
-        <div class="form-row">
-          <div class="form-field">
-            <label for="portion" data-copy="FORM.portion">만들 분량</label>
-            <select id="portion" name="portion">
-              <option value="한 끼" data-copy="FORM.portionOne">한 끼</option>
-              <option value="두 끼" data-copy="FORM.portionTwoRecipe">두 끼 (내일 점심까지)</option>
-              <option value="3~4끼" data-copy="FORM.portionFew">3~4끼 (며칠치)</option>
-            </select>
+      <div class="list-card recipe-form-card">
+        <form id="recipe-form" novalidate>
+          <!-- <option>은 보이는 글자만 COPY에서 받는다. value는 그대로 서버 프롬프트로
+               나가므로 건드리지 않는다 — 바꾸면 AI가 받는 지시가 달라진다. -->
+          <div class="form-row">
+            <div class="form-field">
+              <label for="portion" data-copy="FORM.portion">만들 분량</label>
+              <select id="portion" name="portion">
+                <option value="한 끼" data-copy="FORM.portionOne">한 끼</option>
+                <option value="두 끼" data-copy="FORM.portionTwoRecipe">두 끼 (내일 점심까지)</option>
+                <option value="3~4끼" data-copy="FORM.portionFew">3~4끼 (며칠치)</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="timeLimit" data-copy="FORM.timeLimit">희망 조리 시간</label>
+              <select id="timeLimit" name="timeLimit">
+                <option value="상관없음" data-copy="FORM.timeAny">상관없음</option>
+                <option value="15분 이내" data-copy="FORM.time15">15분 이내</option>
+                <option value="30분 이내" data-copy="FORM.time30">30분 이내</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="category" data-copy="FORM.category">요리 종류</label>
+              <select id="category" name="category">
+                <option value="상관없음" data-copy="FORM.categoryAny">상관없음</option>
+                <option value="밑반찬" data-copy="FORM.categorySideDishLight">밑반찬</option>
+                <option value="메인반찬" data-copy="FORM.categorySideDishMain">메인반찬</option>
+                <option value="밥/죽/떡" data-copy="FORM.categoryRicePorridgeTteok">밥/죽/떡</option>
+                <option value="국/탕" data-copy="FORM.categorySoup">국/탕</option>
+                <option value="빵" data-copy="FORM.categoryBread">빵</option>
+                <option value="면/만두" data-copy="FORM.categoryNoodleDumpling">면/만두</option>
+                <option value="디저트" data-copy="FORM.categoryDessert">디저트</option>
+                <option value="찌개" data-copy="FORM.categoryStew">찌개</option>
+                <option value="김치/젓갈/장류" data-copy="FORM.categoryKimchiJangPreserve">김치/젓갈/장류</option>
+                <option value="샐러드" data-copy="FORM.categorySalad">샐러드</option>
+                <option value="양식" data-copy="FORM.categoryWestern">양식</option>
+                <option value="퓨전" data-copy="FORM.categoryFusion">퓨전</option>
+                <option value="스프" data-copy="FORM.categorySoupBase">스프</option>
+              </select>
+            </div>
           </div>
-          <div class="form-field">
-            <label for="timeLimit" data-copy="FORM.timeLimit">희망 조리 시간</label>
-            <select id="timeLimit" name="timeLimit">
-              <option value="상관없음" data-copy="FORM.timeAny">상관없음</option>
-              <option value="15분 이내" data-copy="FORM.time15">15분 이내</option>
-              <option value="30분 이내" data-copy="FORM.time30">30분 이내</option>
-            </select>
-          </div>
-          <div class="form-field">
-            <label for="category" data-copy="FORM.category">요리 종류</label>
-            <select id="category" name="category">
-              <option value="상관없음" data-copy="FORM.categoryAny">상관없음</option>
-              <option value="밑반찬" data-copy="FORM.categorySideDishLight">밑반찬</option>
-              <option value="메인반찬" data-copy="FORM.categorySideDishMain">메인반찬</option>
-              <option value="밥/죽/떡" data-copy="FORM.categoryRicePorridgeTteok">밥/죽/떡</option>
-              <option value="국/탕" data-copy="FORM.categorySoup">국/탕</option>
-              <option value="빵" data-copy="FORM.categoryBread">빵</option>
-              <option value="면/만두" data-copy="FORM.categoryNoodleDumpling">면/만두</option>
-              <option value="디저트" data-copy="FORM.categoryDessert">디저트</option>
-              <option value="찌개" data-copy="FORM.categoryStew">찌개</option>
-              <option value="김치/젓갈/장류" data-copy="FORM.categoryKimchiJangPreserve">김치/젓갈/장류</option>
-              <option value="샐러드" data-copy="FORM.categorySalad">샐러드</option>
-              <option value="양식" data-copy="FORM.categoryWestern">양식</option>
-              <option value="퓨전" data-copy="FORM.categoryFusion">퓨전</option>
-              <option value="스프" data-copy="FORM.categorySoupBase">스프</option>
-            </select>
-          </div>
-        </div>
 
-        <button type="submit" id="submit-btn" class="cta-button" data-copy="UI.submitRecipe">오늘 뭐 해먹지?</button>
-      </form>
+          <button type="submit" id="submit-btn" class="cta-button" data-copy="UI.submitRecipe">오늘 뭐 해먹지?</button>
+        </form>
 
-      <p id="loading" class="loading" role="status" aria-live="polite" data-copy="UI.loading" hidden>있는 재료로 뭘 만들 수 있을지 찾고 있어요…</p>
-      <p id="error" class="error-message" role="alert" hidden></p>
-      <p id="error-fallback" class="error-fallback" hidden>
-        <span data-copy="UI.errorFallbackIntro">지금 추천을 못 받아도 괜찮아요.</span>
-        <button type="button" id="error-history-btn" class="link-button" data-copy="UI.errorFallbackAction">최근 받은 요리 보기</button>
-      </p>
+        <p id="loading" class="loading" role="status" aria-live="polite" data-copy="UI.loading" hidden>있는 재료로 뭘 만들 수 있을지 찾고 있어요…</p>
+        <p id="error" class="error-message" role="alert" hidden></p>
+        <p id="error-fallback" class="error-fallback" hidden>
+          <span data-copy="UI.errorFallbackIntro">지금 추천을 못 받아도 괜찮아요.</span>
+          <button type="button" id="error-history-btn" class="link-button" data-copy="UI.errorFallbackAction">최근 받은 요리 보기</button>
+        </p>
 
-      <p id="result-empty" class="result-empty" data-copy="UI.emptyRecipeStart">아직 받은 추천이 없어요. 재료를 확인하고 위 버튼을 눌러보세요.</p>
+        <p id="result-empty" class="result-empty" data-copy="UI.emptyRecipeStart">아직 받은 추천이 없어요. 재료를 확인하고 위 버튼을 눌러보세요.</p>
+      </div>
+
       <div id="result" class="result-grid" aria-live="polite"></div>
 
       <button type="button" id="rerecommend-btn" class="cta-button cta-button-secondary rerecommend-btn"

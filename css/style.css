@@ -2589,6 +2589,12 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   outline-offset: 1px;
 }
 
+/* #recipe-form select는 #mealplan-form과 공유하는 규칙이라 기본값(--surface)은 바꾸지
+   않는다. .recipe-form-card(--surface) 안에서만 --bg로 내려 카드와 구분한다. */
+.recipe-form-card #recipe-form select {
+  background: var(--bg);
+}
+
 .form-row {
   display: flex;
   gap: 14px;
