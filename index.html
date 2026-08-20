@@ -115,27 +115,33 @@
 
     <section class="home-section">
       <h2 data-copy="HOME.faqTitle">자주 묻는 질문</h2>
+      <!-- FAQ.N은 js/copy.js 배열의 순번 그대로다. 중간에 항목을 넣거나 빼면 뒤 번호가
+           전부 밀리므로, 여기 순서도 같이 고쳐야 한다. -->
       <div class="faq">
         <details>
           <summary data-copy="FAQ.0.q">재료를 정확한 계량으로 입력해야 하나요?</summary>
           <p data-copy="FAQ.0.a">아니요. "계란 2개, 대파 조금"처럼 대략적으로만 입력해도 됩니다.</p>
         </details>
         <details>
-          <summary data-copy="FAQ.1.q">추천 결과가 이상하거나 안 나오면 어떻게 하나요?</summary>
-          <p data-copy="FAQ.1.a">재료를 조금 더 구체적으로 입력하거나, 잠시 후 다시 시도해보세요. 서버가 혼잡하거나 응답이 지연되는 경우 안내 메시지가 표시됩니다. 이전에 추천받은 요리가 있다면 "최근 받은 요리"에서 다시 확인할 수 있습니다.</p>
+          <summary data-copy="FAQ.1.q">추천받은 요리, 진짜 존재하는 레시피인가요?</summary>
+          <p data-copy="FAQ.1.a">가능하면 만개의레시피에 실제로 올라와 있는 레시피를 먼저 찾아서 보여드려요. 그런 레시피가 없을 때만 갖고 계신 재료에 맞춰 새로 만들어드려요. 실제 레시피인 경우 카드에 "레시피 출처: 만개의레시피"라고 표시되고, 원문 링크에서 조리 순서까지 볼 수 있어요.</p>
         </details>
         <details>
-          <summary data-copy="FAQ.2.q">제 재료 정보가 저장되나요?</summary>
-          <p data-copy="FAQ.2.a">"냉장고"에 넣어둔 재료는 편의를 위해 이 브라우저의 로컬 저장소(localStorage)에만 저장됩니다. 서버로 전송되거나 다른 사람에게 공개되지 않으며, 언제든 × 버튼으로 삭제할 수 있습니다. 그 외 그날그날 추가로 입력한 재료는 추천을 생성하는 데만 쓰이고 따로 저장되지 않습니다.</p>
+          <summary data-copy="FAQ.2.q">추천 결과가 이상하거나 안 나오면 어떻게 하나요?</summary>
+          <p data-copy="FAQ.2.a">재료를 조금 더 구체적으로 입력하거나, 잠시 후 다시 시도해보세요. 서버가 혼잡하거나 응답이 지연되는 경우 안내 메시지가 표시됩니다. 이전에 추천받은 요리가 있다면 "최근 받은 요리"에서 다시 확인할 수 있습니다.</p>
         </details>
         <details>
-          <summary data-copy="FAQ.3.q">주간 식단의 장보기 리스트, 쿠팡 장바구니에 자동으로 담기나요?</summary>
-          <p data-copy="FAQ.3.a">아니요. 리스트의 "쿠팡에서 검색" 링크를 누르면 해당 재료의 쿠팡 검색 결과 페이지가 새 탭으로 열릴 뿐, 장바구니에 자동으로 담거나 결제를 진행하지 않습니다. 실제 담기·구매는 직접 확인하고 진행해주세요.</p>
+          <summary data-copy="FAQ.3.q">제 재료 정보가 저장되나요?</summary>
+          <p data-copy="FAQ.3.a">"냉장고"에 넣어둔 재료는 편의를 위해 이 브라우저의 로컬 저장소(localStorage)에만 저장됩니다. 서버로 전송되거나 다른 사람에게 공개되지 않으며, 언제든 × 버튼으로 삭제할 수 있습니다. 그 외 그날그날 추가로 입력한 재료는 추천을 생성하는 데만 쓰이고 따로 저장되지 않습니다.</p>
         </details>
         <details>
-          <summary data-copy="FAQ.4.q">어떤 기술로 만들었나요?</summary>
+          <summary data-copy="FAQ.4.q">주간 식단의 장보기 리스트, 쿠팡 장바구니에 자동으로 담기나요?</summary>
+          <p data-copy="FAQ.4.a">아니요. 리스트의 "쿠팡에서 검색" 링크를 누르면 해당 재료의 쿠팡 검색 결과 페이지가 새 탭으로 열릴 뿐, 장바구니에 자동으로 담거나 결제를 진행하지 않습니다. 실제 담기·구매는 직접 확인하고 진행해주세요.</p>
+        </details>
+        <details>
+          <summary data-copy="FAQ.5.q">어떤 기술로 만들었나요?</summary>
           <!-- 답에 링크가 들어가서 <p> 하나로는 COPY에 못 붙인다. 앞·링크·뒤 셋으로 나눈다. -->
-          <p><span data-copy="FAQ.4.aHead">프론트엔드는 프레임워크 없이 HTML / CSS / JavaScript로, 백엔드는 Vercel Serverless Functions(Python)로 만들었습니다. 요리 추천에는 OpenAI API를 쓰고, 배포는 Vercel로 합니다. 자세한 구조는 </span><a href="https://github.com/Frost0313z/fridge-chef" target="_blank" rel="noopener noreferrer" data-copy="FAQ.4.aLinkLabel" data-copy-href="FAQ.4.aLinkUrl">GitHub 저장소</a><span data-copy="FAQ.4.aTail">에서 볼 수 있어요.</span></p>
+          <p><span data-copy="FAQ.5.aHead">프론트엔드는 프레임워크 없이 HTML / CSS / JavaScript로, 백엔드는 Vercel Serverless Functions(Python)로 만들었습니다. 요리 추천에는 OpenAI API를 쓰고, 배포는 Vercel로 합니다. 자세한 구조는 </span><a href="https://github.com/Frost0313z/fridge-chef" target="_blank" rel="noopener noreferrer" data-copy="FAQ.5.aLinkLabel" data-copy-href="FAQ.5.aLinkUrl">GitHub 저장소</a><span data-copy="FAQ.5.aTail">에서 볼 수 있어요.</span></p>
         </details>
       </div>
     </section>

@@ -760,6 +760,81 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   margin-top: 12px;
 }
 
+/* 레시피 폼 제목 옆 ? 아이콘 — 결과를 받기 전에 "실제 레시피부터 찾는다"는 신뢰 근거를
+   미리 알려준다. 호버·포커스 둘 다로 열려야 하므로 :focus-within을 쓴다(마우스 없이도
+   Tab으로 접근 가능). */
+.recipe-source-info {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+.recipe-source-info-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--r-md);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--dur) var(--ease);
+}
+
+.recipe-source-info-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.recipe-source-info-btn:hover {
+  color: var(--accent-strong);
+}
+
+.recipe-source-tooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  /* 아이콘 기준 가운데 정렬 — 왼쪽 맞춤(left: 0)이면 아이콘이 화면 오른쪽에 가까울 때
+     박스가 뷰포트 밖으로 잘렸다(390px 모바일 실측). 너비도 뷰포트에 맞춰 줄인다. */
+  left: 50%;
+  z-index: 5;
+  width: max-content;
+  max-width: min(260px, calc(100vw - 32px));
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  /* h1의 명조·자간·굵기를 상속받는다 — 이 안은 본문이므로 고딕으로 되돌린다
+     (CLAUDE.md: 라벨·UI는 크기와 무관하게 항상 고딕). */
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: normal;
+  color: var(--text);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-50%) translateY(-4px);
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease), visibility var(--dur);
+  pointer-events: none;
+}
+
+.recipe-source-info:hover .recipe-source-tooltip,
+.recipe-source-info:focus-within .recipe-source-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recipe-source-tooltip {
+    transition: none;
+  }
+}
+
 .page section + section {
   margin-top: 48px;
 }
