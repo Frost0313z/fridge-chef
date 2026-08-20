@@ -1199,12 +1199,31 @@ function initPantryImport({ setPantry, render, setStatus }) {
   const importWait = createWaitIndicator(importLoadingEl, IMPORT_TIMEOUT_MS);
   let importPurchaseDate = null;
 
+  /* 휴대폰 카메라 원본(수 MB~수십 MB)을 그대로 base64로 실으면 Vercel 서버리스
+     요청 본문 제한(4.5MB)에 걸려 413이 난다 — 응답이 JSON이 아니라 postJson이
+     COPY.UI.error로 뭉뚱그려 "문제가 생겼다"로만 보인다. 긴 변을 1600px로 줄이고
+     JPEG로 다시 인코딩해 여유 있게 제한 아래로 낮춘다. */
   function readFileAsDataUrl(file) {
+    const MAX_DIM = 1600;
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        const scale = Math.min(1, MAX_DIM / Math.max(img.naturalWidth, img.naturalHeight));
+        const w = Math.round(img.naturalWidth * scale);
+        const h = Math.round(img.naturalHeight * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error("image_decode_failed"));
+      };
+      img.src = objectUrl;
     });
   }
 
@@ -1234,7 +1253,13 @@ function initPantryImport({ setPantry, render, setStatus }) {
     importInput.value = ""; // 같은 파일을 다시 골라도 change가 다시 나게 한다
     if (!file) return;
 
-    const dataUrl = await readFileAsDataUrl(file);
+    let dataUrl;
+    try {
+      dataUrl = await readFileAsDataUrl(file);
+    } catch {
+      setStatus(COPY.UI.error);
+      return;
+    }
 
     setStatus("");
     importBtn.disabled = true;
