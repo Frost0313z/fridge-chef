@@ -54,6 +54,18 @@ def load_index():
     return _index, _inverted
 
 
+def vocab_with_min_occurrence(min_count):
+    """등장 횟수가 min_count 이상인 재료명만 돌려준다.
+
+    234,538개 레시피 원문에 사람들이 자유롭게 적어 넣은 재료명이라 "도리토스"처럼 우연히
+    한두 번만 등장하는 비재료도 섞여 있다. pantry_import.py가 사진에서 뽑은 품목명을 이
+    어휘와 대조할 때, 어휘에 있다는 사실만으로는 "진짜 자주 쓰이는 재료"를 보장 못 한다
+    — docs/spec-pantry-photo-import.md 핵심 원칙 3.
+    """
+    _, inverted = load_index()
+    return [name for name, ids in inverted.items() if len(ids) >= min_count]
+
+
 def score(hit, total):
     """커버율만으로 줄을 세우면 재료가 적을수록 유리하다 — 분모가 작으니 당연하다.
     그래서 "몇 %를 채웠나"에 "실제로 몇 개나 맞았나"를 곱한다.

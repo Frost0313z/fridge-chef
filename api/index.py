@@ -8,9 +8,10 @@ Vercel의 Python 런타임은 프로젝트당 하나의 진입점을 기본 위�
 기능별 모듈은 그대로 분리돼 있고 각자 handle(payload) -> (status, body) 만 제공한다.
 덕분에 응답 전송과 예외 매핑이 한 곳에만 존재한다 (이전에는 두 파일에 중복돼 있었다).
 
-  GET  /api            헬스체크
-  POST /api/recommend  재료 기반 요리 추천
-  POST /api/mealplan   며칠치 저녁 식단 계획
+  GET  /api               헬스체크
+  POST /api/recommend     재료 기반 요리 추천
+  POST /api/mealplan      며칠치 저녁 식단 계획
+  POST /api/pantryImport  사진에서 재료 후보 추출
 """
 
 import json
@@ -24,6 +25,7 @@ from urllib.parse import urlparse, parse_qs
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import mealplan  # noqa: E402
+import pantry_import  # noqa: E402
 import recommend  # noqa: E402
 
 INVALID_REQUEST_MESSAGE = "요청이 제대로 전달되지 않았어요. 페이지를 새로고침한 뒤 다시 시도해주세요."
@@ -33,6 +35,7 @@ ROUTES = {
     "mealplan": mealplan.handle,
     # 사용자가 식단을 고친 뒤 장보기 목록만 다시 뽑는다. 계획은 새로 만들지 않는다.
     "shopping": mealplan.handle_shopping,
+    "pantryImport": pantry_import.handle,
 }
 
 

@@ -18,6 +18,7 @@ os.environ.setdefault("OPENAI_API_KEY", "test-key-not-used")
 import _common  # noqa: E402
 import index  # noqa: E402
 import mealplan  # noqa: E402
+import pantry_import  # noqa: E402
 import recipe_match  # noqa: E402
 import recommend  # noqa: E402
 import shopping  # noqa: E402
@@ -561,6 +562,123 @@ def test_matched_recipe_never_carries_steps():
     assert out[0]["steps"] == [], out
     assert out[0]["recipeUrl"] == "https://www.10000recipe.com/recipe/7016813", out
     assert out[0]["source"] == "matched", out
+
+
+def test_pantry_import_requires_image():
+    """이미지가 없거나 data URL 형식이 아니면 AI를 부르지 않고 바로 400."""
+    status, body = pantry_import.handle({})
+    assert status == 400 and body["error"] == "empty_input", body
+
+    status, body = pantry_import.handle({"image": "그냥 문자열"})
+    assert status == 400 and body["error"] == "empty_input", body
+
+
+def test_pantry_import_filters_by_vocab_and_occurrence():
+    """어휘에 없는 이름(마들렌)과 문턱값 미만으로만 등장하는 이름(도리토스, 1회)은 버리고,
+    걸리는 이름은 어휘의 정규화된 형태로 치환한다."""
+    _fake_index(
+        [{"id": i, "name": f"r{i}", "ing": ["닭가슴살", "우유"]} for i in range(5)]
+        + [{"id": 99, "name": "나쵸", "ing": ["도리토스"]}]
+    )
+    out = pantry_import.normalize_and_filter(
+        ["로켓프레시 한끼통살 닭가슴살 볼 5종 믹스세트(냉동)", "우유", "도리토스", "마들렌"]
+    )
+    assert out == ["닭가슴살", "우유"], out
+
+
+def test_pantry_import_dedupes_matches():
+    """서로 다른 원문이 같은 어휘로 정규화되면 한 번만 남는다."""
+    _fake_index([{"id": i, "name": f"r{i}", "ing": ["계란"]} for i in range(5)])
+    out = pantry_import.normalize_and_filter(["계란 1판", "계란후라이용 계란"])
+    assert out == ["계란"], out
+
+
+def test_pantry_import_end_to_end():
+    """handle()이 비전 호출 결과를 실제로 어휘 대조까지 통과시키는지 끝까지 확인한다."""
+    _fake_index(
+        [{"id": i, "name": f"r{i}", "ing": ["닭가슴살", "우유"]} for i in range(5)]
+        + [{"id": 99, "name": "나쵸", "ing": ["도리토스"]}]
+    )
+
+    def fake_call(system, user, timeout, temperature, image_data_url=None):
+        assert image_data_url == "data:image/png;base64,xxx", image_data_url
+        return {
+            "items": ["로켓프레시 닭가슴살 볼 믹스세트", "우유", "도리토스", "마들렌"],
+            "purchaseDate": "2026-08-19",
+        }, None
+
+    original, pantry_import.call_openai = pantry_import.call_openai, fake_call
+    try:
+        status, body = pantry_import.handle({"image": "data:image/png;base64,xxx"})
+        assert status == 200
+        assert body["items"] == ["닭가슴살", "우유"], body
+        assert body["purchaseDate"] == "2026-08-19", body
+    finally:
+        pantry_import.call_openai = original
+
+
+def test_pantry_import_bad_date_becomes_null():
+    """AI가 형식에 안 맞는 날짜(또는 아예 없음)를 주면 조용히 null로 내려보낸다 —
+    엉뚱한 문자열을 그대로 addedAt에 심으면 냉장고 화면이 깨진다."""
+    _fake_index([])
+
+    def fake_call(system, user, timeout, temperature, image_data_url=None):
+        return {"items": [], "purchaseDate": "모르겠음"}, None
+
+    original, pantry_import.call_openai = pantry_import.call_openai, fake_call
+    try:
+        _, body = pantry_import.handle({"image": "data:image/png;base64,xxx"})
+        assert body["purchaseDate"] is None, body
+    finally:
+        pantry_import.call_openai = original
+
+
+def test_pantry_import_propagates_ai_error():
+    """call_openai가 오류를 돌려주면 그대로 응답한다 — 여기서 다시 감싸지 않는다."""
+    _fake_index([])
+
+    def fake_call(system, user, timeout, temperature, image_data_url=None):
+        return None, (504, {"error": "timeout", "message": "지연"})
+
+    original, pantry_import.call_openai = pantry_import.call_openai, fake_call
+    try:
+        status, body = pantry_import.handle({"image": "data:image/png;base64,xxx"})
+        assert status == 504 and body["error"] == "timeout", body
+    finally:
+        pantry_import.call_openai = original
+
+
+def test_call_openai_adds_image_part_when_given():
+    """image_data_url을 주면 user 메시지가 텍스트+이미지 배열로 바뀐다. 안 주면(기존 호출부)
+    지금처럼 문자열 그대로라 recommend.py·mealplan.py는 손댈 필요가 없다."""
+    seen = {}
+
+    class FakeClient:
+        def __init__(self, **kwargs):
+            self.chat = self
+
+        @property
+        def completions(self):
+            return self
+
+        def create(self, **kwargs):
+            seen["messages"] = kwargs["messages"]
+            content = json.dumps({"ok": True})
+            return type("R", (), {"choices": [type("C", (), {"message": type("M", (), {"content": content})})]})
+
+    original, _common.OpenAI = _common.OpenAI, FakeClient
+    try:
+        _common.call_openai("s", "u", timeout=1, temperature=0)
+        assert seen["messages"][1]["content"] == "u", seen
+
+        _common.call_openai("s", "u", timeout=1, temperature=0, image_data_url="data:image/png;base64,xxx")
+        parts = seen["messages"][1]["content"]
+        assert parts == [
+            {"type": "text", "text": "u"},
+            {"type": "image_url", "image_url": {"url": "data:image/png;base64,xxx"}},
+        ], parts
+    finally:
+        _common.OpenAI = original
 
 
 if __name__ == "__main__":

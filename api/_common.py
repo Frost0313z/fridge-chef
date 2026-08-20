@@ -1,8 +1,9 @@
 """
-두 AI 엔드포인트가 공유하는 OpenAI 호출과 오류 매핑.
+AI 엔드포인트들이 공유하는 OpenAI 호출과 오류 매핑.
 
 이전에는 recommend.py와 mealplan.py가 각자 OpenAI를 호출하고 예외를 HTTP 상태로
 매핑하는 코드를 똑같이 갖고 있었다. Vercel 진입점 구조를 바꾸면서 함께 합쳤다.
+pantry_import.py의 비전 호출도 이 함수를 그대로 쓴다(image_data_url 인자만 더 준다).
 """
 
 import json
@@ -35,27 +36,37 @@ def to_str_list(value):
     return [str(v).strip() for v in value if str(v).strip()]
 
 
-def call_openai(system_prompt, user_prompt, timeout, temperature):
+def call_openai(system_prompt, user_prompt, timeout, temperature, image_data_url=None):
     """(data, error) 를 돌려준다. error는 (status, body) 이거나 None.
 
     사용자에게 보여줄 문구를 여기서 정한다 — 프론트는 message를 그대로 띄우기만 하면 된다.
     OpenAI 쪽 사정(어떤 예외인지)은 감추고, 사용자가 취할 행동만 원인별로 다르게 안내한다.
+
+    image_data_url을 주면("data:image/jpeg;base64,...") user 메시지에 이미지 파트를 더한다
+    — gpt-4o-mini는 텍스트·비전을 같은 엔드포인트로 받으므로 호출 자체는 갈라지지 않는다.
     """
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
         # 사용자에게 "API 키"를 말하면 자기가 뭘 잘못했나 찾게 된다. 원인이 우리 쪽이라는
         # 사실만 알리고, 무엇을 하면 되는지로 끝낸다. 개발자는 error 코드로 구분하면 된다.
-        # 이 함수는 추천·식단·장보기가 함께 쓰므로 특정 화면 이름을 넣지 않는다.
+        # 이 함수는 추천·식단·장보기·사진등록이 함께 쓰므로 특정 화면 이름을 넣지 않는다.
         return None, (500, {"error": "server_misconfigured", "message": "지금은 AI가 답을 만들지 못해요. 사용자 잘못이 아니라 저희 쪽 문제예요. 조금 뒤에 다시 시도해주세요."})
 
     client = OpenAI(api_key=api_key, timeout=timeout)
+
+    user_content = user_prompt
+    if image_data_url:
+        user_content = [
+            {"type": "text", "text": user_prompt},
+            {"type": "image_url", "image_url": {"url": image_data_url}},
+        ]
 
     try:
         completion = client.chat.completions.create(
             model=MODEL,
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
+                {"role": "user", "content": user_content},
             ],
             response_format={"type": "json_object"},
             temperature=temperature,
