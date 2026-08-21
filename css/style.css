@@ -719,8 +719,10 @@ body:has(.pantry-bar) {
   margin-inline: auto;
 }
 
-/* 추천·식단 화면은 입력할 때는 좁게 집중하고, 결과가 생기면 카드 영역만 넓어진다.
-   마크업을 위한 빈 래퍼를 더 만들지 않고 같은 섹션 안에서 열을 나눈다. */
+/* 추천 화면은 입력할 때는 좁게 집중하고, 결과가 생기면 카드 영역만 넓어진다.
+   마크업을 위한 빈 래퍼를 더 만들지 않고 같은 섹션 안에서 열을 나눈다.
+   식단 계획 화면은 결과(그리드)도 폼과 같은 폭의 배경 카드 하나로 묶여 있어(요일 칸이
+   7개에서 3개로 줄면서 넓힐 이유가 없어졌다) 이 규칙을 안 쓰고 기본값(column 2)에 둔다. */
 body[data-page="recipe"] .recipe-form-section,
 body[data-page="mealplan"] .recipe-form-section {
   max-width: var(--max-width);
@@ -737,12 +739,7 @@ body[data-page="mealplan"] .recipe-form-section > * {
   min-width: 0;
 }
 
-body[data-page="recipe"] .recipe-form-section > .result-grid,
-body[data-page="mealplan"] .recipe-form-section > .mealplan-toolbar,
-body[data-page="mealplan"] .recipe-form-section > .mealplan-edit-status,
-body[data-page="mealplan"] .recipe-form-section > .mealplan-stale,
-body[data-page="mealplan"] .recipe-form-section > #mealplan-result,
-body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
+body[data-page="recipe"] .recipe-form-section > .result-grid {
   grid-column: 1 / -1;
 }
 
@@ -2167,19 +2164,23 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
    평소에는 읽는 화면이라 조작 요소를 두지 않는다. "메뉴 바꾸기"를 누른 동안에만
    고르기·놓기·삭제가 나타난다. 드래그가 아니라 "고르고 → 놓기"인 이유는
    마우스·터치·키보드가 모두 같은 경로로 동작해야 하기 때문이다(A7). */
+/* 폼 카드와 같은 .list-card라 폭·배경은 그대로 물려받고, 간격만 여기서 정한다 —
+   같은 섹션 안에 두 카드가 나란히 쌓이는 자리라 section 사이 48px 규칙이 안 닿는다. */
+.mealplan-plan-card {
+  margin-top: var(--sp-28);
+}
+
+/* 툴바 자신은 더 이상 hidden을 받지 않는다 — #mealplan-plan-card(.list-card) 하나가
+   보이기/숨기기를 맡고, 툴바는 그 카드가 보일 때 항상 함께 보인다(2026-08-21).
+   그전엔 이 규칙이 필요했다: display:flex가 브라우저 기본 [hidden]{display:none}을
+   클래스 선택자로 덮어써서, JS가 hidden을 켜도 화면엔 계속 떠 있는 버그가 있었다
+   (2026-08-20 발견). 같은 종류의 요소를 새로 만들 때 참고할 것 — 클래스에 display를
+   주는 요소는 [hidden] 자체가 무력화된다. */
 .mealplan-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 28px;
-}
-
-/* display:flex가 브라우저 기본 [hidden] { display: none } 규칙을 클래스 선택자로
-   덮어쓴다 — JS가 .hidden = true를 정확히 켜도 화면엔 계속 떠 있었다(계획이 하나도
-   없을 때도 "이번 주 식단" 툴바가 보이는 버그, 2026-08-20 발견). */
-.mealplan-toolbar[hidden] {
-  display: none;
 }
 
 /* "메뉴 바꾸기"·"계획 지우기"를 한데 묶는다 — 계획 지우기가 입력 폼 버튼 줄에 예고 없이

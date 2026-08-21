@@ -386,16 +386,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   const emptyEl = document.getElementById("mealplan-empty");
-  const nextEl = document.getElementById("mealplan-next");
-
-  const toolbarEl = document.getElementById("mealplan-toolbar");
+  const planCardEl = document.getElementById("mealplan-plan-card");
   const editBtn = document.getElementById("mealplan-edit-btn");
 
-  /* 계획 유무에 따라 빈 상태 안내 / 결과 / 다음 행동을 한 번에 맞춘다. */
+  /* 계획 유무에 따라 빈 상태 안내 / 결과 카드를 맞바꾼다. 툴바·그리드·다음 행동이 전부
+     한 배경 카드(#mealplan-plan-card) 안에 있어 하나만 여닫으면 다 같이 나타나고 사라진다. */
   function setPlanVisible(hasPlan) {
     emptyEl.hidden = hasPlan;
-    nextEl.hidden = !hasPlan;
-    toolbarEl.hidden = !hasPlan; // clearBtn은 이 안에 있어 같이 나타나고 사라진다
+    planCardEl.hidden = !hasPlan;
     if (!hasPlan) setEditMode(false);
   }
 

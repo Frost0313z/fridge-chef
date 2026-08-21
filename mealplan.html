@@ -113,21 +113,26 @@
         <p id="mealplan-empty" class="result-empty" data-copy="UI.emptyMealplan">아직 짜둔 식단이 없어요. 위에서 식단 짜기를 눌러보세요.</p>
       </div>
 
-      <div id="mealplan-toolbar" class="mealplan-toolbar" hidden>
-        <h2 class="mealplan-toolbar-title" data-copy="UI.mealPlanTitle">식단 계획</h2>
-        <div class="mealplan-toolbar-actions">
-          <button type="button" id="mealplan-edit-btn" class="pill-toggle mealplan-edit-btn" aria-pressed="false" data-copy="UI.editMenu">메뉴 바꾸기</button>
-          <button type="button" id="mealplan-clear-btn" class="link-button link-button-muted mealplan-clear-btn" data-copy="UI.clearPlan">계획 지우기</button>
+      <!-- 다른 카드들(식단 짜기 폼·이번 주 후보)과 같은 배경 카드 하나로 묶고, 폼 카드와
+           같은 폭(column 2, --content-width)에 둔다 — 예전엔 결과 영역이 섹션 전체 폭으로
+           퍼져서 왼쪽에 붙어 보였다(그리드가 7칸일 때 만든 규칙, 3칸으로 줄면서 안 맞음). -->
+      <div id="mealplan-plan-card" class="list-card mealplan-plan-card" hidden>
+        <div id="mealplan-toolbar" class="mealplan-toolbar">
+          <h2 class="mealplan-toolbar-title" data-copy="UI.mealPlanTitle">식단 계획</h2>
+          <div class="mealplan-toolbar-actions">
+            <button type="button" id="mealplan-edit-btn" class="pill-toggle mealplan-edit-btn" aria-pressed="false" data-copy="UI.editMenu">메뉴 바꾸기</button>
+            <button type="button" id="mealplan-clear-btn" class="link-button link-button-muted mealplan-clear-btn" data-copy="UI.clearPlan">계획 지우기</button>
+          </div>
         </div>
+        <p id="mealplan-edit-status" class="mealplan-edit-status" role="status" hidden></p>
+        <p id="mealplan-stale" class="mealplan-stale" data-copy="UI.mealplanStale" hidden>계획한 날짜가 모두 지났어요. 새로 짜면 오늘부터 다시 정해드려요.</p>
+
+        <div id="mealplan-result" aria-live="polite"></div>
+
+        <p id="mealplan-next" class="mealplan-next">
+          <span data-copy="UI.mealplanNext">부족한 재료는</span> <a href="shopping.html" data-copy="UI.mealplanNextLink">장보기에서 확인 →</a>
+        </p>
       </div>
-      <p id="mealplan-edit-status" class="mealplan-edit-status" role="status" hidden></p>
-      <p id="mealplan-stale" class="mealplan-stale" data-copy="UI.mealplanStale" hidden>계획한 날짜가 모두 지났어요. 새로 짜면 오늘부터 다시 정해드려요.</p>
-
-      <div id="mealplan-result" aria-live="polite"></div>
-
-      <p id="mealplan-next" class="mealplan-next" hidden>
-        <span data-copy="UI.mealplanNext">부족한 재료는</span> <a href="shopping.html" data-copy="UI.mealplanNextLink">장보기에서 확인 →</a>
-      </p>
     </section>
 
     <!-- 요일 배정 없이도 쓸 수 있는 "이번 주 후보" 목록(D-0y). 순서는 항상 식단 짜기 →
