@@ -218,6 +218,10 @@ const COPY = {
     submitMealplan: "식단 짜기",
     clearPlan: "계획 지우기",
     editMenu: "메뉴 바꾸기",
+    // 상세 모달 안에서 한 칸만 바로 바꾸는 지름길(21칸 편집 모드와 별개)
+    mealSwap: "다른 메뉴로 바꾸기",
+    mealSwapConfirm: "바꾸기",
+    mealSwapCancel: "취소", // importCancel과 같은 값, 같은 스코프-분리 관례
     editMenuDone: "다 바꿨어요",
     mealplanStale: "계획한 날짜가 모두 지났어요. 새로 짜면 오늘부터 다시 정해드려요.",
     mealplanNext: "부족한 재료는",

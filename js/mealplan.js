@@ -71,6 +71,55 @@ document.addEventListener("DOMContentLoaded", () => {
     refreshPlanStates();
   });
 
+  /* "다른 메뉴로 바꾸기" — 21칸 편집 모드를 거치지 않고 이 칸 하나만 바로 바꾸는 지름길.
+     모달 본문을 뷰 ↔ 폼으로 갈아 끼우기만 하고, 닫지는 않는다 — "해먹었어요"처럼 결과를
+     그 자리에서 보여주는 방식과 맞춘다. dialogIndex는 openMealDialog가 이미 들고 있다. */
+  dialogEl.addEventListener("click", (e) => {
+    if (e.target.closest(".meal-dialog-swap-btn")) {
+      const item = planItems[dialogIndex];
+      if (!item) return;
+      dialogBodyEl.innerHTML = mealDialogSwapFormHtml(item);
+      dialogBodyEl.querySelector("#meal-dialog-swap-input")?.focus();
+      return;
+    }
+
+    if (e.target.closest(".meal-dialog-swap-cancel")) {
+      const item = planItems[dialogIndex];
+      if (!item) return;
+      dialogBodyEl.innerHTML = mealDialogBodyHtml(item, pantryNamesFor(loadPantry()));
+      return;
+    }
+
+    /* 즐겨찾기·최근 추천에서 골랐다 — addPicksHtml()이 만든 것과 같은 버튼이라 판별도 같다. */
+    const pick = e.target.closest(".meal-add-recent-item");
+    if (pick && dialogBodyEl.contains(pick)) {
+      const picked =
+        pick.dataset.favoriteIndex !== undefined
+          ? loadFavorites()[Number(pick.dataset.favoriteIndex)]
+          : loadHistory()[Number(pick.dataset.historyIndex)];
+      if (picked) {
+        swapMeal(dialogIndex, picked.name, picked.searchKeyword, picked.ingredients);
+        dialogBodyEl.innerHTML = mealDialogBodyHtml(planItems[dialogIndex], pantryNamesFor(loadPantry()));
+      }
+      return;
+    }
+
+    if (e.target.closest(".meal-dialog-swap-confirm")) {
+      const input = dialogBodyEl.querySelector("#meal-dialog-swap-input");
+      if (!input) return;
+      swapMeal(dialogIndex, input.value);
+      dialogBodyEl.innerHTML = mealDialogBodyHtml(planItems[dialogIndex], pantryNamesFor(loadPantry()));
+    }
+  });
+
+  /* 입력창에서 Enter — 그리드 쪽(#meal-add-input)과 같은 처리를 모달 쪽 입력창에도 준다. */
+  dialogBodyEl.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" || e.target.id !== "meal-dialog-swap-input") return;
+    e.preventDefault();
+    swapMeal(dialogIndex, e.target.value);
+    dialogBodyEl.innerHTML = mealDialogBodyHtml(planItems[dialogIndex], pantryNamesFor(loadPantry()));
+  });
+
   document.getElementById("meal-dialog-close").addEventListener("click", () => dialogEl.close());
 
   /* 배경을 눌러 닫는다. 모달이 화면 전체를 덮고 안쪽에 패널이 따로 있어서,
@@ -518,6 +567,19 @@ function deleteMeal(index) {
   commitEdit();
 }
 
+/* 상세 모달의 "다른 메뉴로 바꾸기" 전용 — 그 칸 하나만 제자리에서 바꾼다. addMeal처럼
+   push하지 않는 이유는, 이미 채워진 칸에 push하면 같은 day/meal이 중복되기 때문이다. */
+function swapMeal(index, menu, searchKeyword, ingredients) {
+  const item = planItems[index];
+  if (!item) return;
+  const trimmed = String(menu || "").trim();
+  if (!trimmed) return;
+  item.menu = trimmed;
+  item.searchKeyword = searchKeyword || "";
+  item.ingredients = ingredients || [];
+  commitEdit();
+}
+
 /* 날짜 칸은 남아 있는 메뉴가 아니라 계획한 일수를 기준으로 만든다.
    3일차 메뉴를 다 지웠다고 3일차 칸이 사라지면, 거기로 다시 옮기거나 넣을 수가 없다.
    (planDays를 적어두기 전에 저장된 계획은 0이라, 예전처럼 메뉴에서 역산한 값이 이긴다) */
@@ -776,6 +838,29 @@ function mealAddFormHtml(day, meal) {
   </div>`;
 }
 
+/* 상세 모달의 "다른 메뉴로 바꾸기"가 그 자리를 이 폼으로 갈아 끼운다. mealAddFormHtml과 같은
+   짜임이지만 이미 있는 메뉴 이름을 입력값으로 미리 채운다 — 살짝만 고치고 싶은 경우도 있다.
+   id는 그리드의 #meal-add-input과 겹치지 않게 따로 쓴다(모달은 그리드와 다른 서브트리라
+   같은 페이지에 둘 다 있을 수 있다). */
+function mealDialogSwapFormHtml(item) {
+  const day = dayInfo(item.day, planStartDate);
+  return `
+    <label class="meal-add-label" for="meal-dialog-swap-input">${escapeHtml(
+      day.label
+    )} ${item.meal}에 넣을 메뉴</label>
+    <input type="text" id="meal-dialog-swap-input" class="meal-add-input" autocomplete="off"
+      placeholder="예: 김치볶음밥" value="${escapeHtml(item.menu || "")}" />
+    <div class="meal-add-actions">
+      <button type="button" class="meal-add-confirm meal-dialog-swap-confirm">${escapeHtml(
+        COPY.UI.mealSwapConfirm
+      )}</button>
+      <button type="button" class="link-button link-button-muted meal-dialog-swap-cancel">${escapeHtml(
+        COPY.UI.mealSwapCancel
+      )}</button>
+    </div>
+    ${addPicksHtml()}`;
+}
+
 /* day는 dayInfo가 만든 { key, label, badge, aria }다. 칸을 찾고 되돌려 보낼 때는 언제나
    key("1일차")를 쓰고, 사람에게 읽히는 자리에만 label/aria("8/13 (수)")를 쓴다. */
 function mealSlotHtml(day, meal, pantryNames = []) {
@@ -875,13 +960,21 @@ function mealDialogBodyHtml(item, pantryNames) {
      잘못 눌렀을 때는 확인 직후 그 자리에 남는 되돌리기로 되돌린다. */
   const cooked = item.done ? "" : cookedHtml(item.ingredients, pantryNames);
 
+  /* 해먹은 칸은 메뉴를 못 바꾼다 — 이미 그 메뉴의 재료 기준으로 냉장고를 뺀 기록이라,
+     여기서 메뉴만 바꾸면 재료 기록과 어긋난다. "이거 해먹었어요"가 숨는 것과 같은 이유. */
+  const swapBtn = item.done
+    ? ""
+    : `<button type="button" class="link-button meal-dialog-swap-btn">${escapeHtml(
+        COPY.UI.mealSwap
+      )}</button>`;
+
   /* 메뉴 이름을 여기서도 보여주는 이유는, 모달 제목이 "8/17 (일) 저녁"이라 어느 요리인지
      말해주지 않기 때문이다. 링크도 그대로 따라온다 — 상세를 열어놓고 레시피로 넘어가는
      것이 오히려 자연스러운 다음 걸음이다(C4). */
   return `<p class="meal-dialog-menu">${menuLinkHtml(item)}</p>${mealStateHtml(
     item,
     pantryNames
-  )}${cooked}`;
+  )}${swapBtn}${cooked}`;
 }
 
 function openMealDialog(index) {
