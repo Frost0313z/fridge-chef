@@ -178,6 +178,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderFavoritesList() {
+    /* 후보 목록에서 openFavoritesDetailOnly로 연 뒤 여기로 다시 열 수도 있다 —
+       목록 패널을 매번 되살려야 그때 숨겨둔 상태가 남지 않는다. */
+    favoritesListEl.hidden = false;
     const items = loadFavorites();
     favoritesEmptyEl.hidden = items.length > 0;
     favoritesBodyEl.hidden = items.length === 0;
@@ -193,11 +196,24 @@ document.addEventListener("DOMContentLoaded", () => {
     favoritesDetailEl.innerHTML = favoriteDetailHtml(items[favoritesSelectedIndex]);
   }
 
-  favoritesBtn.addEventListener("click", () => {
+  function openFavoritesDialog() {
     favoritesSelectedIndex = 0;
     renderFavoritesList();
     favoritesDialog.showModal();
-  });
+  }
+
+  /* 후보 목록의 "자세히 보기" 전용 — 즐겨찾기가 아닌 후보(냉장고 매칭·최근 추천 출신)도
+     같은 모달로 보여준다. 목록 패널을 숨기면 오른쪽 상세(.favorites-detail, flex:1)가
+     자연히 폭을 채운다(새 CSS 불필요). 재고르기 목록 자체가 필요 없는 자리라 하나만 켠다. */
+  function openFavoritesDetailOnly(recipe) {
+    favoritesListEl.hidden = true;
+    favoritesEmptyEl.hidden = true;
+    favoritesBodyEl.hidden = false;
+    favoritesDetailEl.innerHTML = favoriteDetailHtml(recipe);
+    favoritesDialog.showModal();
+  }
+
+  favoritesBtn.addEventListener("click", openFavoritesDialog);
 
   document.getElementById("favorites-dialog-close").addEventListener("click", () => favoritesDialog.close());
   favoritesDialog.addEventListener("click", (e) => {
@@ -220,6 +236,125 @@ document.addEventListener("DOMContentLoaded", () => {
       favoritesSelectedIndex = Number(selectBtn.dataset.index);
       renderFavoritesList();
     }
+  });
+
+  /* "이번 주 후보" 고르기 모달(D-0y). 요일 배정 전에 냉장고 매칭·즐겨찾기·최근 추천
+     세 곳에서 고르고 확정한다 — #pantry-import-dialog와 같은 체크박스+확인 짜임을 그대로
+     쓴다(pantry.html, css/style.css의 .pantry-import-* 클래스, 새 CSS 없음). */
+  const mealpoolBtn = document.getElementById("mealpool-open-btn");
+  const mealpoolDialog = document.getElementById("mealpool-dialog");
+  const mealpoolForm = document.getElementById("mealpool-form");
+  const mealpoolPantryEmptyEl = document.getElementById("mealpool-pantry-empty");
+  const mealpoolPantryLoadingEl = document.getElementById("mealpool-pantry-loading");
+  const mealpoolPantryListEl = document.getElementById("mealpool-pantry-list");
+  const mealpoolFavoritesListEl = document.getElementById("mealpool-favorites-list");
+  const mealpoolHistoryListEl = document.getElementById("mealpool-history-list");
+  let mealpoolSources = { pantry: [], favorite: [], history: [] };
+
+  function mealpoolRowHtml(r, i, attr) {
+    return `<li class="pantry-import-item">
+      <label class="form-check">
+        <input type="checkbox" checked data-${attr}-index="${i}" />
+        <span>${escapeHtml(r.name)}</span>
+      </label>
+    </li>`;
+  }
+
+  async function openMealpoolDialog() {
+    /* 즐겨찾기·최근 추천은 로컬이라 즉시 그리고 바로 연다 — 냉장고 매칭만 서버를 거치므로
+       그 응답을 기다리며 모달 자체가 안 뜨면 눌러도 반응이 없는 것처럼 보인다(C3). */
+    const favorites = loadFavorites();
+    const history = loadHistory();
+    mealpoolSources = { pantry: [], favorite: favorites, history: history };
+    mealpoolFavoritesListEl.innerHTML = favorites.map((r, i) => mealpoolRowHtml(r, i, "favorite")).join("");
+    mealpoolHistoryListEl.innerHTML = history.map((r, i) => mealpoolRowHtml(r, i, "history")).join("");
+
+    mealpoolPantryEmptyEl.hidden = true;
+    mealpoolPantryLoadingEl.hidden = false;
+    mealpoolPantryListEl.innerHTML = "";
+    mealpoolDialog.showModal();
+
+    const pantryMatches = await fetchPoolPantryMatches();
+    mealpoolSources.pantry = pantryMatches;
+    mealpoolPantryLoadingEl.hidden = true;
+    mealpoolPantryEmptyEl.hidden = pantryMatches.length > 0;
+    mealpoolPantryListEl.innerHTML = pantryMatches.map((r, i) => mealpoolRowHtml(r, i, "pantry")).join("");
+  }
+
+  if (mealpoolBtn) mealpoolBtn.addEventListener("click", openMealpoolDialog);
+
+  document.getElementById("mealpool-dialog-close").addEventListener("click", () => mealpoolDialog.close());
+  document.getElementById("mealpool-cancel").addEventListener("click", () => mealpoolDialog.close());
+  mealpoolDialog.addEventListener("click", (e) => {
+    if (e.target === mealpoolDialog) mealpoolDialog.close();
+  });
+
+  /* 체크된 것만 후보로 담는다. day/meal을 안 채우므로 dayLabels()의 `|| 0` 가드에 걸려
+     그리드는 그대로고, poolEntries()에서만 잡힌다. */
+  mealpoolForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const picked = [];
+    mealpoolForm.querySelectorAll("input[type=checkbox]:checked").forEach((box) => {
+      const source =
+        box.dataset.pantryIndex !== undefined
+          ? mealpoolSources.pantry[Number(box.dataset.pantryIndex)]
+          : box.dataset.favoriteIndex !== undefined
+          ? mealpoolSources.favorite[Number(box.dataset.favoriteIndex)]
+          : mealpoolSources.history[Number(box.dataset.historyIndex)];
+      if (source) picked.push(source);
+    });
+    if (picked.length) {
+      picked.forEach((r) => {
+        planItems.push({ menu: r.name, searchKeyword: r.searchKeyword || "", ingredients: r.ingredients || [] });
+      });
+      commitEdit();
+    }
+    mealpoolDialog.close();
+  });
+
+  /* 이번 주 후보 목록 자체의 조작 — 자세히 보기/요일 배정/빼기. "해먹었어요"는 따로
+     initCooked로 건다(그리드 모달과 같은 자리, 같은 방식). */
+  const mealpoolListEl = document.getElementById("mealpool-list");
+  mealpoolListEl.addEventListener("click", (e) => {
+    const detailBtn = e.target.closest(".mealpool-detail-btn");
+    if (detailBtn) {
+      const item = planItems[Number(detailBtn.dataset.index)];
+      if (item) {
+        openFavoritesDetailOnly({
+          name: item.menu,
+          ingredients: item.ingredients,
+          searchKeyword: item.searchKeyword,
+          time: "",
+        });
+      }
+      return;
+    }
+
+    const removeBtn = e.target.closest(".mealpool-remove-btn");
+    if (removeBtn) {
+      deleteMeal(Number(removeBtn.dataset.index));
+      return;
+    }
+
+    const assignBtn = e.target.closest(".mealpool-assign-confirm");
+    if (assignBtn) {
+      const index = Number(assignBtn.dataset.index);
+      const select = mealpoolListEl.querySelector(`.mealpool-assign-select[data-index="${index}"]`);
+      if (!select || !select.value) return;
+      const [day, meal] = select.value.split("|");
+      moveMeal(index, day, meal);
+    }
+  });
+
+  initCooked(mealpoolListEl, (root, action) => {
+    const holder = root.closest("[data-plan-index]");
+    const item = holder && planItems[Number(holder.dataset.planIndex)];
+    if (item) {
+      if (action === "undo") delete item.done;
+      else item.done = true;
+      savePlanState();
+    }
+    refreshPlanStates();
   });
 
   /* 냉장고는 조회 바에서도 바뀐다(추가·삭제·되돌리기). 부족 여부를 저장하지 않고 그때그때
@@ -272,6 +407,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   setPlanVisible(Boolean(saved));
   if (saved) renderPlan();
+  renderMealPool();
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -311,7 +447,9 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    planItems = plan;
+    /* 요일 배정 안 한 "이번 주 후보"는 통째로 갈아치우면 안 된다 — 일괄 생성은 그리드만
+       새로 짜는 일이지 후보 목록을 지우는 일이 아니다. */
+    planItems = [...plan, ...planItems.filter((i) => !i.day)];
     planShoppingList = Array.isArray(result.data.shoppingList) ? result.data.shoppingList : [];
     planPantryAt = pantrySnapshot;
     planDays = Number(daysEl.value) || 0;
@@ -332,6 +470,7 @@ document.addEventListener("DOMContentLoaded", () => {
     planStartDate = null;
     resultEl.innerHTML = "";
     setPlanVisible(false);
+    renderMealPool();
   });
 
   editBtn.addEventListener("click", () => setEditMode(!editMode));
@@ -543,6 +682,7 @@ function commitEdit() {
     savePlan(true);
   }
   renderPlan();
+  renderMealPool();
 }
 
 /* 목적지가 비어 있으면 옮기고, 이미 메뉴가 있으면 서로 자리를 맞바꾼다.
@@ -638,6 +778,83 @@ function renderStaleNotice(days) {
 
   const last = days.length ? dayDate(planStartDate, days.length - 1) : null;
   el.hidden = !last || last >= new Date(`${todayISO()}T00:00:00`);
+}
+
+/* ==========================================================================
+   이번 주 후보 — 요일 배정 없이도 planItems에 같이 담긴다(day 없음). dayLabels()의
+   `|| 0` 가드 덕에 그리드를 늘리지 않고, mealSlotHtml도 day 없는 항목은 절대 찾지 못해
+   그리드에는 저절로 안 보인다. 그리드 유무와 무관하게 항상 자기 컨테이너만 본다.
+   ========================================================================== */
+/* "지금 냉장고로 만들 수 있는 요리" 소스. matchOnly:true라 서버가 AI로 채우지 않는다
+   (api/recommend.py) — 매칭이 적으면 그대로 적게(또는 0개) 돌려받는다. */
+async function fetchPoolPantryMatches() {
+  const ingredients = loadPantry()
+    .map(pantryPromptText)
+    .join(", ");
+  if (!ingredients) return [];
+  const result = await postJson("/api/recommend", { ingredients, matchOnly: true }, MP_REQUEST_TIMEOUT_MS);
+  return result.ok ? result.data.recipes || [] : [];
+}
+
+function poolEntries() {
+  return planItems.map((item, index) => ({ item, index })).filter(({ item }) => !item.day);
+}
+
+/* 빈 자리만 보여준다. 채워진 자리를 고르면 moveMeal이 원래 메뉴를 후보 쪽으로 밀어내는데,
+   후보→그리드 배정에서는 사용자가 예상 못 할 움직임이라 선택지에서 아예 뺀다. */
+function assignPickerHtml(index) {
+  const options = [];
+  dayLabels().forEach((day) => {
+    MEALS.forEach((meal) => {
+      const occupied = planItems.some((i) => i.day === day.key && i.meal === meal);
+      if (!occupied) options.push({ value: `${day.key}|${meal}`, label: `${day.label} ${meal}` });
+    });
+  });
+
+  if (!options.length) {
+    return `<span class="mealpool-assign-empty">${escapeHtml(COPY.MEALPOOL.assignNoSlot)}</span>`;
+  }
+
+  return `<span class="mealpool-assign">
+    <select class="mealpool-assign-select" data-index="${index}" aria-label="${escapeHtml(
+    COPY.MEALPOOL.assignConfirm
+  )}">
+      ${options.map((o) => `<option value="${escapeHtml(o.value)}">${escapeHtml(o.label)}</option>`).join("")}
+    </select>
+    <button type="button" class="link-button mealpool-assign-confirm" data-index="${index}">${escapeHtml(
+    COPY.MEALPOOL.assignConfirm
+  )}</button>
+  </span>`;
+}
+
+function mealpoolItemHtml(item, index, pantryNames) {
+  const cooked = item.done ? "" : cookedHtml(item.ingredients, pantryNames);
+  return `<li class="mealpool-item" data-plan-index="${index}">
+    <div class="meal-head">${menuLinkHtml(item)}</div>
+    ${mealStateHtml(item, pantryNames)}
+    <div class="mealpool-actions">
+      <button type="button" class="link-button mealpool-detail-btn" data-index="${index}">${escapeHtml(
+    COPY.MEALPOOL.detailButton
+  )}</button>
+      ${assignPickerHtml(index)}
+      <button type="button" class="link-button link-button-muted mealpool-remove-btn" data-index="${index}">${escapeHtml(
+    COPY.MEALPOOL.removeButton
+  )}</button>
+    </div>
+    ${cooked}
+  </li>`;
+}
+
+function renderMealPool() {
+  const listEl = document.getElementById("mealpool-list");
+  const emptyEl = document.getElementById("mealpool-empty");
+  if (!listEl || !emptyEl) return;
+
+  const pool = poolEntries();
+  emptyEl.hidden = pool.length > 0;
+  listEl.hidden = pool.length === 0;
+  const pantryNames = pantryNamesFor(loadPantry());
+  listEl.innerHTML = pool.map(({ item, index }) => mealpoolItemHtml(item, index, pantryNames)).join("");
 }
 
 /* 클릭할 때도 손은 몇 px 흔들린다. 이 문턱을 넘기 전에는 아무 일도 일어나지 않아야
@@ -771,6 +988,13 @@ function refreshPlanStates() {
     const item = planItems[Number(slot.dataset.planIndex)];
     const briefEl = slot.querySelector(".meal-brief");
     if (item && briefEl) briefEl.outerHTML = mealBriefHtml(item, pantryNames);
+  });
+
+  /* 이번 주 후보 줄의 "부족한 재료" 표시도 냉장고가 바뀔 때 같이 갱신한다. */
+  document.querySelectorAll("#mealpool-list .mealpool-item[data-plan-index]").forEach((row) => {
+    const item = planItems[Number(row.dataset.planIndex)];
+    const stateEl = row.querySelector(".meal-state");
+    if (item && stateEl) stateEl.outerHTML = mealStateHtml(item, pantryNames);
   });
 
   const body = document.querySelector(".meal-dialog-body[data-plan-index]");

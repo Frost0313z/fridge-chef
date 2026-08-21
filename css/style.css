@@ -1237,6 +1237,63 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
 }
 
 /* ==========================================================================
+   이번 주 후보 — 요일 배정 없이도 쓸 수 있는 목록(D-0y)
+   ========================================================================== */
+.mealpool-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mealpool-list {
+  list-style: none;
+  margin: var(--sp-14) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-10);
+}
+
+/* .list-card(--surface) 안에 있으므로 --bg로 내려 카드와 구분한다 —
+   .history-entry/.shopping-item과 같은 짜임이다. */
+.mealpool-item {
+  padding: var(--sp-14);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg);
+}
+
+.mealpool-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-10);
+  margin-top: var(--sp-10);
+}
+
+.mealpool-assign {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-6);
+}
+
+.mealpool-assign-select {
+  font: inherit;
+  font-size: var(--fs-85);
+  padding: 4px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.mealpool-assign-empty {
+  color: var(--text-muted);
+  font-size: var(--fs-85);
+}
+
+/* ==========================================================================
    주간 식단 계획
    ========================================================================== */
 

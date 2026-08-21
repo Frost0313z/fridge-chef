@@ -372,6 +372,26 @@ const COPY = {
     viewFavorites: "즐겨찾기 보기",
   },
 
+  // 요일 배정 없이도 쓸 수 있는 "이번 주 후보" 목록(D-0y). 냉장고 매칭/즐겨찾기/최근 추천
+  // 세 곳에서 골라 담고, 요일에 안 넣어도 바로 해먹을 수 있다.
+  MEALPOOL: {
+    sectionTitle: "이번 주 후보",
+    openButton: "후보 고르기",
+    empty: "아직 담아둔 후보가 없어요. 위에서 후보를 골라보세요.",
+    pantryMatchTitle: "지금 냉장고로 만들 수 있는 요리",
+    pantryMatchLoading: "냉장고로 만들 수 있는 요리를 찾고 있어요…",
+    // AI로 채우지 않고 정직하게 적게(또는 0개) 보여준다 — 레시피 매칭 우선 원칙과 같다.
+    pantryMatchEmpty: "지금 냉장고로는 충분히 겹치는 레시피가 없어요.",
+    confirmDialogTitle: "이번 주 후보 고르기",
+    confirmDialogHint: "체크된 요리가 후보로 담겨요.",
+    confirmButton: "담기",
+    cancelButton: "취소",
+    assignConfirm: "배정",
+    assignNoSlot: "먼저 위에서 며칠치 식단을 만들어야 배정할 수 있어요.",
+    removeButton: "빼기",
+    detailButton: "자세히 보기",
+  },
+
   // 5개 페이지가 공유하는 머리말 — 건너뛰기 링크, 로고, 햄버거, 메뉴
   NAV: {
     skip: "본문 바로가기",

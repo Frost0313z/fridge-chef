@@ -91,6 +91,20 @@
         data-copy="MEALPLAN.viewFavorites">즐겨찾기 보기</button>
     </section>
 
+    <!-- 요일 배정 없이도 쓸 수 있는 "이번 주 후보" 목록(D-0y). 아래 요일 그리드와 무관하게
+         언제나 그 존재만 보고 렌더한다 — 요일 계획이 없어도 후보만 있을 수 있어서다. -->
+    <section class="mealpool-section">
+      <div class="list-card mealpool-card">
+        <div class="mealpool-head">
+          <h2 data-copy="MEALPOOL.sectionTitle">이번 주 후보</h2>
+          <button type="button" id="mealpool-open-btn" class="link-button"
+            data-copy="MEALPOOL.openButton">후보 고르기</button>
+        </div>
+        <p id="mealpool-empty" class="result-empty" data-copy="MEALPOOL.empty">아직 담아둔 후보가 없어요. 위에서 후보를 골라보세요.</p>
+        <ul id="mealpool-list" class="mealpool-list" hidden></ul>
+      </div>
+    </section>
+
     <section class="recipe-form-section">
       <div class="list-card mealplan-form-card">
         <form id="mealplan-form" novalidate>
@@ -203,6 +217,42 @@
         <ul id="favorites-list" class="favorites-list"></ul>
         <div id="favorites-detail" class="favorites-detail"></div>
       </div>
+    </div>
+  </dialog>
+
+  <!-- "이번 주 후보" 고르기 모달(D-0y). #pantry-import-dialog(pantry.html)와 같은
+       체크박스+확인 짜임·클래스를 그대로 쓴다 — 새 CSS 없이 같은 톤이 나온다. -->
+  <dialog id="mealpool-dialog" class="pantry-import-dialog" aria-labelledby="mealpool-dialog-title">
+    <div class="pantry-import-dialog-panel" tabindex="-1" autofocus>
+      <div class="pantry-import-dialog-head">
+        <p id="mealpool-dialog-title" class="pantry-import-dialog-title" data-copy="MEALPOOL.confirmDialogTitle">이번 주 후보 고르기</p>
+        <button type="button" id="mealpool-dialog-close" class="pantry-import-dialog-close"
+          data-copy="MEALPLAN.close" data-copy-attr="aria-label" aria-label="닫기">
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor"
+            stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false">
+            <path d="M4 4l8 8M12 4l-8 8" />
+          </svg>
+        </button>
+      </div>
+      <p class="pantry-import-dialog-hint" data-copy="MEALPOOL.confirmDialogHint">체크된 요리가 후보로 담겨요.</p>
+      <form id="mealpool-form">
+        <p class="meal-add-recent-title" data-copy="MEALPOOL.pantryMatchTitle">지금 냉장고로 만들 수 있는 요리</p>
+        <p id="mealpool-pantry-loading" class="loading" role="status" aria-live="polite" data-copy="MEALPOOL.pantryMatchLoading">냉장고로 만들 수 있는 요리를 찾고 있어요…</p>
+        <p id="mealpool-pantry-empty" class="favorites-list-empty" data-copy="MEALPOOL.pantryMatchEmpty" hidden>지금 냉장고로는 충분히 겹치는 레시피가 없어요.</p>
+        <ul id="mealpool-pantry-list" class="pantry-import-list"></ul>
+
+        <p class="meal-add-recent-title" data-copy="FAVORITES.pickTitle">즐겨찾기에 담아둔 요리</p>
+        <ul id="mealpool-favorites-list" class="pantry-import-list"></ul>
+
+        <p class="meal-add-recent-title" data-copy="MEALPLAN.recentTitle">최근 추천받은 요리</p>
+        <ul id="mealpool-history-list" class="pantry-import-list"></ul>
+
+        <div class="pantry-import-dialog-actions">
+          <button type="submit" class="cta-button" data-copy="MEALPOOL.confirmButton">담기</button>
+          <button type="button" id="mealpool-cancel" class="link-button link-button-muted"
+            data-copy="MEALPOOL.cancelButton">취소</button>
+        </div>
+      </form>
     </div>
   </dialog>
 

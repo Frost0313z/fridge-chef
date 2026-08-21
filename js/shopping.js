@@ -138,7 +138,8 @@ async function refreshShoppingList() {
   const pantrySnapshot = loadPantry().map(pantryText);
   const result = await postJson(
     "/api/shopping",
-    { plan: saved.plan, pantry: pantrySnapshot },
+    // 요일 배정 없는 "이번 주 후보"는 아직 확정 안 한 것이라 장보기 계산에서 뺀다.
+    { plan: saved.plan.filter((i) => i && i.day), pantry: pantrySnapshot },
     REFRESH_TIMEOUT_MS
   );
 
@@ -236,7 +237,8 @@ function renderShoppingList(saved, pantry) {
      수량은 비워 둔다. 얼마나 모자란지는 계획의 수량 표기가 제각각이라 셀 수 없고,
      없는 숫자를 지어내는 것보다 이름만 적는 편이 정직하다. */
   const listed = new Set(shoppingList.map((row) => normalizeIngredient(row.query)));
-  planShortages(saved.plan, pantryNamesFor(pantry))
+  // 요일 배정 없는 "이번 주 후보"는 아직 확정 안 한 것이라 "왜 사야 하나요" 계산에서 뺀다.
+  planShortages(saved.plan.filter((i) => i && i.day), pantryNamesFor(pantry))
     .filter((short) => !listed.has(normalizeIngredient(short.name)))
     .forEach((short) => {
       shoppingList.push({

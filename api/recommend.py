@@ -60,6 +60,10 @@ searchKeyword는 레시피 사이트에서 검색할 때 쓰는 값입니다. �
 
 MAX_RECIPES = 3
 
+# 식단 계획의 "이번 주 후보" 목록 전용. AI로 채우지 않고 실제 매칭만 넉넉하게 돌려준다 —
+# "지금 냉장고로 만들 수 있는 요리"라는 말 그대로를 지키려면 지어낸 레시피를 섞으면 안 된다.
+POOL_MATCH_LIMIT = 10
+
 
 def dedupe_key(name):
     """"김치볶음밥"과 "김치 볶음밥"을 같은 요리로 본다. 띄어쓰기만 지우고 그 이상은 하지 않는다 —
@@ -185,6 +189,8 @@ def handle(payload):
     time_limit = (payload.get("timeLimit") or "상관없음").strip()
     category = (payload.get("category") or "상관없음").strip()
     healthy = bool(payload.get("healthy"))
+    # 식단 계획의 "이번 주 후보" 모달 전용 — AI 폴백을 아예 안 탄다(POOL_MATCH_LIMIT 주석 참고).
+    match_only = bool(payload.get("matchOnly"))
 
     # 프롬프트에 그대로 들어가므로 개수를 제한한다. 이력이 5개라 실제로는 넘칠 일이 없다.
     # str(None)은 "None"이라 참 같은 값이 된다. 문자열만 받아야 프롬프트에 "None"이 섞이지 않는다.
@@ -197,12 +203,16 @@ def handle(payload):
     실제로 존재하는 레시피라 AI 생성물보다 믿을 수 있고, 비용·속도도 아낀다.
     매칭과 생성을 한 응답에 섞지 않는다 — 섞으면 카드마다 있는 것과 없는 것(조리 순서)이
     달라져 화면 규칙이 둘이 된다."""
-    matched = recipe_match.match(recipe_match.pantry_keys_from(ingredients), limit=MAX_RECIPES, category=category)
+    matched = recipe_match.match(
+        recipe_match.pantry_keys_from(ingredients),
+        limit=(POOL_MATCH_LIMIT if match_only else MAX_RECIPES),
+        category=category,
+    )
     if exclude:
         # "다른 요리 보기"로 다시 부른 경우. 방금 보여준 것을 빼야 버튼 문구가 거짓말이 아니다.
         skip = {dedupe_key(x) for x in exclude}
         matched = [r for r in matched if dedupe_key(r["name"]) not in skip]
-    if matched:
+    if matched or match_only:
         return 200, {"recipes": matched}
 
 
