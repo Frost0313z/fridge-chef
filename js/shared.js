@@ -1417,32 +1417,23 @@ function dayDate(startDate, offset) {
   return date;
 }
 
-/* 오늘·내일에만 배지를 붙인다. 달력을 역산하지 않고 곧바로 읽히는 것이 이 둘뿐이고,
-   모든 칸에 배지를 달면 7칸이 배지로 뒤덮여 정작 오늘이 묻힌다.
-   지난주에 짠 계획이면 아무 칸에도 안 붙는데, 그 자체가 "묵은 계획"이라는 신호다. */
-function nearBadge(date) {
-  const days = Math.round((date - new Date(`${todayISO()}T00:00:00`)) / 86400000);
-  if (days === 0) return "오늘";
-  if (days === 1) return "내일";
-  return "";
-}
+/* 그리드가 오늘·내일·모레 세 칸 고정이라(자리 0·1·2), "목요일"보다 이 셋이 훨씬 바로
+   읽힌다 — 사람은 "3일차 저녁"도 "목요일 저녁"도 아니라 "모레 저녁"으로 묻는다.
+   범위를 벗어난 자리(옛 저장분에 남은 4일차 이후 등)는 흔치 않은 값까지 맞추려고 표를
+   늘리지 않고 요일 이름으로 돌아간다. */
+const RELATIVE_DAY_LABELS = ["오늘", "내일", "모레"];
 
 /* "1일차"는 자리를 가리키는 **열쇠**다 — 저장분·서버 프롬프트·편집이 모두 이 값으로 칸을
    찾는다. 열쇠를 실제 날짜로 바꾸면 저장해둔 계획이 통째로 어긋나고, 날짜가 지날 때마다
-   열쇠까지 따라 바뀌어야 한다. 그래서 열쇠는 그대로 두고 화면에 붙는 이름만 요일로 만든다.
-
-   사람은 "3일차 저녁"으로 기억하지 않는다. "목요일 저녁"으로 기억한다. 그리드가 항상 7칸
-   고정이라 "다음 주 목요일과 헷갈릴" 만큼 계획이 길게 이어지지 않으므로 날짜 숫자 없이
-   요일 이름만 적어도 헷갈리지 않는다. badge(오늘/내일)가 기준점을 잡아준다. */
+   열쇠까지 따라 바뀌어야 한다. 그래서 열쇠는 그대로 두고 화면에 붙는 이름만 만든다. */
 function dayInfo(key, startDate) {
   const n = parseInt(key, 10);
-  const date = dayDate(startDate, (Number.isNaN(n) ? 1 : n) - 1);
-  if (!date) return { key, label: key, badge: "", aria: key };
+  const offset = (Number.isNaN(n) ? 1 : n) - 1;
+  const date = dayDate(startDate, offset);
+  if (!date) return { key, label: key, aria: key };
 
-  const label = `${WEEKDAYS[date.getDay()]}요일`;
-  const badge = nearBadge(date);
-  /* 스크린리더는 배지를 따로 읽지 못하고 지나칠 수 있어, 읽어줄 이름에는 먼저 넣는다. */
-  return { key, label, badge, aria: badge ? `${badge} ${label}` : label };
+  const label = RELATIVE_DAY_LABELS[offset] || `${WEEKDAYS[date.getDay()]}요일`;
+  return { key, label, aria: label };
 }
 
 function loadSavedPlan() {

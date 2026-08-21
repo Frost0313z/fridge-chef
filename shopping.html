@@ -71,7 +71,7 @@
     <section class="page-intro">
       <h1>
         <span data-copy="UI.shoppingTitle">뭘 사야 할까요?</span>
-        <!-- data-copy를 h1에 직접 걸면 이 아이콘까지 지워진다(FORM.healthy 체크박스와 같은 이유) -->
+        <!-- data-copy를 h1에 직접 걸면 이 아이콘까지 지워진다(textContent가 안의 다른 요소를 통째로 덮어쓴다) -->
         <span class="info-tooltip">
           <button type="button" class="info-tooltip-btn" aria-describedby="shopping-calc-tooltip"
             data-copy-attr="aria-label:UI.shoppingCalcInfoAria" aria-label="장보기 계산 방식 안내">

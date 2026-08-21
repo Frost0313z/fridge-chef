@@ -97,7 +97,7 @@
         <div class="pantry-list-head">
           <h2 class="pantry-list-title">
             <span data-copy="PANTRY.listTitle">지금 들어있는 재료</span>
-            <!-- data-copy를 h2에 직접 걸면 이 아이콘까지 지워진다(FORM.healthy 체크박스와 같은 이유) -->
+            <!-- data-copy를 h2에 직접 걸면 이 아이콘까지 지워진다(textContent가 안의 다른 요소를 통째로 덮어쓴다) -->
             <span class="info-tooltip">
               <button type="button" class="info-tooltip-btn" aria-describedby="pantry-age-tooltip"
                 data-copy-attr="aria-label:PANTRY.ageInfoAria" aria-label="오래된 재료 표시 안내">

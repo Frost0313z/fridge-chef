@@ -26,14 +26,14 @@ let planPantryAt = null;
    모르면 null이고, 그때는 예전처럼 "1일차"로 보여준다. */
 let planStartDate = null;
 
-/* 평소에는 읽는 화면이다. 21칸마다 조작 버튼을 띄워두면 정작 "이번 주 뭐 먹지"가 안 읽힌다.
+/* 평소에는 읽는 화면이다. 9칸마다 조작 버튼을 띄워두면 정작 "이번 주 뭐 먹지"가 안 읽힌다.
    고치는 동안에만 조작을 꺼낸다. */
 let editMode = false;
 /* 고르고 → 놓기. 드래그와 달리 마우스·터치·키보드가 모두 같은 경로로 동작한다. */
 let selectedIndex = null;
 
 /* 지금 메뉴를 넣고 있는 빈 자리 {day, meal}. 한 번에 한 자리만 연다 —
-   21칸에 입력창을 동시에 띄우면 어디에 넣는 중인지 알 수 없다. */
+   9칸에 입력창을 동시에 띄우면 어디에 넣는 중인지 알 수 없다. */
 let addingSlot = null;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -41,7 +41,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!form) return;
 
   const portionEl = document.getElementById("mp-portion");
-  const healthyEl = document.getElementById("mp-healthy");
   const clearBtn = document.getElementById("mealplan-clear-btn");
   const resultEl = document.getElementById("mealplan-result");
 
@@ -62,7 +61,7 @@ document.addEventListener("DOMContentLoaded", () => {
     refreshPlanStates();
   });
 
-  /* "다른 메뉴로 바꾸기" — 21칸 편집 모드를 거치지 않고 이 칸 하나만 바로 바꾸는 지름길.
+  /* "다른 메뉴로 바꾸기" — 9칸 편집 모드를 거치지 않고 이 칸 하나만 바로 바꾸는 지름길.
      모달 본문을 뷰 ↔ 폼으로 갈아 끼우기만 하고, 닫지는 않는다 — "해먹었어요"처럼 결과를
      그 자리에서 보여주는 방식과 맞춘다. dialogIndex는 openMealDialog가 이미 들고 있다. */
   dialogEl.addEventListener("click", (e) => {
@@ -259,7 +258,7 @@ document.addEventListener("DOMContentLoaded", () => {
      장을 더 봐야 하는 요리는 서버를 거치는 데다 25초까지 걸릴 수 있어, 나머지 세 소스가
      이미 다 뜬 뒤에도 이 구간만 로딩으로 남을 수 있다 — 한 소스의 실패·지연이 다이얼로그
      전체를 막지 않는다(B7과 같은 원칙). */
-  async function openMealpoolDialog({ includeAi = false, portion, healthy } = {}) {
+  async function openMealpoolDialog({ includeAi = false, portion } = {}) {
     /* 즐겨찾기·최근 추천은 로컬이라 즉시 그리고 바로 연다 — 냉장고 매칭만 서버를 거치므로
        그 응답을 기다리며 모달 자체가 안 뜨면 눌러도 반응이 없는 것처럼 보인다(C3). */
     const favorites = loadFavorites();
@@ -286,12 +285,12 @@ document.addEventListener("DOMContentLoaded", () => {
     mealpoolPantryListEl.innerHTML = pantryMatches.map((r, i) => mealpoolRowHtml(r, i, "pantry")).join("");
 
     if (!includeAi) return;
-    const suggestions = await fetchPoolAiSuggestions(portion, healthy);
+    const suggestions = await fetchPoolAiSuggestions(portion);
     mealpoolSources.ai = suggestions;
     mealpoolAiLoadingEl.hidden = true;
     mealpoolAiEmptyEl.hidden = suggestions.length > 0;
-    /* 기본 체크 해제 — 7일치라 최대 20개 안팎이 한 번에 뜰 수 있어, 이미 좋아하는 게 확실한
-       나머지 세 소스(기본 체크)와 달리 사용자가 직접 골라야 장보기 부담이 갑자기 안 늘어난다. */
+    /* 기본 체크 해제 — 이미 좋아하는 게 확실한 나머지 세 소스(기본 체크)와 달리, 아직
+       먹어본 적 없는 제안이라 사용자가 직접 골라야 장보기 부담이 갑자기 안 늘어난다. */
     mealpoolAiListEl.innerHTML = suggestions.map((r, i) => mealpoolRowHtml(r, i, "ai", false)).join("");
   }
 
@@ -380,12 +379,10 @@ document.addEventListener("DOMContentLoaded", () => {
   restorePreferences();
 
   portionEl.addEventListener("change", () => savePrefs({ portion: portionEl.value }));
-  healthyEl.addEventListener("change", () => savePrefs({ healthy: healthyEl.checked }));
 
   function restorePreferences() {
     const prefs = loadPrefs();
     setSelectValue(portionEl, prefs.portion);
-    healthyEl.checked = Boolean(prefs.healthy);
   }
 
   const emptyEl = document.getElementById("mealplan-empty");
@@ -421,9 +418,9 @@ document.addEventListener("DOMContentLoaded", () => {
   if (saved) renderPlan();
   renderMealPool();
 
-  /* "식단 짜기"는 더 이상 그리드를 직접 채우지 않는다 — 빈 7칸을 즉시 만들고, 무엇을
-     넣을지는 openMealpoolDialog(다이얼로그)에서 고른다. 배치는 "이번 주 후보"의 배정
-     버튼이 맡는다(요일 배치는 선택). */
+  /* "식단 짜기"는 더 이상 그리드를 직접 채우지 않는다 — 오늘·내일·모레 빈 칸을 즉시
+     만들고, 무엇을 넣을지는 openMealpoolDialog(다이얼로그)에서 고른다. 배치는
+     "이번 주 후보"의 배정 버튼이 맡는다(요일 배치는 선택). */
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     /* 이미 진행 중인 계획이면 시작일을 건드리지 않는다 — 아니면 배정해둔 항목들의 요일이
@@ -435,7 +432,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderPlan();
     setPlanVisible(true);
 
-    openMealpoolDialog({ includeAi: true, portion: portionEl.value, healthy: healthyEl.checked });
+    openMealpoolDialog({ includeAi: true, portion: portionEl.value });
   });
 
   clearBtn.addEventListener("click", () => {
@@ -463,7 +460,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const del = e.target.closest(".meal-delete");
     if (del) {
-      /* 메뉴가 하나도 안 남아도 요일 칸은 그대로 7개 남는다 — 거기에 다시 넣을 수 있어야
+      /* 메뉴가 하나도 안 남아도 요일 칸은 그대로 3개 남는다 — 거기에 다시 넣을 수 있어야
          한다. 계획을 진짜로 없애는 건 "계획 지우기"의 일이다. */
       deleteMeal(Number(del.dataset.index));
       return;
@@ -553,7 +550,7 @@ function submitAddSlot() {
   if (input) addMeal(input.value);
 }
 
-/* 빈 자리에 메뉴 한 칸을 만든다. 재료는 묻지 않는다 — 21칸마다 재료까지 적게 하면
+/* 빈 자리에 메뉴 한 칸을 만든다. 재료는 묻지 않는다 — 9칸마다 재료까지 적게 하면
    손으로 넣는 편이 다시 계획하는 것보다 번거로워진다. 재료가 비어 있으면 장보기를
    다시 뽑을 때 서버가 그 메뉴의 재료만 AI에게 물어 채운다(api/mealplan.py). */
 function addMeal(menu, searchKeyword, ingredients) {
@@ -694,12 +691,12 @@ function swapMeal(index, menu, searchKeyword, ingredients) {
   commitEdit();
 }
 
-/* 요일 칸은 항상 7개 고정이다 — "며칠치 계획할지"를 더 이상 고르지 않는다.
+/* 요일 칸은 항상 오늘·내일·모레 세 개 고정이다 — 일주일치는 한눈에 보기엔 너무 많다.
    planStartDate가 없으면 아직 "식단 짜기"를 한 번도 안 누른 것이라 빈 배열을 돌려준다
    (setPlanVisible(false) 상태와 맞는다). */
 function dayLabels() {
   if (!planStartDate) return [];
-  return Array.from({ length: 7 }, (_, n) => dayInfo(`${n + 1}일차`, planStartDate));
+  return Array.from({ length: 3 }, (_, n) => dayInfo(`${n + 1}일차`, planStartDate));
 }
 
 /* 날짜 이름을 만드는 일은 shared.js가 한다 — 장보기 화면도 "이 재료가 언제 쓰이는지"를
@@ -709,27 +706,26 @@ function renderPlan() {
   const resultEl = document.getElementById("mealplan-result");
   if (!resultEl) return;
 
-  /* 다시 그리면 안쪽이 통째로 교체돼 스크롤이 1일차로 돌아간다. 편집은 조작할 때마다
-     다시 그리기를 부르므로, 5일차를 고치는 동안 화면이 매번 맨 앞으로 튀어버린다.
-     밀어둔 위치를 넘겨받아 되돌린다. */
+  /* 다시 그리면 안쪽이 통째로 교체돼 스크롤이 오늘로 돌아간다. 편집은 조작할 때마다
+     다시 그리기를 부르므로, 좁은 화면에서 모레를 고치는 동안 화면이 매번 맨 앞으로
+     튀어버린다. 밀어둔 위치를 넘겨받아 되돌린다. */
   const previous = resultEl.querySelector(".mealplan-days");
   const keptScroll = previous ? previous.scrollLeft : 0;
 
-  /* 가로로 미는 영역은 초점을 받을 수 있어야 키보드에서도 화살표로 밀 수 있다(WCAG 2.1.1).
+  /* 세 칸이라 대부분 화면엔 다 들어오지만, 좁은 화면에선 여전히 밀어야 할 수 있다.
+     가로로 미는 영역은 초점을 받을 수 있어야 키보드에서도 화살표로 밀 수 있다(WCAG 2.1.1).
      읽기 모드에서 메뉴가 다 비어 있으면 안에 초점 갈 요소가 하나도 없어, 이게 없으면
-     키보드만 쓰는 사람은 2일차 뒤를 볼 방법이 사라진다. */
+     키보드만 쓰는 사람은 모레를 볼 방법이 사라진다. */
   const days = dayLabels();
   /* "이거 해먹었어요"가 물을 재료를 고르는 기준. 그릴 때마다 다시 읽어 항상 지금의 냉장고를 쓴다
      — 추천 카드의 보유 표시와 같은 규칙이다. */
   const pantryNames = pantryNamesFor(loadPantry());
   resultEl.innerHTML = `<div class="mealplan-days${editMode ? " is-editing" : ""}"
-    tabindex="0" role="group" aria-label="이번 주 식단 (좌우로 끌어서 보기)">${days
+    tabindex="0" role="group" aria-label="식단 계획">${days
     .map(
       (day) => `
       <article class="mealplan-day-card">
-        <h3>${escapeHtml(day.label)}${
-        day.badge ? `<span class="mealplan-day-badge">${day.badge}</span>` : ""
-      }</h3>
+        <h3>${escapeHtml(day.label)}</h3>
         ${MEALS.map((meal) => mealSlotHtml(day, meal, pantryNames)).join("")}
       </article>`
     )
@@ -774,12 +770,12 @@ async function fetchPoolPantryMatches() {
    요일×끼니가 이미 배정된 한 주치 계획을 돌려주지만, 여기서는 day/meal을 버리고 menu
    기준으로 중복 없는 후보 목록으로만 쓴다(SYSTEM_PROMPT가 이미 "가진 재료만으로 부족하면
    새로 사야 할 재료를 자유롭게 추가해도 됩니다"를 명시하므로 이 목록의 성격과 맞는다).
-   그리드가 항상 7칸이라 재료 변주가 가장 풍부한 7일치를 그대로 요청한다. */
-async function fetchPoolAiSuggestions(portion, healthy) {
+   그리드가 항상 오늘·내일·모레 세 칸이라 그만큼(3일치)만 요청한다. */
+async function fetchPoolAiSuggestions(portion) {
   const pantry = loadPantry().map(pantryPromptText);
   const result = await postJson(
     "/api/mealplan",
-    { days: 7, portion, healthy, pantry },
+    { days: 3, portion, pantry },
     MP_REQUEST_TIMEOUT_MS
   );
   if (!result.ok) return [];
@@ -924,10 +920,10 @@ function enableDragScroll(el) {
 }
 
 /* 읽을 때는 끼니·메뉴·레시피 링크만 보여준다.
-   재료를 21칸에 모두 펼치면 100줄이 넘어 "이번 주 뭐 먹지"가 안 읽힌다.
+   재료를 9칸에 모두 펼치면 100줄이 넘어 "이번 주 뭐 먹지"가 안 읽힌다.
    무엇을 사야 하는지는 장보기 화면이, 어떻게 만드는지는 레시피 링크가 이미 답한다.
    (재료 데이터 자체는 지우지 않는다 — 장보기를 다시 뽑을 때 서버로 보낸다) */
-/* 21칸에 "만개의레시피에서 찾아보기 →"를 반복하면 링크 문구가 메뉴 이름보다 길어서
+/* 9칸에 "만개의레시피에서 찾아보기 →"를 반복하면 링크 문구가 메뉴 이름보다 길어서
    화면이 링크 문구로 뒤덮인다. 반복 자체가 이미 의미를 알려주므로 이름을 링크로 만들고
    화살표만 붙인다. 링크 텍스트가 요리 이름이 되어 스크린리더에도 더 정확해진다.
    (레시피 추천 화면은 카드가 1~3장뿐이고 이 링크가 화면의 결론이라 문장을 그대로 둔다) */
@@ -953,7 +949,7 @@ function mealStateHtml(item, pantryNames) {
 }
 
 /* 칸에 남는 짧은 표시. 위의 mealStateHtml과 같은 세 상태를 말하지만 길이가 다르다 —
-   요일 그리드는 "이번 주 뭐 먹지"를 훑는 자리라, 21칸에 문장이 들어가면 칸 높이가
+   요일 그리드는 "이번 주 뭐 먹지"를 훑는 자리라, 9칸에 문장이 들어가면 칸 높이가
    요리마다 달라지고 정작 메뉴 이름이 안 읽힌다(C2). 자세한 말은 모달이 맡는다.
 
    부족을 개수로만 말하는 이유도 같다. "무엇이" 부족한지는 이름 길이에 따라 한 줄이
@@ -1101,7 +1097,7 @@ function mealSlotHtml(day, meal, pantryNames = []) {
     const blank = `${label}<span class="meal-empty-text">비어 있음</span>`;
 
     /* 메뉴를 들고 있을 때는 본문 전체가 놓을 자리가 된다 — 정사각 버튼만 노리게 하면
-       21칸에서 표적이 너무 작다. 눌렀을 때 무슨 일이 생기는지는 상단 안내가 말한다. */
+       9칸에서 표적이 너무 작다. 눌렀을 때 무슨 일이 생기는지는 상단 안내가 말한다. */
     if (editMode && selectedIndex !== null) {
       return `<div class="meal-slot meal-slot-edit">
         <button type="button" class="meal-drop" data-day="${escapeHtml(day.key)}" data-meal="${meal}"
@@ -1129,12 +1125,12 @@ function mealSlotHtml(day, meal, pantryNames = []) {
      data-plan-index는 "해먹었어요"를 누른 칸이 어느 항목인지 되찾는 데 쓴다. */
   if (!editMode) {
     /* 칸에는 끼니·메뉴·짧은 상태만 남기고, 자세한 상태와 "이거 해먹었어요"는 모달이 맡는다.
-       예전에는 둘 다 칸 안에 있어서 칸 높이가 요리마다 들쭉날쭉했고, 21칸이 한꺼번에
+       예전에는 둘 다 칸 안에 있어서 칸 높이가 요리마다 들쭉날쭉했고, 9칸이 한꺼번에
        복잡해 보였다 — 그리드의 목적은 "한 주 조망" 하나다(C2).
 
        칸 전체를 덮는 버튼 하나가 상세를 연다. 메뉴 이름은 만개의레시피로 나가는 링크라
        버튼 안에 넣을 수 없고(대화형 요소는 겹칠 수 없다), 이름을 뺀 나머지만 누를 자리로
-       만들면 21칸에서 표적이 너무 작다. 그래서 버튼을 칸 크기로 깔고 이름 링크만 그 위로
+       만들면 9칸에서 표적이 너무 작다. 그래서 버튼을 칸 크기로 깔고 이름 링크만 그 위로
        올린다(css의 .meal-open 참고).
 
        버튼에 글자를 넣지 않는 이유는 칸이 이미 끼니·메뉴·상태를 말하고 있어서다.
@@ -1149,7 +1145,7 @@ function mealSlotHtml(day, meal, pantryNames = []) {
   }
 
   /* 칸에는 설명을 붙이지 않는다. 고른 상태는 색이, 다음에 무엇을 할지는 상단 안내가 말한다
-     (21칸에 같은 문장을 반복하면 정작 메뉴 이름이 안 읽힌다).
+     (9칸에 같은 문장을 반복하면 정작 메뉴 이름이 안 읽힌다).
      aria-pressed가 스크린리더에는 눌린 상태를 그대로 전한다. */
   const picked = selectedIndex === index;
 
@@ -1173,7 +1169,7 @@ function mealSlotHtml(day, meal, pantryNames = []) {
    다른 요소 위로 띄우기가 전부 브라우저 기본으로 딸려온다. 직접 만들면 그중
    하나는 반드시 빠뜨린다.
 
-   안쪽 내용은 열 때마다 새로 만든다. 21칸치를 미리 그려두면 지금 냉장고가 아니라
+   안쪽 내용은 열 때마다 새로 만든다. 9칸치를 미리 그려두면 지금 냉장고가 아니라
    그릴 때의 냉장고를 보여주게 되고, 그건 이 화면이 지금까지 피해온 것이다. */
 let dialogIndex = null;
 

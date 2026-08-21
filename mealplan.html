@@ -71,7 +71,7 @@
     <section class="page-intro">
       <h1>
         <span data-copy="UI.mealplanTitle">이번 주 저녁, 미리 정해둘까요?</span>
-        <!-- data-copy를 h1에 직접 걸면 이 아이콘까지 지워진다(FORM.healthy 체크박스와 같은 이유) -->
+        <!-- data-copy를 h1에 직접 걸면 이 아이콘까지 지워진다(textContent가 안의 다른 요소를 통째로 덮어쓴다) -->
         <span class="info-tooltip">
           <button type="button" class="info-tooltip-btn" aria-describedby="mealplan-source-tooltip"
             data-copy-attr="aria-label:MEALPLAN.planInfoAria" aria-label="식단 추천 방식 안내">
@@ -107,13 +107,6 @@
             </div>
           </div>
 
-          <!-- 문구를 <span>으로 감싼다. <label>에 직접 걸면 textContent를 덮어쓰면서
-               안에 있는 <input type="checkbox">가 통째로 지워진다. -->
-          <label class="form-check">
-            <input type="checkbox" id="mp-healthy" name="healthy" />
-            <span data-copy="FORM.healthy">건강 관리 중이에요 (기름지지 않고 칼로리 낮은 요리로)</span>
-          </label>
-
           <button type="submit" id="mealplan-submit-btn" class="cta-button" data-copy="UI.submitMealplan">식단 짜기</button>
         </form>
 
@@ -121,7 +114,7 @@
       </div>
 
       <div id="mealplan-toolbar" class="mealplan-toolbar" hidden>
-        <h2 class="mealplan-toolbar-title" data-copy="UI.mealPlanTitle">이번 주 식단</h2>
+        <h2 class="mealplan-toolbar-title" data-copy="UI.mealPlanTitle">식단 계획</h2>
         <div class="mealplan-toolbar-actions">
           <button type="button" id="mealplan-edit-btn" class="pill-toggle mealplan-edit-btn" aria-pressed="false" data-copy="UI.editMenu">메뉴 바꾸기</button>
           <button type="button" id="mealplan-clear-btn" class="link-button link-button-muted mealplan-clear-btn" data-copy="UI.clearPlan">계획 지우기</button>
@@ -138,7 +131,7 @@
     </section>
 
     <!-- 요일 배정 없이도 쓸 수 있는 "이번 주 후보" 목록(D-0y). 순서는 항상 식단 짜기 →
-         이번 주 식단 → 이번 주 후보 맨 아래로 고정한다(사용자 지시). 위 그리드와 무관하게
+         식단 계획 → 이번 주 후보 맨 아래로 고정한다(사용자 지시). 위 그리드와 무관하게
          언제나 그 존재만 보고 렌더한다 — 요일 계획이 없어도 후보만 있을 수 있어서다. -->
     <section class="mealpool-section">
       <div class="list-card mealpool-card">

@@ -1405,22 +1405,6 @@ body[data-page="mealplan"] .recipe-form-section > .mealplan-next {
   font-size: var(--fs-90);
 }
 
-/* 오늘·내일에만 붙는다. 날짜를 다 읽고 오늘을 찾아내게 하는 대신 먼저 눈에 띄게 한다.
-   냉장고 칩의 "13일 전" 배지와 같은 생김새를 쓴다 — 같은 뜻("이 날짜가 지금 중요하다")을
-   화면마다 다르게 그리면 규칙을 두 번 배워야 한다([C5]). */
-.mealplan-day-badge {
-  font-size: var(--fs-70);
-  font-weight: 700;
-  line-height: 1;
-  padding: var(--sp-3) var(--sp-7);
-  border-radius: 999px;
-  /* 주 버튼과 같은 짝(--accent-strong 채움 + --on-accent 글씨)이다.
-     0.7rem짜리 작은 글씨라 대비 여유가 필요한데 이 조합이 라이트 5.11:1 · 다크 8.79:1이다.
-     --accent(3.69:1)로 채우면 이 크기에서 기준 미달이 된다. */
-  color: var(--on-accent);
-  background: var(--accent-strong);
-}
-
 /* 하루가 아침·점심·저녁 세 칸으로 나뉜다. 칸 사이를 선으로 끊어 어디까지가 한 끼인지 보이게 한다. */
 .meal-slot {
   padding: 12px 0;

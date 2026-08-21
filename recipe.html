@@ -71,7 +71,7 @@
     <section class="page-intro">
       <h1>
         <span data-copy="UI.recipeFormTitle">오늘 뭐 해먹을까요?</span>
-        <!-- data-copy를 h1에 직접 걸면 이 아이콘까지 지워진다(FORM.healthy 체크박스와 같은 이유) -->
+        <!-- data-copy를 h1에 직접 걸면 이 아이콘까지 지워진다(textContent가 안의 다른 요소를 통째로 덮어쓴다) -->
         <span class="info-tooltip">
           <button type="button" class="info-tooltip-btn" aria-describedby="recipe-source-tooltip"
             data-copy-attr="aria-label:UI.recipeSourceInfoAria" aria-label="레시피 출처 안내">

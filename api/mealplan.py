@@ -6,7 +6,7 @@ POST /api/shopping   이미 있는 계획을 받아 장보기 목록만 다시 �
 그대로 공유하기 때문이다. 장보기 목록 자체는 AI가 아니라 shopping.py가 계산한다 —
 왜 그렇게 바꿨는지는 그 파일의 첫머리에 적어두었다.
 
-mealplan 요청: {"days": int, "portion": str, "healthy": bool, "pantry": [str]}
+mealplan 요청: {"days": int, "portion": str, "pantry": [str]}
 mealplan 반환: {"plan": [{"day": str, "meal": str, "menu": str, "searchKeyword": str, "ingredients": [str]}],
                 "shoppingList": [{"name": str, "amount": str}]}
 shopping 요청: {"plan": [...위와 같은 항목...], "pantry": [str]}
@@ -74,11 +74,6 @@ shoppingList 필드는 응답에 넣지 마세요. 무엇을 얼마나 사야 �
   ]
 }"""
 
-# 타겟이 1인 가구 자취생으로 고정돼 있어 "가족 식사"는 모순이고 "자취생 간단요리"는
-# 선택지가 아니라 기본값이다(SYSTEM_PROMPT로 승격). 세대 구성과 무관한 축 하나만 남긴다.
-HEALTHY_HINT = "건강 관리를 신경 쓰는 중이야. 기름지거나 자극적인 조리법은 피하고 칼로리가 낮은 쪽으로 계획해줘."
-
-
 MAX_DAYS = 7
 
 # 프롬프트가 날짜 수만큼 곱해져 길어지므로 재료를 앞에서 끊는다.
@@ -132,7 +127,7 @@ def sanitize_plan(raw, days):
     return plan[: days * len(MEALS)]
 
 
-def build_user_prompt(days, portion, healthy, pantry):
+def build_user_prompt(days, portion, pantry):
     lines = [
         f"계획할 일수: {days}일치 (하루 세 끼, 총 {days * len(MEALS)}끼)",
         # 혼자 먹는다는 전제이므로 "몇 인분"이 아니라 "한 끼당 몇 끼 분량"으로 전달한다.
@@ -140,8 +135,6 @@ def build_user_prompt(days, portion, healthy, pantry):
     ]
     if pantry:
         lines.append(f"이미 냉장고에 있는 재료: {', '.join(pantry)}")
-    if healthy:
-        lines.append(HEALTHY_HINT)
     lines.append(f"1일차부터 {days}일차까지 아침·점심·저녁을 빠짐없이 계획해줘.")
     return "\n".join(lines)
 
@@ -159,7 +152,6 @@ def handle(payload):
     days = max(1, min(days, 7))
 
     portion = (payload.get("portion") or "한 끼").strip()
-    healthy = bool(payload.get("healthy"))
     pantry = payload.get("pantry") or []
     if not isinstance(pantry, list):
         pantry = []
@@ -168,7 +160,7 @@ def handle(payload):
     # 세 끼로 늘면서 응답이 3배가 됐다. 저녁만 계획하던 때의 20초로는 7일치가 잘린다.
     data, error = call_openai(
         SYSTEM_PROMPT,
-        build_user_prompt(days, portion, healthy, pantry),
+        build_user_prompt(days, portion, pantry),
         timeout=25.0,
         temperature=0.8,
     )

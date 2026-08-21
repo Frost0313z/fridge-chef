@@ -156,7 +156,7 @@ const COPY = {
     error: "잠깐 문제가 생겼어요. 다시 시도해주세요.",
     shoppingListTitle: "이것만 사면 돼요",
     shoppingListEmpty: "다 있어요! 바로 해먹을 수 있어요.",
-    mealPlanTitle: "이번 주 식단",
+    mealPlanTitle: "식단 계획",
     darkModeToggle: "화면 모드 바꾸기",
     boughtButton: "샀어요",
     needToBuyBadge: "사야 해요",
@@ -483,7 +483,6 @@ const COPY = {
     portionPerMeal: "한 끼당 만들 분량",
     timeLimit: "희망 조리 시간",
     category: "요리 종류",
-    healthy: "건강 관리 중이에요 (기름지지 않고 칼로리 낮은 요리로)",
 
     /* 아래는 <option>에 보이는 글자만이다. value 속성은 손대지 않는다 —
        그 값이 그대로 서버 프롬프트로 나가서, 바꾸면 AI가 받는 지시가 달라진다. */
