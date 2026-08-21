@@ -700,6 +700,7 @@ function cookedHtml(ingredients, pantryNames) {
           <button type="button" class="cta-button cta-button-secondary cooked-confirm">${escapeHtml(
             COPY.COOKED.confirm
           )}</button>
+          <p class="savings-highlight" aria-live="polite" hidden></p>
           <p class="cooked-status" role="status" aria-live="polite" hidden></p>
         </div>
       </details>`;
@@ -710,6 +711,21 @@ function setCookedStatus(root, message, canUndo) {
   if (!el) return;
   el.innerHTML = statusHtml(message, canUndo);
   el.hidden = !message;
+}
+
+/* 모달 대신 인라인으로 순간의 보상을 준다 — 결과 카드가 도착할 때 쓰는 것과 같은
+   card-in 페이드인(css/style.css)을 재사용한다. hidden→표시로 바뀔 때마다 자동으로
+   다시 재생된다. wonThisMeal이 없으면(체크 없음·저장 실패·되돌리기) 지운다 — 그
+   경우엔 보상이 아니므로 직전 강조가 남아 있으면 지금 상태 문구와 모순돼 보인다. */
+function setSavingsHighlight(root, wonThisMeal) {
+  const el = root.querySelector(".savings-highlight");
+  if (!el) return;
+  if (!wonThisMeal) {
+    el.hidden = true;
+    return;
+  }
+  el.textContent = COPY.SAVINGS.thisMeal(wonThisMeal);
+  el.hidden = false;
 }
 
 /* 결과 영역은 추천을 받거나 계획을 고칠 때마다 통째로 다시 그려진다. 칸마다 리스너를 달면
@@ -731,12 +747,14 @@ function initCooked(containerEl, onChange) {
       );
       /* 전부 체크를 풀고 눌렀을 때. 아무 말 없이 끝나면 버튼이 고장 난 것으로 읽힌다(C3). */
       if (!names.length) {
+        setSavingsHighlight(root, 0);
         setCookedStatus(root, COPY.COOKED.nothing, false);
         return;
       }
 
       const result = consumeFromPantry(names);
       if (!result.stored) {
+        setSavingsHighlight(root, 0);
         setCookedStatus(root, COPY.COOKED.failed, false);
         return;
       }
@@ -748,9 +766,11 @@ function initCooked(containerEl, onChange) {
          절약은 이 경우에도 센다. 뺄 재료가 없었다는 것이지 요리를 안 해먹었다는 뜻이
          아니다 — 사용자는 분명히 해먹었고, 그러면 배달을 안 시킨 것이 맞다. */
       if (!result.removed.length) {
+        setSavingsHighlight(root, SAVED_PER_MEAL);
         setCookedStatus(root, `${COPY.COOKED.already} ${COPY.SAVINGS.inline(addSavings())}`, false);
         return;
       }
+      setSavingsHighlight(root, SAVED_PER_MEAL);
       setCookedStatus(
         root,
         `${COPY.COOKED.done(result.removed.join(", "))} ${COPY.SAVINGS.inline(addSavings())}`,
@@ -766,6 +786,7 @@ function initCooked(containerEl, onChange) {
       if (!undone) return;
       /* 되돌리기는 방금 그 확인으로 늘어난 만큼만 취소한다(main.js의 undoSavings).
          잘못 누른 것을 되돌리는 자리이지, 기록을 깎는 자리가 아니다. */
+      setSavingsHighlight(root, 0);
       setCookedStatus(
         root,
         undone.stored
