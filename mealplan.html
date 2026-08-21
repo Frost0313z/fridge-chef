@@ -86,23 +86,9 @@
             data-copy="MEALPLAN.planInfo">냉장고에 오래 넣어둔 재료가 있으면, 그 재료를 먼저 쓰는 메뉴를 우선 넣어드려요.</span>
         </span>
       </h1>
-      <p data-copy="UI.mealplanIntro">냉장고에 있는 재료를 최대한 쓰고, 부족한 것만 장보기로 모아드려요.</p>
+      <p data-copy="UI.mealplanIntro">지금 만들 수 있는 요리부터 즐겨찾기·최근 추천까지 한 번에 모아드려요. 마음에 드는 것만 담아서 원하는 요일에 넣어보세요.</p>
       <button type="button" id="favorites-view-btn" class="link-button"
         data-copy="MEALPLAN.viewFavorites">즐겨찾기 보기</button>
-    </section>
-
-    <!-- 요일 배정 없이도 쓸 수 있는 "이번 주 후보" 목록(D-0y). 아래 요일 그리드와 무관하게
-         언제나 그 존재만 보고 렌더한다 — 요일 계획이 없어도 후보만 있을 수 있어서다. -->
-    <section class="mealpool-section">
-      <div class="list-card mealpool-card">
-        <div class="mealpool-head">
-          <h2 data-copy="MEALPOOL.sectionTitle">이번 주 후보</h2>
-          <button type="button" id="mealpool-open-btn" class="link-button"
-            data-copy="MEALPOOL.openButton">후보 고르기</button>
-        </div>
-        <p id="mealpool-empty" class="result-empty" data-copy="MEALPOOL.empty">아직 담아둔 후보가 없어요. 위에서 후보를 골라보세요.</p>
-        <ul id="mealpool-list" class="mealpool-list" hidden></ul>
-      </div>
     </section>
 
     <section class="recipe-form-section">
@@ -111,14 +97,6 @@
           <!-- <option>은 보이는 글자만 COPY에서 받는다. value는 그대로 서버 프롬프트로
                나가므로 건드리지 않는다 — 바꾸면 AI가 받는 지시가 달라진다. -->
           <div class="form-row">
-            <div class="form-field">
-              <label for="days" data-copy="FORM.days">계획할 일수</label>
-              <select id="days" name="days">
-                <option value="3" data-copy="FORM.days3">3일</option>
-                <option value="5" selected data-copy="FORM.days5">5일</option>
-                <option value="7" data-copy="FORM.days7">7일</option>
-              </select>
-            </div>
             <div class="form-field">
               <label for="mp-portion" data-copy="FORM.portionPerMeal">한 끼당 만들 분량</label>
               <select id="mp-portion" name="portion">
@@ -139,10 +117,7 @@
           <button type="submit" id="mealplan-submit-btn" class="cta-button" data-copy="UI.submitMealplan">식단 짜기</button>
         </form>
 
-        <p id="mealplan-loading" class="loading" role="status" aria-live="polite" data-copy="UI.loadingMealplan" hidden>며칠치 저녁을 짜고 있어요…</p>
-        <p id="mealplan-error" class="error-message" role="alert" hidden></p>
-
-        <p id="mealplan-empty" class="result-empty" data-copy="UI.emptyMealplan">아직 짜둔 식단이 없어요. 위에서 며칠치 저녁을 정해보세요.</p>
+        <p id="mealplan-empty" class="result-empty" data-copy="UI.emptyMealplan">아직 짜둔 식단이 없어요. 위에서 식단 짜기를 눌러보세요.</p>
       </div>
 
       <div id="mealplan-toolbar" class="mealplan-toolbar" hidden>
@@ -160,6 +135,21 @@
       <p id="mealplan-next" class="mealplan-next" hidden>
         <span data-copy="UI.mealplanNext">부족한 재료는</span> <a href="shopping.html" data-copy="UI.mealplanNextLink">장보기에서 확인 →</a>
       </p>
+    </section>
+
+    <!-- 요일 배정 없이도 쓸 수 있는 "이번 주 후보" 목록(D-0y). 순서는 항상 식단 짜기 →
+         이번 주 식단 → 이번 주 후보 맨 아래로 고정한다(사용자 지시). 위 그리드와 무관하게
+         언제나 그 존재만 보고 렌더한다 — 요일 계획이 없어도 후보만 있을 수 있어서다. -->
+    <section class="mealpool-section">
+      <div class="list-card mealpool-card">
+        <div class="mealpool-head">
+          <h2 data-copy="MEALPOOL.sectionTitle">이번 주 후보</h2>
+          <button type="button" id="mealpool-open-btn" class="link-button"
+            data-copy="MEALPOOL.openButton">후보 고르기</button>
+        </div>
+        <p id="mealpool-empty" class="result-empty" data-copy="MEALPOOL.empty">아직 담아둔 후보가 없어요. 위에서 후보를 골라보세요.</p>
+        <ul id="mealpool-list" class="mealpool-list" hidden></ul>
+      </div>
     </section>
   </main>
 
@@ -240,6 +230,14 @@
         <p id="mealpool-pantry-loading" class="loading" role="status" aria-live="polite" data-copy="MEALPOOL.pantryMatchLoading">냉장고로 만들 수 있는 요리를 찾고 있어요…</p>
         <p id="mealpool-pantry-empty" class="favorites-list-empty" data-copy="MEALPOOL.pantryMatchEmpty" hidden>지금 냉장고로는 충분히 겹치는 레시피가 없어요.</p>
         <ul id="mealpool-pantry-list" class="pantry-import-list"></ul>
+
+        <!-- "식단 짜기"에서만 켠다("후보 고르기"는 3소스 즉시 진입로로 남는다). -->
+        <div id="mealpool-ai-section" hidden>
+          <p class="meal-add-recent-title" data-copy="MEALPOOL.aiSuggestedTitle">장을 조금 더 보면 만들 수 있는 요리</p>
+          <p id="mealpool-ai-loading" class="loading" role="status" aria-live="polite" data-copy="UI.loadingMealplan" hidden>며칠치 저녁을 짜고 있어요…</p>
+          <p id="mealpool-ai-empty" class="favorites-list-empty" data-copy="UI.errorMealplan" hidden>식단을 짜지 못했어요. 잠시 후 다시 시도해주세요.</p>
+          <ul id="mealpool-ai-list" class="pantry-import-list"></ul>
+        </div>
 
         <p class="meal-add-recent-title" data-copy="FAVORITES.pickTitle">즐겨찾기에 담아둔 요리</p>
         <ul id="mealpool-favorites-list" class="pantry-import-list"></ul>

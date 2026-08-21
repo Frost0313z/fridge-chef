@@ -22,10 +22,6 @@ let planShoppingList = [];
    이게 없으면 "샀어요"를 눌러도 목록이 줄지 않는다. */
 let planPantryAt = null;
 
-/* 계획한 일수. 남아 있는 메뉴에서 역산하지 않고 따로 들고 있는다 —
-   마지막 날 세 끼를 다 지우면 그 날짜 칸이 통째로 사라져서, 거기에 다시 넣을 수가 없었다. */
-let planDays = 0;
-
 /* 1일차가 며칠이었는지(YYYY-MM-DD). 화면에 실제 날짜와 요일을 적기 위한 기준점이다.
    모르면 null이고, 그때는 예전처럼 "1일차"로 보여준다. */
 let planStartDate = null;
@@ -44,15 +40,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("mealplan-form");
   if (!form) return;
 
-  const daysEl = document.getElementById("days");
   const portionEl = document.getElementById("mp-portion");
   const healthyEl = document.getElementById("mp-healthy");
-  const submitBtn = document.getElementById("mealplan-submit-btn");
   const clearBtn = document.getElementById("mealplan-clear-btn");
-  const loadingEl = document.getElementById("mealplan-loading");
-  const errorEl = document.getElementById("mealplan-error");
   const resultEl = document.getElementById("mealplan-result");
-  const status = createFormStatus({ loadingEl, errorEl, submitBtn, timeoutMs: MP_REQUEST_TIMEOUT_MS });
 
   const dialogEl = document.getElementById("meal-dialog");
   const dialogBodyEl = document.getElementById("meal-dialog-body");
@@ -249,29 +240,43 @@ document.addEventListener("DOMContentLoaded", () => {
   const mealpoolPantryListEl = document.getElementById("mealpool-pantry-list");
   const mealpoolFavoritesListEl = document.getElementById("mealpool-favorites-list");
   const mealpoolHistoryListEl = document.getElementById("mealpool-history-list");
-  let mealpoolSources = { pantry: [], favorite: [], history: [] };
+  const mealpoolAiSectionEl = document.getElementById("mealpool-ai-section");
+  const mealpoolAiLoadingEl = document.getElementById("mealpool-ai-loading");
+  const mealpoolAiEmptyEl = document.getElementById("mealpool-ai-empty");
+  const mealpoolAiListEl = document.getElementById("mealpool-ai-list");
+  let mealpoolSources = { pantry: [], favorite: [], history: [], ai: [] };
 
-  function mealpoolRowHtml(r, i, attr) {
+  function mealpoolRowHtml(r, i, attr, checked = true) {
     return `<li class="pantry-import-item">
       <label class="form-check">
-        <input type="checkbox" checked data-${attr}-index="${i}" />
+        <input type="checkbox" ${checked ? "checked" : ""} data-${attr}-index="${i}" />
         <span>${escapeHtml(r.name)}</span>
       </label>
     </li>`;
   }
 
-  async function openMealpoolDialog() {
+  /* includeAi는 "식단 짜기"에서만 켠다("후보 고르기"는 3소스 즉시 진입로로 그대로 남는다).
+     장을 더 봐야 하는 요리는 서버를 거치는 데다 25초까지 걸릴 수 있어, 나머지 세 소스가
+     이미 다 뜬 뒤에도 이 구간만 로딩으로 남을 수 있다 — 한 소스의 실패·지연이 다이얼로그
+     전체를 막지 않는다(B7과 같은 원칙). */
+  async function openMealpoolDialog({ includeAi = false, portion, healthy } = {}) {
     /* 즐겨찾기·최근 추천은 로컬이라 즉시 그리고 바로 연다 — 냉장고 매칭만 서버를 거치므로
        그 응답을 기다리며 모달 자체가 안 뜨면 눌러도 반응이 없는 것처럼 보인다(C3). */
     const favorites = loadFavorites();
     const history = loadHistory();
-    mealpoolSources = { pantry: [], favorite: favorites, history: history };
+    mealpoolSources = { pantry: [], favorite: favorites, history: history, ai: [] };
     mealpoolFavoritesListEl.innerHTML = favorites.map((r, i) => mealpoolRowHtml(r, i, "favorite")).join("");
     mealpoolHistoryListEl.innerHTML = history.map((r, i) => mealpoolRowHtml(r, i, "history")).join("");
 
     mealpoolPantryEmptyEl.hidden = true;
     mealpoolPantryLoadingEl.hidden = false;
     mealpoolPantryListEl.innerHTML = "";
+    mealpoolAiSectionEl.hidden = !includeAi;
+    if (includeAi) {
+      mealpoolAiEmptyEl.hidden = true;
+      mealpoolAiLoadingEl.hidden = false;
+      mealpoolAiListEl.innerHTML = "";
+    }
     mealpoolDialog.showModal();
 
     const pantryMatches = await fetchPoolPantryMatches();
@@ -279,9 +284,18 @@ document.addEventListener("DOMContentLoaded", () => {
     mealpoolPantryLoadingEl.hidden = true;
     mealpoolPantryEmptyEl.hidden = pantryMatches.length > 0;
     mealpoolPantryListEl.innerHTML = pantryMatches.map((r, i) => mealpoolRowHtml(r, i, "pantry")).join("");
+
+    if (!includeAi) return;
+    const suggestions = await fetchPoolAiSuggestions(portion, healthy);
+    mealpoolSources.ai = suggestions;
+    mealpoolAiLoadingEl.hidden = true;
+    mealpoolAiEmptyEl.hidden = suggestions.length > 0;
+    /* 기본 체크 해제 — 7일치라 최대 20개 안팎이 한 번에 뜰 수 있어, 이미 좋아하는 게 확실한
+       나머지 세 소스(기본 체크)와 달리 사용자가 직접 골라야 장보기 부담이 갑자기 안 늘어난다. */
+    mealpoolAiListEl.innerHTML = suggestions.map((r, i) => mealpoolRowHtml(r, i, "ai", false)).join("");
   }
 
-  if (mealpoolBtn) mealpoolBtn.addEventListener("click", openMealpoolDialog);
+  if (mealpoolBtn) mealpoolBtn.addEventListener("click", () => openMealpoolDialog());
 
   document.getElementById("mealpool-dialog-close").addEventListener("click", () => mealpoolDialog.close());
   document.getElementById("mealpool-cancel").addEventListener("click", () => mealpoolDialog.close());
@@ -289,8 +303,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.target === mealpoolDialog) mealpoolDialog.close();
   });
 
-  /* 체크된 것만 후보로 담는다. day/meal을 안 채우므로 dayLabels()의 `|| 0` 가드에 걸려
-     그리드는 그대로고, poolEntries()에서만 잡힌다. */
+  /* 체크된 것만 후보로 담는다. day/meal을 안 채우므로 그리드에는 안 잡히고
+     poolEntries()에서만 잡힌다. */
   mealpoolForm.addEventListener("submit", (e) => {
     e.preventDefault();
     const picked = [];
@@ -300,7 +314,9 @@ document.addEventListener("DOMContentLoaded", () => {
           ? mealpoolSources.pantry[Number(box.dataset.pantryIndex)]
           : box.dataset.favoriteIndex !== undefined
           ? mealpoolSources.favorite[Number(box.dataset.favoriteIndex)]
-          : mealpoolSources.history[Number(box.dataset.historyIndex)];
+          : box.dataset.historyIndex !== undefined
+          ? mealpoolSources.history[Number(box.dataset.historyIndex)]
+          : mealpoolSources.ai[Number(box.dataset.aiIndex)];
       if (source) picked.push(source);
     });
     if (picked.length) {
@@ -363,14 +379,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   restorePreferences();
 
-  daysEl.addEventListener("change", () => savePrefs({ days: daysEl.value }));
   portionEl.addEventListener("change", () => savePrefs({ portion: portionEl.value }));
   healthyEl.addEventListener("change", () => savePrefs({ healthy: healthyEl.checked }));
 
   function restorePreferences() {
     const prefs = loadPrefs();
     setSelectValue(portionEl, prefs.portion);
-    setSelectValue(daysEl, prefs.days);
     healthyEl.checked = Boolean(prefs.healthy);
   }
 
@@ -397,8 +411,6 @@ document.addEventListener("DOMContentLoaded", () => {
     planShoppingList = Array.isArray(saved.shoppingList) ? saved.shoppingList : [];
     /* 빈 냉장고([])와 "옛 저장분이라 모름"(null)은 다르다. 뒤엣것은 뺄 기준이 없다는 뜻이다. */
     planPantryAt = Array.isArray(saved.pantryAt) ? saved.pantryAt : null;
-    /* 일수를 적어두기 전에 저장된 계획은 0이 된다 — 그때는 예전처럼 메뉴에서 역산한다. */
-    planDays = Number(saved.days) || 0;
     /* 시작일을 적어두기 전에 저장된 계획은 마지막 저장 시각으로 대신한다. 계획을 만든 날과
        정확히 같지는 않지만, "1일차"만 덩그러니 두는 것보다 낫다. 다음 저장 때 startDate로
        굳으므로 그 뒤로는 흔들리지 않는다. */
@@ -409,55 +421,21 @@ document.addEventListener("DOMContentLoaded", () => {
   if (saved) renderPlan();
   renderMealPool();
 
-  form.addEventListener("submit", async (event) => {
+  /* "식단 짜기"는 더 이상 그리드를 직접 채우지 않는다 — 빈 7칸을 즉시 만들고, 무엇을
+     넣을지는 openMealpoolDialog(다이얼로그)에서 고른다. 배치는 "이번 주 후보"의 배정
+     버튼이 맡는다(요일 배치는 선택). */
+  form.addEventListener("submit", (event) => {
     event.preventDefault();
-    status.setError("");
-    resultEl.innerHTML = "";
-    setPlanVisible(false);
-
-    /* 서버는 예전처럼 문자열 배열을 받는다. 세 칸으로 나눈 것은 화면 사정이다.
-       오래 둔 재료에는 며칠 됐는지가 붙어서, AI가 앞쪽 날짜에 배치한다.
-       스냅샷은 지금 이 자리에서 뜬다 — 응답을 기다리는 사이에 조회 바로 재료를 넣으면
-       나중에 읽은 냉장고는 계산에 쓰인 것과 달라진다. */
-    const pantryItems = loadPantry();
-    const pantry = pantryItems.map(pantryPromptText);
-    const pantrySnapshot = pantryItems.map(pantryText);
-
-    status.setLoading(true);
-    const result = await postJson(
-      "/api/mealplan",
-      {
-        days: Number(daysEl.value),
-        portion: portionEl.value,
-        healthy: healthyEl.checked,
-        pantry,
-      },
-      MP_REQUEST_TIMEOUT_MS
-    );
-    status.setLoading(false);
-
-    if (!result.ok) {
-      status.setError(result.message);
-      return;
-    }
-
-    const plan = result.data.plan || [];
-    if (!plan.length) {
-      status.setError(COPY.UI.errorMealplan);
-      return;
-    }
-
-    /* 요일 배정 안 한 "이번 주 후보"는 통째로 갈아치우면 안 된다 — 일괄 생성은 그리드만
-       새로 짜는 일이지 후보 목록을 지우는 일이 아니다. */
-    planItems = [...plan, ...planItems.filter((i) => !i.day)];
-    planShoppingList = Array.isArray(result.data.shoppingList) ? result.data.shoppingList : [];
-    planPantryAt = pantrySnapshot;
-    planDays = Number(daysEl.value) || 0;
-    /* 방금 만든 계획의 1일차는 오늘이다. */
-    planStartDate = todayISO();
-    savePlan(false);
+    /* 이미 진행 중인 계획이면 시작일을 건드리지 않는다 — 아니면 배정해둔 항목들의 요일이
+       밀린다. */
+    if (!planStartDate) planStartDate = todayISO();
+    /* 아직 아무것도 배치하지 않아 "권위 있는" 장보기 목록이 없다 — edited=true로 저장해두면
+       장보기 화면이 이미 갖고 있는 "다시 뽑기" 유도 배너를 그대로 보여준다. */
+    savePlan(true);
     renderPlan();
     setPlanVisible(true);
+
+    openMealpoolDialog({ includeAi: true, portion: portionEl.value, healthy: healthyEl.checked });
   });
 
   clearBtn.addEventListener("click", () => {
@@ -466,7 +444,6 @@ document.addEventListener("DOMContentLoaded", () => {
     planItems = [];
     planShoppingList = [];
     planPantryAt = null;
-    planDays = 0;
     planStartDate = null;
     resultEl.innerHTML = "";
     setPlanVisible(false);
@@ -486,10 +463,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const del = e.target.closest(".meal-delete");
     if (del) {
+      /* 메뉴가 하나도 안 남아도 요일 칸은 그대로 7개 남는다 — 거기에 다시 넣을 수 있어야
+         한다. 계획을 진짜로 없애는 건 "계획 지우기"의 일이다. */
       deleteMeal(Number(del.dataset.index));
-      /* 메뉴가 하나도 안 남아도 날짜 칸은 남겨둔다 — 거기에 다시 넣을 수 있어야 한다.
-         계획을 진짜로 없애는 건 "계획 지우기"의 일이다. */
-      if (!planItems.length && !planDays) setPlanVisible(false);
       return;
     }
 
@@ -666,8 +642,6 @@ function savePlan(edited) {
     /* 목록을 뽑을 때의 냉장고. 계획을 고쳐도 목록과 함께 그대로 따라가야
        장보기 화면이 "그 뒤로 얼마나 채웠는지"를 잴 수 있다. */
     pantryAt: planPantryAt,
-    /* 메뉴를 다 지워도 며칠치였는지는 남겨야 그 날짜 칸에 다시 넣을 수 있다. */
-    days: planDays,
     /* 1일차가 며칠이었는지. 고칠 때마다 오늘로 새로 찍으면 계획이 매일 하루씩 밀린다. */
     startDate: planStartDate,
     edited: Boolean(edited),
@@ -720,12 +694,12 @@ function swapMeal(index, menu, searchKeyword, ingredients) {
   commitEdit();
 }
 
-/* 날짜 칸은 남아 있는 메뉴가 아니라 계획한 일수를 기준으로 만든다.
-   3일차 메뉴를 다 지웠다고 3일차 칸이 사라지면, 거기로 다시 옮기거나 넣을 수가 없다.
-   (planDays를 적어두기 전에 저장된 계획은 0이라, 예전처럼 메뉴에서 역산한 값이 이긴다) */
+/* 요일 칸은 항상 7개 고정이다 — "며칠치 계획할지"를 더 이상 고르지 않는다.
+   planStartDate가 없으면 아직 "식단 짜기"를 한 번도 안 누른 것이라 빈 배열을 돌려준다
+   (setPlanVisible(false) 상태와 맞는다). */
 function dayLabels() {
-  const last = Math.max(planDays, 0, ...planItems.map((i) => parseInt(i.day, 10) || 0));
-  return Array.from({ length: last }, (_, n) => dayInfo(`${n + 1}일차`, planStartDate));
+  if (!planStartDate) return [];
+  return Array.from({ length: 7 }, (_, n) => dayInfo(`${n + 1}일차`, planStartDate));
 }
 
 /* 날짜 이름을 만드는 일은 shared.js가 한다 — 장보기 화면도 "이 재료가 언제 쓰이는지"를
@@ -749,7 +723,7 @@ function renderPlan() {
      — 추천 카드의 보유 표시와 같은 규칙이다. */
   const pantryNames = pantryNamesFor(loadPantry());
   resultEl.innerHTML = `<div class="mealplan-days${editMode ? " is-editing" : ""}"
-    tabindex="0" role="group" aria-label="날짜별 식단 ${days.length}일치 (좌우로 끌어서 보기)">${days
+    tabindex="0" role="group" aria-label="이번 주 식단 (좌우로 끌어서 보기)">${days
     .map(
       (day) => `
       <article class="mealplan-day-card">
@@ -781,9 +755,9 @@ function renderStaleNotice(days) {
 }
 
 /* ==========================================================================
-   이번 주 후보 — 요일 배정 없이도 planItems에 같이 담긴다(day 없음). dayLabels()의
-   `|| 0` 가드 덕에 그리드를 늘리지 않고, mealSlotHtml도 day 없는 항목은 절대 찾지 못해
-   그리드에는 저절로 안 보인다. 그리드 유무와 무관하게 항상 자기 컨테이너만 본다.
+   이번 주 후보 — 요일 배정 없이도 planItems에 같이 담긴다(day 없음). mealSlotHtml은
+   day 없는 항목을 절대 찾지 못해 그리드에는 저절로 안 보인다. 그리드 유무와 무관하게
+   항상 자기 컨테이너만 본다.
    ========================================================================== */
 /* "지금 냉장고로 만들 수 있는 요리" 소스. matchOnly:true라 서버가 AI로 채우지 않는다
    (api/recommend.py) — 매칭이 적으면 그대로 적게(또는 0개) 돌려받는다. */
@@ -794,6 +768,31 @@ async function fetchPoolPantryMatches() {
   if (!ingredients) return [];
   const result = await postJson("/api/recommend", { ingredients, matchOnly: true }, MP_REQUEST_TIMEOUT_MS);
   return result.ok ? result.data.recipes || [] : [];
+}
+
+/* "장을 조금 더 보면 만들 수 있는 요리" 소스 — "식단 짜기"에서만 부른다. /api/mealplan은
+   요일×끼니가 이미 배정된 한 주치 계획을 돌려주지만, 여기서는 day/meal을 버리고 menu
+   기준으로 중복 없는 후보 목록으로만 쓴다(SYSTEM_PROMPT가 이미 "가진 재료만으로 부족하면
+   새로 사야 할 재료를 자유롭게 추가해도 됩니다"를 명시하므로 이 목록의 성격과 맞는다).
+   그리드가 항상 7칸이라 재료 변주가 가장 풍부한 7일치를 그대로 요청한다. */
+async function fetchPoolAiSuggestions(portion, healthy) {
+  const pantry = loadPantry().map(pantryPromptText);
+  const result = await postJson(
+    "/api/mealplan",
+    { days: 7, portion, healthy, pantry },
+    MP_REQUEST_TIMEOUT_MS
+  );
+  if (!result.ok) return [];
+
+  const seen = new Set();
+  const out = [];
+  for (const item of result.data.plan || []) {
+    const key = (item.menu || "").replace(/\s/g, "");
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push({ name: item.menu, searchKeyword: item.searchKeyword, ingredients: item.ingredients });
+  }
+  return out;
 }
 
 function poolEntries() {

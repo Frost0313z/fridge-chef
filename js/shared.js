@@ -1429,16 +1429,17 @@ function nearBadge(date) {
 
 /* "1일차"는 자리를 가리키는 **열쇠**다 — 저장분·서버 프롬프트·편집이 모두 이 값으로 칸을
    찾는다. 열쇠를 실제 날짜로 바꾸면 저장해둔 계획이 통째로 어긋나고, 날짜가 지날 때마다
-   열쇠까지 따라 바뀌어야 한다. 그래서 열쇠는 그대로 두고 화면에 붙는 이름만 날짜로 만든다.
+   열쇠까지 따라 바뀌어야 한다. 그래서 열쇠는 그대로 두고 화면에 붙는 이름만 요일로 만든다.
 
-   사람은 "3일차 저녁"으로 기억하지 않는다. "목요일 저녁"으로 기억한다.
-   요일만 적으면 다음 주 목요일과 헷갈리므로 날짜를 함께 적는다. */
+   사람은 "3일차 저녁"으로 기억하지 않는다. "목요일 저녁"으로 기억한다. 그리드가 항상 7칸
+   고정이라 "다음 주 목요일과 헷갈릴" 만큼 계획이 길게 이어지지 않으므로 날짜 숫자 없이
+   요일 이름만 적어도 헷갈리지 않는다. badge(오늘/내일)가 기준점을 잡아준다. */
 function dayInfo(key, startDate) {
   const n = parseInt(key, 10);
   const date = dayDate(startDate, (Number.isNaN(n) ? 1 : n) - 1);
   if (!date) return { key, label: key, badge: "", aria: key };
 
-  const label = `${date.getMonth() + 1}/${date.getDate()} (${WEEKDAYS[date.getDay()]})`;
+  const label = `${WEEKDAYS[date.getDay()]}요일`;
   const badge = nearBadge(date);
   /* 스크린리더는 배지를 따로 읽지 못하고 지나칠 수 있어, 읽어줄 이름에는 먼저 넣는다. */
   return { key, label, badge, aria: badge ? `${badge} ${label}` : label };

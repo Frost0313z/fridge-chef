@@ -190,7 +190,7 @@ const COPY = {
     // 아직 아무것도 안 한 상태 — "실패"가 아니라 "시작 전"이라는 게 읽혀야 한다
     emptyRecipeStart: "아직 받은 추천이 없어요. 재료를 확인하고 위 버튼을 눌러보세요.",
     emptyHistory: "아직 받은 추천이 없어요.",
-    emptyMealplan: "아직 짜둔 식단이 없어요. 위에서 며칠치 저녁을 정해보세요.",
+    emptyMealplan: "아직 짜둔 식단이 없어요. 위에서 식단 짜기를 눌러보세요.",
     emptyShopping: "아직 식단이 없어요. 식단을 먼저 짜면 살 것만 골라드릴게요.",
 
     // 실패했을 때 다음에 할 수 있는 일
@@ -214,7 +214,7 @@ const COPY = {
 
     // 식단 화면
     mealplanTitle: "이번 주 저녁, 미리 정해둘까요?",
-    mealplanIntro: "냉장고에 있는 재료를 최대한 쓰고, 부족한 것만 장보기로 모아드려요.",
+    mealplanIntro: "지금 만들 수 있는 요리부터 즐겨찾기·최근 추천까지 한 번에 모아드려요. 마음에 드는 것만 담아서 원하는 요일에 넣어보세요.",
     submitMealplan: "식단 짜기",
     clearPlan: "계획 지우기",
     editMenu: "메뉴 바꾸기",
@@ -380,6 +380,7 @@ const COPY = {
     empty: "아직 담아둔 후보가 없어요. 위에서 후보를 골라보세요.",
     pantryMatchTitle: "지금 냉장고로 만들 수 있는 요리",
     pantryMatchLoading: "냉장고로 만들 수 있는 요리를 찾고 있어요…",
+    aiSuggestedTitle: "장을 조금 더 보면 만들 수 있는 요리",
     // AI로 채우지 않고 정직하게 적게(또는 0개) 보여준다 — 레시피 매칭 우선 원칙과 같다.
     pantryMatchEmpty: "지금 냉장고로는 충분히 겹치는 레시피가 없어요.",
     confirmDialogTitle: "이번 주 후보 고르기",
@@ -387,7 +388,7 @@ const COPY = {
     confirmButton: "담기",
     cancelButton: "취소",
     assignConfirm: "배정",
-    assignNoSlot: "먼저 위에서 며칠치 식단을 만들어야 배정할 수 있어요.",
+    assignNoSlot: "먼저 위에서 식단 짜기를 눌러야 배정할 수 있어요.",
     removeButton: "빼기",
     detailButton: "자세히 보기",
   },
@@ -482,7 +483,6 @@ const COPY = {
     portionPerMeal: "한 끼당 만들 분량",
     timeLimit: "희망 조리 시간",
     category: "요리 종류",
-    days: "계획할 일수",
     healthy: "건강 관리 중이에요 (기름지지 않고 칼로리 낮은 요리로)",
 
     /* 아래는 <option>에 보이는 글자만이다. value 속성은 손대지 않는다 —
@@ -494,9 +494,6 @@ const COPY = {
     timeAny: "상관없음",
     time15: "15분 이내",
     time30: "30분 이내",
-    days3: "3일",
-    days5: "5일",
-    days7: "7일",
 
     /* 요리 종류 필터. KADX 원본 CKG_KND_ACTO_NM 16개 값 중 "한 끼 요리"와 맞지 않는
        차/음료/술·과자·양념/소스/잼·기타 4개를 뺀 13개(docs/spec-recipe-match.md). */
