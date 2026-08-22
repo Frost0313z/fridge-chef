@@ -36,13 +36,28 @@ let selectedIndex = null;
    9칸에 입력창을 동시에 띄우면 어디에 넣는 중인지 알 수 없다. */
 let addingSlot = null;
 
-document.addEventListener("DOMContentLoaded", () => {
-  const form = document.getElementById("mealplan-form");
-  if (!form) return;
+/* 왼쪽 고르기 목록이나 "이번 주 후보"에서 든 것. 그리드 내부 이동(selectedIndex)과
+   같은 "고르고 → 놓기"를 쓰지만, 아직 planItems에 없는 것(왼쪽 목록)까지 다뤄야 해서
+   따로 둔다. { type: 'new', recipe } | { type: 'existing', index } | null.
+   selectedIndex/addingSlot과는 항상 셋 중 하나만 켜져 있다 — setHeldPick·setEditMode·
+   그리드 내부 고르기가 서로를 지운다.
+   selectedRecipe(아래)와는 다른 상태다 — heldPick은 "요일에 놓기"를 눌러야 켜지는
+   배치용이고, selectedRecipe는 왼쪽 줄을 누르기만 해도 켜지는 열람용이다. */
+let heldPick = null;
 
-  const portionEl = document.getElementById("mp-portion");
-  const clearBtn = document.getElementById("mealplan-clear-btn");
+/* 왼쪽 레시피 리스트에서 지금 상세 보기에 띄운 줄. 줄을 누르면 바로 켜진다(즐겨찾기
+   다이얼로그의 좌=목록/우=상세와 같은 클릭 한 번 전환). { source, index, recipe } | null. */
+let selectedRecipe = null;
+
+/* 왼쪽 두 아코디언이 지금 들고 있는 목록. commitEdit()마다 다시 안 그리는 렌더 함수들이
+   fetch 없이 여기서 다시 그린다(renderMealpickLists). */
+let mealpickSources = { pantry: [], favorite: [] };
+
+document.addEventListener("DOMContentLoaded", () => {
   const resultEl = document.getElementById("mealplan-result");
+  if (!resultEl) return;
+
+  const clearBtn = document.getElementById("mealplan-clear-btn");
 
   const dialogEl = document.getElementById("meal-dialog");
   const dialogBodyEl = document.getElementById("meal-dialog-body");
@@ -129,239 +144,61 @@ document.addEventListener("DOMContentLoaded", () => {
     if (opener) opener.focus();
   });
 
-  /* 즐겨찾기 전체 목록 모달(D-0s). 빈 칸 팝업 안에서만 보이던 것을 페이지 어디서든
-     훑어볼 수 있게 한다 — #meal-dialog·#pantry-import-dialog와 같은 <dialog> 패턴이라
-     초점 가두기·Esc 닫기·배경 클릭 닫기 근거도 같다.
-     왼쪽은 고르는 목록, 오른쪽은 고른 요리의 상세 카드다(recipe.js의 recipeCardHtml과
-     같은 정보를 보여주지만, 냉장고 보유 여부 표시·"해먹었어요"는 여기 목적과 달라 뺐다 —
-     이 화면은 "뭘 즐겨찾기했는지 훑어보기"이지 조리 체크리스트가 아니다). */
-  const favoritesBtn = document.getElementById("favorites-view-btn");
-  const favoritesDialog = document.getElementById("favorites-dialog");
-  const favoritesBodyEl = document.getElementById("favorites-dialog-body");
-  const favoritesListEl = document.getElementById("favorites-list");
-  const favoritesDetailEl = document.getElementById("favorites-detail");
-  const favoritesEmptyEl = document.getElementById("favorites-list-empty");
-  let favoritesSelectedIndex = 0;
+  /* 왼쪽 "레시피 리스트" — 언제나 떠 있는 아코디언 2개(냉장고 매칭/즐겨찾기). 줄을 누르면
+     그 즉시 오른쪽 "상세 보기"로 전환된다(즐겨찾기 다이얼로그가 하던 좌=목록/우=상세를
+     그대로 페이지 섹션으로 옮겼다 — 별도 모달은 없앴다). AI 추천(장보기 필요한 요리)은
+     뺐다 — 필요하면 레시피 추천 화면에서 즐겨찾기에 담아 여기서 고르는 편이 더 깔끔하다.
+     렌더·로드 함수들은 최상위(top-level)에 두고 매번 document.getElementById로 다시
+     찾는다 — setHeldPick 등 여기 DOMContentLoaded 밖의 함수에서도 같이 불러야 해서다
+     (mealpickSources도 마찬가지 이유로 파일 위쪽에 둔다). */
+  loadMealpickFavorites();
+  loadMealpickPantry();
 
-  function favoriteListRowHtml(r, i, selected) {
-    const timeHtml = r.time ? `<span class="favorites-list-time">⏱ ${escapeHtml(r.time)}</span>` : "";
-    return `<li class="favorites-list-item${selected ? " is-selected" : ""}">
-      <button type="button" class="favorites-list-select" data-index="${i}" aria-pressed="${selected}">
-        <span class="favorites-list-name">${escapeHtml(r.name)}</span>
-        ${timeHtml}
-      </button>
-      ${favoriteToggleHtml(r.name, `data-favorite-list-index="${i}"`)}
-    </li>`;
-  }
-
-  /* 링크·조리 순서 갈림길은 shared.js의 recipeStepsOrLinkHtml이 recipe.js 카드와 함께 쓴다. */
-  function favoriteDetailHtml(r) {
-    if (!r) return `<p class="favorites-detail-empty">${escapeHtml(COPY.FAVORITES.detailEmpty)}</p>`;
-
-    const timeHtml = r.time ? `<p class="recipe-time">⏱ ${escapeHtml(r.time)}</p>` : "";
-    const ingredientsHtml = (r.ingredients || []).length
-      ? `<h4>${escapeHtml(COPY.FAVORITES.detailIngredients)}</h4>
-         <ul>${r.ingredients.map((ing) => `<li>${escapeHtml(ing)}</li>`).join("")}</ul>`
-      : "";
-
-    return `<h3 class="favorites-detail-name">${escapeHtml(r.name)}</h3>${timeHtml}${ingredientsHtml}${recipeStepsOrLinkHtml(r)}`;
-  }
-
-  function renderFavoritesList() {
-    /* 후보 목록에서 openFavoritesDetailOnly로 연 뒤 여기로 다시 열 수도 있다 —
-       목록 패널을 매번 되살려야 그때 숨겨둔 상태가 남지 않는다. */
-    favoritesListEl.hidden = false;
-    const items = loadFavorites();
-    favoritesEmptyEl.hidden = items.length > 0;
-    favoritesBodyEl.hidden = items.length === 0;
-    if (!items.length) {
-      favoritesListEl.innerHTML = "";
-      favoritesDetailEl.innerHTML = "";
-      return;
-    }
-    if (favoritesSelectedIndex >= items.length) favoritesSelectedIndex = items.length - 1;
-    favoritesListEl.innerHTML = items
-      .map((r, i) => favoriteListRowHtml(r, i, i === favoritesSelectedIndex))
-      .join("");
-    favoritesDetailEl.innerHTML = favoriteDetailHtml(items[favoritesSelectedIndex]);
-  }
-
-  function openFavoritesDialog() {
-    favoritesSelectedIndex = 0;
-    renderFavoritesList();
-    favoritesDialog.showModal();
-  }
-
-  /* 후보 목록의 "자세히 보기" 전용 — 즐겨찾기가 아닌 후보(냉장고 매칭·최근 추천 출신)도
-     같은 모달로 보여준다. 목록 패널을 숨기면 오른쪽 상세(.favorites-detail, flex:1)가
-     자연히 폭을 채운다(새 CSS 불필요). 재고르기 목록 자체가 필요 없는 자리라 하나만 켠다. */
-  function openFavoritesDetailOnly(recipe) {
-    favoritesListEl.hidden = true;
-    favoritesEmptyEl.hidden = true;
-    favoritesBodyEl.hidden = false;
-    favoritesDetailEl.innerHTML = favoriteDetailHtml(recipe);
-    favoritesDialog.showModal();
-  }
-
-  favoritesBtn.addEventListener("click", openFavoritesDialog);
-
-  document.getElementById("favorites-dialog-close").addEventListener("click", () => favoritesDialog.close());
-  favoritesDialog.addEventListener("click", (e) => {
-    if (e.target === favoritesDialog) favoritesDialog.close();
-  });
-
-  /* 별을 누르면 즐겨찾기에서 빠지므로 목록에서도 그 줄이 사라져야 한다. 인덱스가
-     밀리는 문제를 피하려고 자리만 바꾸지 않고 목록·상세를 통째로 다시 그린다.
-     이름을 누르면 그 줄을 고른 것으로 보고 오른쪽 상세만 바뀐다. */
-  favoritesListEl.addEventListener("click", (e) => {
-    const star = e.target.closest(".fav-toggle");
-    if (star) {
-      const recipe = loadFavorites()[Number(star.dataset.favoriteListIndex)];
-      if (recipe) toggleFavorite(recipe);
-      renderFavoritesList();
-      return;
-    }
+  /* 줄 클릭 = 그 즉시 상세 전환(heldPick의 "고르기"와는 다른 상태 — selectedRecipe 주석
+     참고). 담음 표시·요일 배치·넣기·빼기는 전부 오른쪽 상세 보기(#mealpick-detail)의 일이다. */
+  document.getElementById("mealpick-pane").addEventListener("click", (e) => {
     const selectBtn = e.target.closest(".favorites-list-select");
-    if (selectBtn) {
-      favoritesSelectedIndex = Number(selectBtn.dataset.index);
-      renderFavoritesList();
-    }
+    if (!selectBtn) return;
+    const source = selectBtn.dataset.source;
+    const index = Number(selectBtn.dataset.index);
+    const recipe = mealpickSources[source][index];
+    if (!recipe) return;
+    selectedRecipe = { source, index, recipe };
+    renderMealpickLists();
+    renderMealpickDetail();
   });
 
-  /* "이번 주 후보" 고르기 모달(D-0y). 요일 배정 전에 냉장고 매칭·즐겨찾기·최근 추천
-     세 곳에서 고르고 확정한다 — #pantry-import-dialog와 같은 체크박스+확인 짜임을 그대로
-     쓴다(pantry.html, css/style.css의 .pantry-import-* 클래스, 새 CSS 없음). */
-  const mealpoolBtn = document.getElementById("mealpool-open-btn");
-  const mealpoolDialog = document.getElementById("mealpool-dialog");
-  const mealpoolForm = document.getElementById("mealpool-form");
-  const mealpoolPantryEmptyEl = document.getElementById("mealpool-pantry-empty");
-  const mealpoolPantryLoadingEl = document.getElementById("mealpool-pantry-loading");
-  const mealpoolPantryListEl = document.getElementById("mealpool-pantry-list");
-  const mealpoolFavoritesListEl = document.getElementById("mealpool-favorites-list");
-  const mealpoolHistoryListEl = document.getElementById("mealpool-history-list");
-  const mealpoolAiSectionEl = document.getElementById("mealpool-ai-section");
-  const mealpoolAiLoadingEl = document.getElementById("mealpool-ai-loading");
-  const mealpoolAiEmptyEl = document.getElementById("mealpool-ai-empty");
-  const mealpoolAiListEl = document.getElementById("mealpool-ai-list");
-  let mealpoolSources = { pantry: [], favorite: [], history: [], ai: [] };
+  /* 상세 보기의 조작 — 계획에 넣기/빼기, 요일에 놓기. "해먹었어요"는 따로 initCooked로
+     건다(그리드 모달과 같은 자리, 같은 방식). */
+  const mealpickDetailEl = document.getElementById("mealpick-detail");
+  mealpickDetailEl.addEventListener("click", (e) => {
+    if (!selectedRecipe) return;
+    const recipe = selectedRecipe.recipe;
 
-  function mealpoolRowHtml(r, i, attr, checked = true) {
-    return `<li class="pantry-import-item">
-      <label class="form-check">
-        <input type="checkbox" ${checked ? "checked" : ""} data-${attr}-index="${i}" />
-        <span>${escapeHtml(r.name)}</span>
-      </label>
-    </li>`;
-  }
-
-  /* includeAi는 "식단 짜기"에서만 켠다("후보 고르기"는 3소스 즉시 진입로로 그대로 남는다).
-     장을 더 봐야 하는 요리는 서버를 거치는 데다 25초까지 걸릴 수 있어, 나머지 세 소스가
-     이미 다 뜬 뒤에도 이 구간만 로딩으로 남을 수 있다 — 한 소스의 실패·지연이 다이얼로그
-     전체를 막지 않는다(B7과 같은 원칙). */
-  async function openMealpoolDialog({ includeAi = false, portion } = {}) {
-    /* 즐겨찾기·최근 추천은 로컬이라 즉시 그리고 바로 연다 — 냉장고 매칭만 서버를 거치므로
-       그 응답을 기다리며 모달 자체가 안 뜨면 눌러도 반응이 없는 것처럼 보인다(C3). */
-    const favorites = loadFavorites();
-    const history = loadHistory();
-    mealpoolSources = { pantry: [], favorite: favorites, history: history, ai: [] };
-    mealpoolFavoritesListEl.innerHTML = favorites.map((r, i) => mealpoolRowHtml(r, i, "favorite")).join("");
-    mealpoolHistoryListEl.innerHTML = history.map((r, i) => mealpoolRowHtml(r, i, "history")).join("");
-
-    mealpoolPantryEmptyEl.hidden = true;
-    mealpoolPantryLoadingEl.hidden = false;
-    mealpoolPantryListEl.innerHTML = "";
-    mealpoolAiSectionEl.hidden = !includeAi;
-    if (includeAi) {
-      mealpoolAiEmptyEl.hidden = true;
-      mealpoolAiLoadingEl.hidden = false;
-      mealpoolAiListEl.innerHTML = "";
+    if (e.target.closest(".mealpick-add-btn")) {
+      addToPool(recipe);
+      return;
     }
-    mealpoolDialog.showModal();
 
-    const pantryMatches = await fetchPoolPantryMatches();
-    mealpoolSources.pantry = pantryMatches;
-    mealpoolPantryLoadingEl.hidden = true;
-    mealpoolPantryEmptyEl.hidden = pantryMatches.length > 0;
-    mealpoolPantryListEl.innerHTML = pantryMatches.map((r, i) => mealpoolRowHtml(r, i, "pantry")).join("");
-
-    if (!includeAi) return;
-    const suggestions = await fetchPoolAiSuggestions(portion);
-    mealpoolSources.ai = suggestions;
-    mealpoolAiLoadingEl.hidden = true;
-    mealpoolAiEmptyEl.hidden = suggestions.length > 0;
-    /* 기본 체크 해제 — 이미 좋아하는 게 확실한 나머지 세 소스(기본 체크)와 달리, 아직
-       먹어본 적 없는 제안이라 사용자가 직접 골라야 장보기 부담이 갑자기 안 늘어난다. */
-    mealpoolAiListEl.innerHTML = suggestions.map((r, i) => mealpoolRowHtml(r, i, "ai", false)).join("");
-  }
-
-  if (mealpoolBtn) mealpoolBtn.addEventListener("click", () => openMealpoolDialog());
-
-  document.getElementById("mealpool-dialog-close").addEventListener("click", () => mealpoolDialog.close());
-  document.getElementById("mealpool-cancel").addEventListener("click", () => mealpoolDialog.close());
-  mealpoolDialog.addEventListener("click", (e) => {
-    if (e.target === mealpoolDialog) mealpoolDialog.close();
-  });
-
-  /* 체크된 것만 후보로 담는다. day/meal을 안 채우므로 그리드에는 안 잡히고
-     poolEntries()에서만 잡힌다. */
-  mealpoolForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const picked = [];
-    mealpoolForm.querySelectorAll("input[type=checkbox]:checked").forEach((box) => {
-      const source =
-        box.dataset.pantryIndex !== undefined
-          ? mealpoolSources.pantry[Number(box.dataset.pantryIndex)]
-          : box.dataset.favoriteIndex !== undefined
-          ? mealpoolSources.favorite[Number(box.dataset.favoriteIndex)]
-          : box.dataset.historyIndex !== undefined
-          ? mealpoolSources.history[Number(box.dataset.historyIndex)]
-          : mealpoolSources.ai[Number(box.dataset.aiIndex)];
-      if (source) picked.push(source);
-    });
-    if (picked.length) {
-      picked.forEach((r) => {
-        planItems.push({ menu: r.name, searchKeyword: r.searchKeyword || "", ingredients: r.ingredients || [] });
-      });
-      commitEdit();
+    if (e.target.closest(".mealpick-remove-btn")) {
+      const index = poolIndexFor(recipe);
+      if (index !== -1) deleteMeal(index);
+      return;
     }
-    mealpoolDialog.close();
-  });
 
-  /* 이번 주 후보 목록 자체의 조작 — 자세히 보기/요일 배정/빼기. "해먹었어요"는 따로
-     initCooked로 건다(그리드 모달과 같은 자리, 같은 방식). */
-  const mealpoolListEl = document.getElementById("mealpool-list");
-  mealpoolListEl.addEventListener("click", (e) => {
-    const detailBtn = e.target.closest(".mealpool-detail-btn");
-    if (detailBtn) {
-      const item = planItems[Number(detailBtn.dataset.index)];
-      if (item) {
-        openFavoritesDetailOnly({
-          name: item.menu,
-          ingredients: item.ingredients,
-          searchKeyword: item.searchKeyword,
-          time: "",
-        });
+    if (e.target.closest(".mealpool-pick-btn")) {
+      const index = poolIndexFor(recipe);
+      if (index !== -1) {
+        const already = heldPick && heldPick.type === "existing" && heldPick.index === index;
+        setHeldPick(already ? null : { type: "existing", index });
+      } else {
+        const already = heldPick && heldPick.type === "new" && heldPick.recipe && heldPick.recipe.name === recipe.name;
+        setHeldPick(already ? null : { type: "new", recipe });
       }
-      return;
-    }
-
-    const removeBtn = e.target.closest(".mealpool-remove-btn");
-    if (removeBtn) {
-      deleteMeal(Number(removeBtn.dataset.index));
-      return;
-    }
-
-    const assignBtn = e.target.closest(".mealpool-assign-confirm");
-    if (assignBtn) {
-      const index = Number(assignBtn.dataset.index);
-      const select = mealpoolListEl.querySelector(`.mealpool-assign-select[data-index="${index}"]`);
-      if (!select || !select.value) return;
-      const [day, meal] = select.value.split("|");
-      moveMeal(index, day, meal);
     }
   });
 
-  initCooked(mealpoolListEl, (root, action) => {
+  initCooked(mealpickDetailEl, (root, action) => {
     const holder = root.closest("[data-plan-index]");
     const item = holder && planItems[Number(holder.dataset.planIndex)];
     if (item) {
@@ -376,26 +213,7 @@ document.addEventListener("DOMContentLoaded", () => {
      세므로, 바뀔 때 상태 줄만 다시 그리면 양쪽 방향이 모두 맞는다. */
   onPantryChanged(refreshPlanStates);
 
-  restorePreferences();
-
-  portionEl.addEventListener("change", () => savePrefs({ portion: portionEl.value }));
-
-  function restorePreferences() {
-    const prefs = loadPrefs();
-    setSelectValue(portionEl, prefs.portion);
-  }
-
-  const emptyEl = document.getElementById("mealplan-empty");
-  const planCardEl = document.getElementById("mealplan-plan-card");
   const editBtn = document.getElementById("mealplan-edit-btn");
-
-  /* 계획 유무에 따라 빈 상태 안내 / 결과 카드를 맞바꾼다. 툴바·그리드·다음 행동이 전부
-     한 배경 카드(#mealplan-plan-card) 안에 있어 하나만 여닫으면 다 같이 나타나고 사라진다. */
-  function setPlanVisible(hasPlan) {
-    emptyEl.hidden = hasPlan;
-    planCardEl.hidden = !hasPlan;
-    if (!hasPlan) setEditMode(false);
-  }
 
   const saved = loadSavedPlan();
   if (saved) {
@@ -412,26 +230,13 @@ document.addEventListener("DOMContentLoaded", () => {
     planStartDate =
       typeof saved.startDate === "string" ? saved.startDate : localDateOf(saved.savedAt);
   }
-  setPlanVisible(Boolean(saved));
-  if (saved) renderPlan();
-  renderMealPool();
-
-  /* "식단 짜기"는 더 이상 그리드를 직접 채우지 않는다 — 오늘·내일·모레 빈 칸을 즉시
-     만들고, 무엇을 넣을지는 openMealpoolDialog(다이얼로그)에서 고른다. 배치는
-     "이번 주 후보"의 배정 버튼이 맡는다(요일 배치는 선택). */
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    /* 이미 진행 중인 계획이면 시작일을 건드리지 않는다 — 아니면 배정해둔 항목들의 요일이
-       밀린다. */
-    if (!planStartDate) planStartDate = todayISO();
-    /* 아직 아무것도 배치하지 않아 "권위 있는" 장보기 목록이 없다 — edited=true로 저장해두면
-       장보기 화면이 이미 갖고 있는 "다시 뽑기" 유도 배너를 그대로 보여준다. */
-    savePlan(true);
-    renderPlan();
-    setPlanVisible(true);
-
-    openMealpoolDialog({ includeAi: true, portion: portionEl.value });
-  });
+  /* 그리드는 더 이상 "식단 짜기"를 눌러야 생기지 않는다 — 항상 오늘/내일/모레 빈 칸으로
+     떠 있고, 왼쪽에서 고르거나 담는 순간 실제로 저장된다(여기서는 localStorage에 아무것도
+     안 쓴다 — commitEdit()가 실제 담긴 것을 쓸 때 비로소 저장된다). */
+  if (!planStartDate) planStartDate = todayISO();
+  shiftPlanForToday();
+  renderPlan();
+  renderMealpickDetail();
 
   clearBtn.addEventListener("click", () => {
     if (!confirm(COPY.UI.mealplanClearConfirm)) return;
@@ -439,10 +244,12 @@ document.addEventListener("DOMContentLoaded", () => {
     planItems = [];
     planShoppingList = [];
     planPantryAt = null;
-    planStartDate = null;
-    resultEl.innerHTML = "";
-    setPlanVisible(false);
-    renderMealPool();
+    /* null로 두면 그리드가 사라진다 — 항상 떠 있어야 하므로 오늘로 다시 채운다. */
+    planStartDate = todayISO();
+    selectedRecipe = null;
+    setEditMode(false); // heldPick도 같이 지우고 renderPlan()까지 한다
+    renderMealpickLists();
+    renderMealpickDetail();
   });
 
   editBtn.addEventListener("click", () => setEditMode(!editMode));
@@ -495,18 +302,31 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    /* 빈 자리를 눌렀다 — 고른 메뉴를 여기로 옮긴다. */
+    /* 빈 자리를 눌렀다 — 왼쪽에서 골랐거나(heldPick) 그리드 안에서 골랐던(selectedIndex)
+       것을 여기로 놓는다. 렌더는 heldPick이 있을 때만 이 자리를 .meal-drop으로 만들므로
+       (mealSlotHtml 참고), 여기 오는 건 둘 중 하나가 이미 있을 때뿐이다. */
     const drop = e.target.closest(".meal-drop");
-    if (drop && selectedIndex !== null) {
-      const from = selectedIndex;
-      selectedIndex = null;
-      moveMeal(from, drop.dataset.day, drop.dataset.meal);
+    if (drop) {
+      if (heldPick) {
+        placeHeldPick(drop.dataset.day, drop.dataset.meal);
+      } else if (selectedIndex !== null) {
+        const from = selectedIndex;
+        selectedIndex = null;
+        moveMeal(from, drop.dataset.day, drop.dataset.meal);
+      }
       return;
     }
 
     const pick = e.target.closest(".meal-pick");
     if (!pick) return;
     const index = Number(pick.dataset.index);
+
+    /* 그리드 안에서 새로 고르면 왼쪽에서 들고 있던 것은 놓는다 — 셋 중 하나만 켜져
+       있어야 한다(setHeldPick과 같은 규칙). */
+    if (heldPick) {
+      heldPick = null;
+      renderMealpickDetail();
+    }
 
     if (selectedIndex === null || selectedIndex === index) {
       // 고르기, 또는 같은 걸 다시 눌러 고르기 취소
@@ -579,6 +399,10 @@ function setEditMode(on) {
   editMode = on;
   selectedIndex = null;
   addingSlot = null;
+  if (heldPick) {
+    heldPick = null;
+    renderMealpickDetail();
+  }
 
   const btn = document.getElementById("mealplan-edit-btn");
   if (btn) {
@@ -598,15 +422,24 @@ function renderEditStatus() {
   const el = document.getElementById("mealplan-edit-status");
   if (!el) return;
 
-  if (!editMode) {
-    el.hidden = true;
-    return;
-  }
-
+  /* editNotice(예: "담기" 확인)와 heldPick(왼쪽 고르기·후보 배치)은 "메뉴 바꾸기"를
+     안 켜도 뜬다 — 편집 모드 밖에서 일어나는 조작이라 여기서 조건을 먼저 본다. */
   if (editNotice) {
     el.textContent = editNotice;
     editNotice = "";
     el.hidden = false;
+    return;
+  }
+
+  if (heldPick) {
+    const name = heldPick.type === "existing" ? planItems[heldPick.index]?.menu : heldPick.recipe.name;
+    el.textContent = COPY.MEALPLAN.holding(name || "");
+    el.hidden = false;
+    return;
+  }
+
+  if (!editMode) {
+    el.hidden = true;
     return;
   }
 
@@ -651,7 +484,10 @@ function commitEdit() {
     savePlan(true);
   }
   renderPlan();
-  renderMealPool();
+  /* 담김 여부(poolIndexFor)가 planItems에 따라 갈리므로, 넣기·빼기·배치·삭제 어느 쪽으로
+     바뀌었든 왼쪽 "담음" 표시와 오른쪽 상세의 버튼 상태를 같이 다시 그린다. */
+  renderMealpickLists();
+  renderMealpickDetail();
 }
 
 /* 목적지가 비어 있으면 옮기고, 이미 메뉴가 있으면 서로 자리를 맞바꾼다.
@@ -700,6 +536,31 @@ function dayLabels() {
 /* 날짜 이름을 만드는 일은 shared.js가 한다 — 장보기 화면도 "이 재료가 언제 쓰이는지"를
    같은 말로 적어야 하기 때문이다. 한쪽만 "1일차"로 남으면 방금 없앤 혼란이 되살아난다. */
 
+/* dayInfo()의 "열쇠(1일차 등)는 그대로 두고 화면 이름만 만든다" 원칙과 달리, 여기서는
+   실제로 day 값 자체를 당긴다 — 자정을 넘겨 다시 열면(하루 이상 지나면) "오늘"이었던
+   칸은 이미 지난 끼니라 지우고, "내일"이 새 "오늘"이 되도록 나머지를 앞으로 민다.
+   day 없는 후보("이번 주 후보", D-0y)는 요일과 무관하므로 손대지 않는다.
+   페이지를 열 때마다 한 번만 부른다 — 탭을 밤새 열어둔 채 자정을 넘기는 것까지는
+   따라가지 않는다(다음에 새로고침하거나 다시 열 때 맞춰진다). */
+function shiftPlanForToday() {
+  if (!planStartDate) return;
+  const today = todayISO();
+  const elapsed = Math.round(
+    (new Date(`${today}T00:00:00`) - new Date(`${planStartDate}T00:00:00`)) / 86400000
+  );
+  if (elapsed <= 0) return;
+
+  planItems = planItems
+    .map((item) => {
+      if (!item.day) return item;
+      const shifted = parseInt(item.day, 10) - elapsed;
+      return shifted >= 1 ? { ...item, day: `${shifted}일차` } : null;
+    })
+    .filter(Boolean);
+  planStartDate = today;
+  commitEdit();
+}
+
 function renderPlan() {
   const resultEl = document.getElementById("mealplan-result");
   if (!resultEl) return;
@@ -721,8 +582,8 @@ function renderPlan() {
   resultEl.innerHTML = `<div class="mealplan-days${editMode ? " is-editing" : ""}"
     tabindex="0" role="group" aria-label="식단 계획">${days
     .map(
-      (day) => `
-      <article class="mealplan-day-card">
+      (day, i) => `
+      <article class="mealplan-day-card${i === 0 ? " is-today" : ""}">
         <h3>${escapeHtml(day.label)}</h3>
         ${MEALS.map((meal) => mealSlotHtml(day, meal, pantryNames)).join("")}
       </article>`
@@ -749,9 +610,9 @@ function renderStaleNotice(days) {
 }
 
 /* ==========================================================================
-   이번 주 후보 — 요일 배정 없이도 planItems에 같이 담긴다(day 없음). mealSlotHtml은
-   day 없는 항목을 절대 찾지 못해 그리드에는 저절로 안 보인다. 그리드 유무와 무관하게
-   항상 자기 컨테이너만 본다.
+   이번 주 후보 — 요일 배정 없이도 planItems에 같이 담긴다(day 없음, D-0y). mealSlotHtml은
+   day 없는 항목을 절대 찾지 못해 그리드에는 저절로 안 보인다. 후보를 훑어보던 목록
+   화면은 없앴고, poolIndexFor로 이름을 찾아 오른쪽 상세 보기 하나에서 다룬다.
    ========================================================================== */
 /* "지금 냉장고로 만들 수 있는 요리" 소스. matchOnly:true라 서버가 AI로 채우지 않는다
    (api/recommend.py) — 매칭이 적으면 그대로 적게(또는 0개) 돌려받는다. */
@@ -764,90 +625,178 @@ async function fetchPoolPantryMatches() {
   return result.ok ? result.data.recipes || [] : [];
 }
 
-/* "장을 조금 더 보면 만들 수 있는 요리" 소스 — "식단 짜기"에서만 부른다. /api/mealplan은
-   요일×끼니가 이미 배정된 한 주치 계획을 돌려주지만, 여기서는 day/meal을 버리고 menu
-   기준으로 중복 없는 후보 목록으로만 쓴다(SYSTEM_PROMPT가 이미 "가진 재료만으로 부족하면
-   새로 사야 할 재료를 자유롭게 추가해도 됩니다"를 명시하므로 이 목록의 성격과 맞는다).
-   그리드가 항상 오늘·내일·모레 세 칸이라 그만큼(3일치)만 요청한다. */
-async function fetchPoolAiSuggestions(portion) {
-  const pantry = loadPantry().map(pantryPromptText);
-  const result = await postJson(
-    "/api/mealplan",
-    { days: 3, portion, pantry },
-    MP_REQUEST_TIMEOUT_MS
+/* 이 레시피 이름과 같은, 아직 요일이 없는 planItems 항목의 인덱스. 없으면 -1이다.
+   day-less 항목은 이 이름으로만 찾는다 — "이번 주 후보"에 같은 이름이 중복으로 쌓이는
+   일은 상세 보기의 넣기/빼기 토글이 막아준다(이미 담겼으면 넣기 버튼 자체가 안 뜬다). */
+function poolIndexFor(recipe) {
+  return planItems.findIndex((i) => !i.day && i.menu === recipe.name);
+}
+
+/* 그리드 내부 이동과 같은 "고르고 → 놓기"다 — 눌러서 든 뒤 빈 요일 칸을 누르면 놓인다
+   (heldPick, resultEl의 .meal-drop 처리 참고). 채워진 자리는 mealSlotHtml이 애초에
+   .meal-drop을 안 만들어서 선택지에서 자연히 빠진다(예상 못 할 자리 바꿈 방지).
+   빈 자리가 하나도 없을 때만 이유를 알려준다. poolIndex가 없으면(아직 안 담김) heldPick을
+   곧장 { type: 'new' }로 세운다 — 담기를 거치지 않고 바로 요일에 놓을 수도 있어야 한다. */
+function placeButtonHtml(recipe, poolIndex) {
+  const hasEmptySlot = dayLabels().some((day) =>
+    MEALS.some((meal) => !planItems.some((i) => i.day === day.key && i.meal === meal))
   );
-  if (!result.ok) return [];
-
-  const seen = new Set();
-  const out = [];
-  for (const item of result.data.plan || []) {
-    const key = (item.menu || "").replace(/\s/g, "");
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
-    out.push({ name: item.menu, searchKeyword: item.searchKeyword, ingredients: item.ingredients });
-  }
-  return out;
-}
-
-function poolEntries() {
-  return planItems.map((item, index) => ({ item, index })).filter(({ item }) => !item.day);
-}
-
-/* 빈 자리만 보여준다. 채워진 자리를 고르면 moveMeal이 원래 메뉴를 후보 쪽으로 밀어내는데,
-   후보→그리드 배정에서는 사용자가 예상 못 할 움직임이라 선택지에서 아예 뺀다. */
-function assignPickerHtml(index) {
-  const options = [];
-  dayLabels().forEach((day) => {
-    MEALS.forEach((meal) => {
-      const occupied = planItems.some((i) => i.day === day.key && i.meal === meal);
-      if (!occupied) options.push({ value: `${day.key}|${meal}`, label: `${day.label} ${meal}` });
-    });
-  });
-
-  if (!options.length) {
-    return `<span class="mealpool-assign-empty">${escapeHtml(COPY.MEALPOOL.assignNoSlot)}</span>`;
+  if (!hasEmptySlot) {
+    return `<span class="mealpool-noslot">${escapeHtml(COPY.MEALPOOL.noSlot)}</span>`;
   }
 
-  return `<span class="mealpool-assign">
-    <select class="mealpool-assign-select" data-index="${index}" aria-label="${escapeHtml(
-    COPY.MEALPOOL.assignConfirm
-  )}">
-      ${options.map((o) => `<option value="${escapeHtml(o.value)}">${escapeHtml(o.label)}</option>`).join("")}
-    </select>
-    <button type="button" class="link-button mealpool-assign-confirm" data-index="${index}">${escapeHtml(
-    COPY.MEALPOOL.assignConfirm
-  )}</button>
-  </span>`;
+  const picked =
+    poolIndex !== -1
+      ? heldPick && heldPick.type === "existing" && heldPick.index === poolIndex
+      : heldPick && heldPick.type === "new" && heldPick.recipe && heldPick.recipe.name === recipe.name;
+  return `<button type="button" class="link-button mealpool-pick-btn" aria-pressed="${picked}">${escapeHtml(
+    picked ? COPY.MEALPOOL.pickButtonCancel : COPY.MEALPOOL.pickButton
+  )}</button>`;
 }
 
-function mealpoolItemHtml(item, index, pantryNames) {
-  const cooked = item.done ? "" : cookedHtml(item.ingredients, pantryNames);
-  return `<li class="mealpool-item" data-plan-index="${index}">
-    <div class="meal-head">${menuLinkHtml(item)}</div>
-    ${mealStateHtml(item, pantryNames)}
-    <div class="mealpool-actions">
-      <button type="button" class="link-button mealpool-detail-btn" data-index="${index}">${escapeHtml(
-    COPY.MEALPOOL.detailButton
-  )}</button>
-      ${assignPickerHtml(index)}
-      <button type="button" class="link-button link-button-muted mealpool-remove-btn" data-index="${index}">${escapeHtml(
-    COPY.MEALPOOL.removeButton
-  )}</button>
-    </div>
-    ${cooked}
+function detailActionsHtml(recipe, poolIndex) {
+  const toggleBtn =
+    poolIndex !== -1
+      ? `<button type="button" class="link-button link-button-muted mealpick-remove-btn">${escapeHtml(
+          COPY.MEALPOOL.removeButton
+        )}</button>`
+      : `<button type="button" class="link-button mealpick-add-btn">${escapeHtml(
+          COPY.MEALPOOL.confirmButton
+        )}</button>`;
+  return `<div class="mealpool-actions">${toggleBtn}${placeButtonHtml(recipe, poolIndex)}</div>`;
+}
+
+/* 즐겨찾기 다이얼로그가 쓰던 상세 렌더(재료+조리법)를 그대로 옮겨온다 —
+   조리법·링크 갈림길은 shared.js의 recipeStepsOrLinkHtml이 recipe.js 카드와 함께 쓴다. */
+function recipeDetailHtml(r) {
+  const timeHtml = r.time ? `<p class="recipe-time">⏱ ${escapeHtml(r.time)}</p>` : "";
+  const ingredientsHtml = (r.ingredients || []).length
+    ? `<h4>${escapeHtml(COPY.FAVORITES.detailIngredients)}</h4>
+       <ul>${r.ingredients.map((ing) => `<li>${escapeHtml(ing)}</li>`).join("")}</ul>`
+    : "";
+  return `<h3 class="favorites-detail-name">${escapeHtml(r.name)}</h3>${timeHtml}${ingredientsHtml}${recipeStepsOrLinkHtml(r)}`;
+}
+
+/* 오른쪽 "상세 보기" 전체를 다시 그린다. selectedRecipe가 day-less 후보로도 담겨 있으면
+   "해먹었어요"까지 같이 보여준다(day-plan-index를 패널 자체에 얹어 initCooked가 찾는다) —
+   그리드에 배치된 뒤에는 그리드 칸·모달이 그 역할을 이어받으므로 여기선 다루지 않는다. */
+function renderMealpickDetail() {
+  const el = document.getElementById("mealpick-detail");
+  if (!el) return;
+
+  if (!selectedRecipe) {
+    delete el.dataset.planIndex;
+    el.innerHTML = `<p class="favorites-detail-empty">${escapeHtml(COPY.MEALPOOL.empty)}</p>`;
+    return;
+  }
+
+  const recipe = selectedRecipe.recipe;
+  const poolIndex = poolIndexFor(recipe);
+  const item = poolIndex !== -1 ? planItems[poolIndex] : null;
+  if (item) el.dataset.planIndex = poolIndex;
+  else delete el.dataset.planIndex;
+
+  const pantryNames = pantryNamesFor(loadPantry());
+  const stateHtml = item ? mealStateHtml(item, pantryNames) : "";
+  const cooked = item && !item.done ? cookedHtml(item.ingredients, pantryNames) : "";
+  el.innerHTML = `${recipeDetailHtml(recipe)}${stateHtml}${detailActionsHtml(recipe, poolIndex)}${cooked}`;
+}
+
+/* ==========================================================================
+   왼쪽 "레시피 리스트" — 냉장고 매칭·즐겨찾기 두 소스.
+   ========================================================================== */
+/* .favorites-list-item/.favorites-list-select(원래 즐겨찾기 다이얼로그, css/style.css)를
+   그대로 가져다 쓴다 — 형제 버튼 없이 이름 하나만 누르는 줄이라 잘 맞는다. 선택 표시는
+   is-selected(즐겨찾기 다이얼로그와 같은 클래스), 이미 후보로 담긴 것은 CHECK_ICON +
+   담음 배지로 얹는다. */
+function mealpickRowHtml(r, source, i) {
+  const selected = selectedRecipe && selectedRecipe.source === source && selectedRecipe.index === i;
+  const pooled = poolIndexFor(r) !== -1;
+  const label = pooled ? `${r.name} (${COPY.MEALPOOL.pooledBadge})` : r.name;
+  return `<li class="favorites-list-item${selected ? " is-selected" : ""}">
+    <button type="button" class="favorites-list-select" data-source="${source}" data-index="${i}"
+      aria-pressed="${selected}" aria-label="${escapeHtml(label)}">
+      ${pooled ? CHECK_ICON : ""}<span class="favorites-list-name" aria-hidden="true">${escapeHtml(r.name)}</span>
+    </button>
   </li>`;
 }
 
-function renderMealPool() {
-  const listEl = document.getElementById("mealpool-list");
-  const emptyEl = document.getElementById("mealpool-empty");
-  if (!listEl || !emptyEl) return;
+/* is-selected·담음 표시만 새로 그린다 — commitEdit()마다는 이 함수가 다시 불리지만
+   fetch는 안 한다, mealpickSources 캐시에서 다시 그리는 것뿐이다. */
+function renderMealpickLists() {
+  const favoritesEl = document.getElementById("mealpick-favorites-list");
+  const pantryEl = document.getElementById("mealpick-pantry-list");
+  if (favoritesEl) favoritesEl.innerHTML = mealpickSources.favorite.map((r, i) => mealpickRowHtml(r, "favorite", i)).join("");
+  if (pantryEl) pantryEl.innerHTML = mealpickSources.pantry.map((r, i) => mealpickRowHtml(r, "pantry", i)).join("");
+}
 
-  const pool = poolEntries();
-  emptyEl.hidden = pool.length > 0;
-  listEl.hidden = pool.length === 0;
-  const pantryNames = pantryNamesFor(loadPantry());
-  listEl.innerHTML = pool.map(({ item, index }) => mealpoolItemHtml(item, index, pantryNames)).join("");
+function loadMealpickFavorites() {
+  const emptyEl = document.getElementById("mealpick-favorites-empty");
+  const listEl = document.getElementById("mealpick-favorites-list");
+  const favorites = loadFavorites();
+  mealpickSources.favorite = favorites;
+  emptyEl.hidden = favorites.length > 0;
+  listEl.innerHTML = favorites.map((r, i) => mealpickRowHtml(r, "favorite", i)).join("");
+}
+
+/* 즐겨찾기 목록·냉장고 매칭과 같은 이유로 즉시 그리고 바로 보인다(C3) — 서버 응답을
+   기다리며 텅 빈 아코디언만 있으면 페이지가 덜 만들어진 것처럼 보인다. */
+async function loadMealpickPantry() {
+  const emptyEl = document.getElementById("mealpick-pantry-empty");
+  const loadingEl = document.getElementById("mealpick-pantry-loading");
+  const listEl = document.getElementById("mealpick-pantry-list");
+  emptyEl.hidden = true;
+  loadingEl.hidden = false;
+  listEl.innerHTML = "";
+  const matches = await fetchPoolPantryMatches();
+  mealpickSources.pantry = matches;
+  loadingEl.hidden = true;
+  emptyEl.hidden = matches.length > 0;
+  listEl.innerHTML = matches.map((r, i) => mealpickRowHtml(r, "pantry", i)).join("");
+}
+
+/* heldPick을 바꾸는 단 하나의 자리 — 그리드 내부 고르기(selectedIndex)·빈 자리 넣기
+   (addingSlot)와 셋 중 하나만 켜져 있어야 하므로 여기서 나머지 둘도 같이 지운다.
+   renderPlan()이 빈 칸을 .meal-slot-empty ↔ .meal-drop으로 바꾸고 renderEditStatus까지
+   불러주므로, 상세 보기의 "요일에 놓기 ↔ 선택 취소" 표시만 따로 새로 그리면 된다. */
+function setHeldPick(next) {
+  heldPick = next;
+  selectedIndex = null;
+  addingSlot = null;
+  renderMealpickDetail();
+  renderPlan();
+}
+
+/* 빈 칸을 클릭했을 때 불린다(resultEl 위임에서). 무엇을 들고 있었는지에 따라 기존
+   후보를 옮기거나(moveMeal, 이미 commitEdit까지 한다), 왼쪽에서 막 고른 것을 그 자리에
+   새 항목으로 만든다(commitEdit이 담음 표시·상세 보기까지 다시 그린다). */
+function placeHeldPick(day, meal) {
+  const pick = heldPick;
+  heldPick = null;
+  if (!pick) return;
+
+  if (pick.type === "existing") {
+    moveMeal(pick.index, day, meal);
+    return;
+  }
+
+  planItems.push({
+    day,
+    meal,
+    menu: pick.recipe.name,
+    searchKeyword: pick.recipe.searchKeyword || "",
+    ingredients: pick.recipe.ingredients || [],
+  });
+  commitEdit();
+}
+
+/* "계획에 넣기" — 요일 배정 없이 day-less 후보로 담는다. 버튼을 누르면 그 자리(상세
+   보기)가 "빼기"로 바로 바뀌지만, 왼쪽 목록의 담음 배지도 같이 바뀌는 걸 더 분명히
+   하려고 문구로도 반응을 보여준다(C3). */
+function addToPool(recipe) {
+  planItems.push({ menu: recipe.name, searchKeyword: recipe.searchKeyword || "", ingredients: recipe.ingredients || [] });
+  editNotice = COPY.MEALPOOL.addedToPool(recipe.name);
+  commitEdit();
 }
 
 /* 클릭할 때도 손은 몇 px 흔들린다. 이 문턱을 넘기 전에는 아무 일도 일어나지 않아야
@@ -983,12 +932,14 @@ function refreshPlanStates() {
     if (item && briefEl) briefEl.outerHTML = mealBriefHtml(item, pantryNames);
   });
 
-  /* 이번 주 후보 줄의 "부족한 재료" 표시도 냉장고가 바뀔 때 같이 갱신한다. */
-  document.querySelectorAll("#mealpool-list .mealpool-item[data-plan-index]").forEach((row) => {
-    const item = planItems[Number(row.dataset.planIndex)];
-    const stateEl = row.querySelector(".meal-state");
+  /* 상세 보기가 day-less 후보를 띄우고 있으면 "부족한 재료" 표시도 냉장고가 바뀔 때
+     같이 갱신한다. */
+  const detailEl = document.getElementById("mealpick-detail");
+  if (detailEl && detailEl.dataset.planIndex !== undefined) {
+    const item = planItems[Number(detailEl.dataset.planIndex)];
+    const stateEl = detailEl.querySelector(".meal-state");
     if (item && stateEl) stateEl.outerHTML = mealStateHtml(item, pantryNames);
-  });
+  }
 
   const body = document.querySelector(".meal-dialog-body[data-plan-index]");
   if (!body) return;
@@ -1093,6 +1044,14 @@ function mealSlotHtml(day, meal, pantryNames = []) {
     /* 빈 자리의 본문은 어느 상태에서나 "끼니 + 비어 있음"으로 같다.
        메뉴가 있는 칸이 [본문][× 버튼]인 것과 맞추려고, 조작은 옆의 정사각 버튼이 진다. */
     const blank = `${label}<span class="meal-empty-text">비어 있음</span>`;
+
+    /* 왼쪽 목록·이번 주 후보에서 고른 게 있으면(heldPick) "메뉴 바꾸기"를 안 켜도 빈 칸이
+       놓을 자리가 된다 — 그리드 내부 이동(editMode)과는 별개의 경로다. */
+    if (heldPick) {
+      return `<div class="meal-slot meal-slot-edit">
+        <button type="button" class="meal-drop" data-day="${escapeHtml(day.key)}" data-meal="${meal}"
+          aria-label="${escapeHtml(day.aria)} ${meal}에 놓기">${blank}</button></div>`;
+    }
 
     /* 메뉴를 들고 있을 때는 본문 전체가 놓을 자리가 된다 — 정사각 버튼만 노리게 하면
        9칸에서 표적이 너무 작다. 눌렀을 때 무슨 일이 생기는지는 상단 안내가 말한다. */

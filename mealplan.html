@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>주간 식단 계획 · 있는대로</title>
+  <title>식단 계획 · 있는대로</title>
   <meta name="description" content="냉장고에 있는 대로 며칠치 저녁을 미리 정하고, 부족한 재료만 따로 모아드려요." />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 
@@ -70,7 +70,7 @@
   <main id="main" class="page">
     <section class="page-intro">
       <h1>
-        <span data-copy="UI.mealplanTitle">이번 주 저녁, 미리 정해둘까요?</span>
+        <span data-copy="UI.mealplanTitle">오늘·내일·모레 저녁, 미리 정해둘까요?</span>
         <!-- data-copy를 h1에 직접 걸면 이 아이콘까지 지워진다(textContent가 안의 다른 요소를 통째로 덮어쓴다) -->
         <span class="info-tooltip">
           <button type="button" class="info-tooltip-btn" aria-describedby="mealplan-source-tooltip"
@@ -86,37 +86,18 @@
             data-copy="MEALPLAN.planInfo">냉장고에 오래 넣어둔 재료가 있으면, 그 재료를 먼저 쓰는 메뉴를 우선 넣어드려요.</span>
         </span>
       </h1>
-      <p data-copy="UI.mealplanIntro">지금 만들 수 있는 요리부터 즐겨찾기·최근 추천까지 한 번에 모아드려요. 마음에 드는 것만 담아서 원하는 요일에 넣어보세요.</p>
-      <button type="button" id="favorites-view-btn" class="link-button"
-        data-copy="MEALPLAN.viewFavorites">즐겨찾기 보기</button>
+      <p data-copy="UI.mealplanIntro">지금 만들 수 있는 요리부터 즐겨찾기까지 한 번에 모아드려요. 마음에 드는 것만 골라서 원하는 요일에 놓아보세요.</p>
     </section>
 
+    <!-- 그리드가 카드 맨 위에서 폭 전체를 쓰고, 그 아래 "레시피 리스트"(왼쪽)+"상세 보기"
+         (오른쪽)가 좌우로 나뉜다. 레시피 리스트에서 줄을 누르면 그 자리에서 바로 오른쪽 상세
+         보기로 전환된다(즐겨찾기 다이얼로그의 좌=목록/우=상세와 같은 짜임을 페이지 섹션으로
+         옮겼다). 요일 배치는 그리드 내부 이동에 이미 쓰던 "고르고 → 놓기"를 그대로 확장한다
+         (드래그 대신 — js/mealplan.js의 heldPick 주석 참고, 마우스·터치·키보드가 같은 경로로
+         동작한다). "계획에 넣기/빼기"는 요일 배치와 별개로 day 없는 후보(D-0y)를 넣고 빼기만
+         한다. -->
     <section class="recipe-form-section">
-      <div class="list-card mealplan-form-card">
-        <form id="mealplan-form" novalidate>
-          <!-- <option>은 보이는 글자만 COPY에서 받는다. value는 그대로 서버 프롬프트로
-               나가므로 건드리지 않는다 — 바꾸면 AI가 받는 지시가 달라진다. -->
-          <div class="form-row">
-            <div class="form-field">
-              <label for="mp-portion" data-copy="FORM.portionPerMeal">한 끼당 만들 분량</label>
-              <select id="mp-portion" name="portion">
-                <option value="한 끼" data-copy="FORM.portionOne">한 끼</option>
-                <option value="두 끼" data-copy="FORM.portionTwoMealplan">두 끼 (다음 끼니까지)</option>
-                <option value="3~4끼" data-copy="FORM.portionFew">3~4끼 (며칠치)</option>
-              </select>
-            </div>
-          </div>
-
-          <button type="submit" id="mealplan-submit-btn" class="cta-button" data-copy="UI.submitMealplan">식단 짜기</button>
-        </form>
-
-        <p id="mealplan-empty" class="result-empty" data-copy="UI.emptyMealplan">아직 짜둔 식단이 없어요. 위에서 식단 짜기를 눌러보세요.</p>
-      </div>
-
-      <!-- 다른 카드들(식단 짜기 폼·이번 주 후보)과 같은 배경 카드 하나로 묶고, 폼 카드와
-           같은 폭(column 2, --content-width)에 둔다 — 예전엔 결과 영역이 섹션 전체 폭으로
-           퍼져서 왼쪽에 붙어 보였다(그리드가 7칸일 때 만든 규칙, 3칸으로 줄면서 안 맞음). -->
-      <div id="mealplan-plan-card" class="list-card mealplan-plan-card" hidden>
+      <div class="list-card mealplan-merge-card">
         <div id="mealplan-toolbar" class="mealplan-toolbar">
           <h2 class="mealplan-toolbar-title" data-copy="UI.mealPlanTitle">식단 계획</h2>
           <div class="mealplan-toolbar-actions">
@@ -129,25 +110,55 @@
 
         <div id="mealplan-result" aria-live="polite"></div>
 
-        <p id="mealplan-next" class="mealplan-next">
-          <span data-copy="UI.mealplanNext">부족한 재료는</span> <a href="shopping.html" data-copy="UI.mealplanNextLink">장보기에서 확인 →</a>
-        </p>
-      </div>
-    </section>
+        <div class="mealpick-layout">
+          <div class="mealpick-pane" id="mealpick-pane">
+            <h2>
+              <span data-copy="MEALPOOL.pickerTitle">레시피 리스트</span>
+              <!-- data-copy를 h2에 직접 걸면 이 아이콘까지 지워진다(textContent가 안의 다른
+                   요소를 통째로 덮어쓴다) — h1의 물음표 아이콘(위 page-intro)과 같은 이유로
+                   제목 글자만 안쪽 span으로 감싼다. -->
+              <span class="info-tooltip">
+                <button type="button" class="info-tooltip-btn" aria-describedby="mealpick-hint-tooltip"
+                  data-copy-attr="aria-label:MEALPOOL.pickInfoAria" aria-label="레시피 고르기 안내">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" aria-hidden="true" focusable="false">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                </button>
+                <span class="info-tooltip-bubble" role="tooltip" id="mealpick-hint-tooltip"
+                  data-copy="MEALPOOL.pickHint">레시피를 고르면 오른쪽에 자세히 나와요. 계획에 넣거나 요일에 바로 놓을 수 있어요.</span>
+              </span>
+            </h2>
 
-    <!-- 요일 배정 없이도 쓸 수 있는 "이번 주 후보" 목록(D-0y). 순서는 항상 식단 짜기 →
-         식단 계획 → 이번 주 후보 맨 아래로 고정한다(사용자 지시). 위 그리드와 무관하게
-         언제나 그 존재만 보고 렌더한다 — 요일 계획이 없어도 후보만 있을 수 있어서다. -->
-    <section class="mealpool-section">
-      <div class="list-card mealpool-card">
-        <div class="mealpool-head">
-          <h2 data-copy="MEALPOOL.sectionTitle">이번 주 후보</h2>
-          <button type="button" id="mealpool-open-btn" class="link-button"
-            data-copy="MEALPOOL.openButton">후보 고르기</button>
+            <details class="mealpick-source" open>
+              <summary data-copy="MEALPOOL.pantryMatchTitle">만들 수 있는 요리</summary>
+              <p id="mealpick-pantry-loading" class="loading" role="status" aria-live="polite" data-copy="MEALPOOL.pantryMatchLoading" hidden>냉장고로 만들 수 있는 요리를 찾고 있어요…</p>
+              <p id="mealpick-pantry-empty" class="favorites-list-empty" data-copy="MEALPOOL.pantryMatchEmpty" hidden>지금 냉장고로는 충분히 겹치는 레시피가 없어요.</p>
+              <ul id="mealpick-pantry-list" class="mealpick-list"></ul>
+            </details>
+
+            <details class="mealpick-source">
+              <summary data-copy="FAVORITES.pickTitle">즐겨찾기 요리</summary>
+              <p id="mealpick-favorites-empty" class="favorites-list-empty" data-copy="FAVORITES.listEmpty" hidden>아직 담아둔 즐겨찾기가 없어요. 레시피 결과에서 별을 눌러 담아보세요.</p>
+              <ul id="mealpick-favorites-list" class="mealpick-list"></ul>
+            </details>
+
+          </div>
+
+          <!-- 왼쪽에서 고른 레시피 하나의 재료·조리법과, day 없는 후보(D-0y)로 넣고 빼는
+               조작을 여기 모은다. js/mealplan.js의 renderMealpickDetail이 채운다. -->
+          <div class="mealpool-section">
+            <h2 data-copy="MEALPOOL.detailTitle">상세 보기</h2>
+            <div id="mealpick-detail" class="favorites-detail"></div>
+          </div>
         </div>
-        <p id="mealpool-empty" class="result-empty" data-copy="MEALPOOL.empty">아직 담아둔 후보가 없어요. 위에서 후보를 골라보세요.</p>
-        <ul id="mealpool-list" class="mealpool-list" hidden></ul>
       </div>
+
+      <p id="mealplan-next" class="mealplan-next">
+        <span data-copy="UI.mealplanNext">부족한 재료는</span> <a href="shopping.html" data-copy="UI.mealplanNextLink">장보기에서 확인 →</a>
+      </p>
     </section>
   </main>
 
@@ -181,74 +192,6 @@
         </button>
       </div>
       <div id="meal-dialog-body" class="meal-dialog-body"></div>
-    </div>
-  </dialog>
-
-  <!-- 즐겨찾기 전체 목록 모달(docs/UIUX원칙.md D-0s). 구조는 #meal-dialog·#pantry-import-dialog와
-       같다(배경 막·초점 가두기·Esc 닫기 근거도 같다). 세 번째 사용 사례라 클래스는 새로
-       만들되(.favorites-dialog) 톤은 그대로 맞춘다. 안쪽 목록은 js/mealplan.js가 채운다. -->
-  <dialog id="favorites-dialog" class="favorites-dialog" aria-labelledby="favorites-dialog-title">
-    <div class="favorites-dialog-panel" tabindex="-1" autofocus>
-      <div class="favorites-dialog-head">
-        <p id="favorites-dialog-title" class="favorites-dialog-title" data-copy="FAVORITES.listDialogTitle">즐겨찾기한 요리</p>
-        <button type="button" id="favorites-dialog-close" class="favorites-dialog-close"
-          data-copy="MEALPLAN.close" data-copy-attr="aria-label" aria-label="닫기">
-          <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor"
-            stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false">
-            <path d="M4 4l8 8M12 4l-8 8" />
-          </svg>
-        </button>
-      </div>
-      <p id="favorites-list-empty" class="favorites-list-empty" data-copy="FAVORITES.listEmpty" hidden>아직 담아둔 즐겨찾기가 없어요. 레시피 결과에서 별을 눌러 담아보세요.</p>
-      <!-- 왼쪽은 목록(고르기+별 해제), 오른쪽은 고른 요리의 상세 카드다. -->
-      <div id="favorites-dialog-body" class="favorites-dialog-body">
-        <ul id="favorites-list" class="favorites-list"></ul>
-        <div id="favorites-detail" class="favorites-detail"></div>
-      </div>
-    </div>
-  </dialog>
-
-  <!-- "이번 주 후보" 고르기 모달(D-0y). #pantry-import-dialog(pantry.html)와 같은
-       체크박스+확인 짜임·클래스를 그대로 쓴다 — 새 CSS 없이 같은 톤이 나온다. -->
-  <dialog id="mealpool-dialog" class="pantry-import-dialog" aria-labelledby="mealpool-dialog-title">
-    <div class="pantry-import-dialog-panel" tabindex="-1" autofocus>
-      <div class="pantry-import-dialog-head">
-        <p id="mealpool-dialog-title" class="pantry-import-dialog-title" data-copy="MEALPOOL.confirmDialogTitle">이번 주 후보 고르기</p>
-        <button type="button" id="mealpool-dialog-close" class="pantry-import-dialog-close"
-          data-copy="MEALPLAN.close" data-copy-attr="aria-label" aria-label="닫기">
-          <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor"
-            stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false">
-            <path d="M4 4l8 8M12 4l-8 8" />
-          </svg>
-        </button>
-      </div>
-      <p class="pantry-import-dialog-hint" data-copy="MEALPOOL.confirmDialogHint">체크된 요리가 후보로 담겨요.</p>
-      <form id="mealpool-form">
-        <p class="meal-add-recent-title" data-copy="MEALPOOL.pantryMatchTitle">지금 냉장고로 만들 수 있는 요리</p>
-        <p id="mealpool-pantry-loading" class="loading" role="status" aria-live="polite" data-copy="MEALPOOL.pantryMatchLoading">냉장고로 만들 수 있는 요리를 찾고 있어요…</p>
-        <p id="mealpool-pantry-empty" class="favorites-list-empty" data-copy="MEALPOOL.pantryMatchEmpty" hidden>지금 냉장고로는 충분히 겹치는 레시피가 없어요.</p>
-        <ul id="mealpool-pantry-list" class="pantry-import-list"></ul>
-
-        <!-- "식단 짜기"에서만 켠다("후보 고르기"는 3소스 즉시 진입로로 남는다). -->
-        <div id="mealpool-ai-section" hidden>
-          <p class="meal-add-recent-title" data-copy="MEALPOOL.aiSuggestedTitle">장을 조금 더 보면 만들 수 있는 요리</p>
-          <p id="mealpool-ai-loading" class="loading" role="status" aria-live="polite" data-copy="UI.loadingMealplan" hidden>며칠치 저녁을 짜고 있어요…</p>
-          <p id="mealpool-ai-empty" class="favorites-list-empty" data-copy="UI.errorMealplan" hidden>식단을 짜지 못했어요. 잠시 후 다시 시도해주세요.</p>
-          <ul id="mealpool-ai-list" class="pantry-import-list"></ul>
-        </div>
-
-        <p class="meal-add-recent-title" data-copy="FAVORITES.pickTitle">즐겨찾기에 담아둔 요리</p>
-        <ul id="mealpool-favorites-list" class="pantry-import-list"></ul>
-
-        <p class="meal-add-recent-title" data-copy="MEALPLAN.recentTitle">최근 추천받은 요리</p>
-        <ul id="mealpool-history-list" class="pantry-import-list"></ul>
-
-        <div class="pantry-import-dialog-actions">
-          <button type="submit" class="cta-button" data-copy="MEALPOOL.confirmButton">담기</button>
-          <button type="button" id="mealpool-cancel" class="link-button link-button-muted"
-            data-copy="MEALPOOL.cancelButton">취소</button>
-        </div>
-      </form>
     </div>
   </dialog>
 

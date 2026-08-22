@@ -88,6 +88,16 @@
   --meal-night-ink:   #4B3F92;
   --meal-night-bg:    #EAE7F7;
 
+  /* ---- 식단 계획 요일 카드: 오늘 vs 내일·모레 ----
+     부모 카드(--surface)와 같은 색이라 경계가 안 보이던 문제를 고치려고 사용자가 직접
+     지정한 색이다. 둘 다 --text(ink-900)를 얹었을 때 4.5:1을 넘긴다(오늘 5.8:1,
+     내일·모레 8.8:1) — 실측: https://webaim.org/resources/contrastchecker/ 공식으로
+     계산. 이 카드 위에서는 accent-strong·text-muted 대신 --text 하나로 통일한다
+     (css/style.css의 .mealplan-day-card 관련 규칙 참고) — 배경 자체가 이미 오늘/
+     내일·모레를 색으로 가르므로 글자까지 색으로 구분할 필요가 없다. */
+  --day-today-bg:    #D97D55;
+  --day-upcoming-bg: #ACBAC4;
+
   /* ---- 반지름: 과한 pill 금지. 카드 12, 버튼 10 ---- */
   --r-sm: 6px;
   --r-md: 10px;
@@ -228,6 +238,12 @@
   --meal-noon-bg:     #25331F;
   --meal-night-ink:   #BDB4EE;
   --meal-night-bg:    #2B2742;
+
+  /* 라이트의 두 색(#D97D55/#ACBAC4)과 같은 색조를 어둡게 낮췄다. 다크 --text(#F5F1E8,
+     밝음)를 얹으면 두 경우 다 10:1을 훌쩍 넘는다 — 실측보다는 이 파일의 다른 라이트→다크
+     쌍(예: meal-morning-bg)과 같은 방식(색조 유지, 명도만 낮춤)으로 만들었다. */
+  --day-today-bg:    #3A2318;
+  --day-upcoming-bg: #223039;
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4);
   --shadow-md: 0 2px 8px rgba(0, 0, 0, .45);

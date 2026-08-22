@@ -49,7 +49,7 @@ const COPY = {
         description: "있는 재료만 적으면 지금 바로 만들 수 있는 요리를 찾아드려요.",
       },
       mealplan: {
-        title: "주간 식단 계획 · 있는대로",
+        title: "식단 계획 · 있는대로",
         description: "냉장고에 있는 대로 며칠치 저녁을 미리 정하고, 부족한 재료만 따로 모아드려요.",
       },
       shopping: {
@@ -181,7 +181,6 @@ const COPY = {
 
     /* --- 아래는 5단계에서 화면에 있는데 COPY에 없어 새로 넣은 것들 --- */
     // 기다림. 무엇을 하는 중인지 화면마다 다르므로 따로 둔다
-    loadingMealplan: "며칠치 저녁을 짜고 있어요…",
     loadingShopping: "바뀐 식단으로 다시 계산하고 있어요…",
     // 기다리는 동안의 경과·마감 (숫자는 코드가 채운다)
     waitElapsed: (sec, limit) => `${sec}초 지남 · 최대 ${limit}초`,
@@ -190,11 +189,9 @@ const COPY = {
     // 아직 아무것도 안 한 상태 — "실패"가 아니라 "시작 전"이라는 게 읽혀야 한다
     emptyRecipeStart: "아직 받은 추천이 없어요. 재료를 확인하고 위 버튼을 눌러보세요.",
     emptyHistory: "아직 받은 추천이 없어요.",
-    emptyMealplan: "아직 짜둔 식단이 없어요. 위에서 식단 짜기를 눌러보세요.",
     emptyShopping: "아직 식단이 없어요. 식단을 먼저 짜면 살 것만 골라드릴게요.",
 
     // 실패했을 때 다음에 할 수 있는 일
-    errorMealplan: "식단을 짜지 못했어요. 잠시 후 다시 시도해주세요.",
     errorFallbackIntro: "지금 추천을 못 받아도 괜찮아요.",
     errorFallbackAction: "최근 받은 요리 보기",
     errorNetwork: "인터넷 연결을 확인하고 다시 시도해주세요.",
@@ -213,9 +210,8 @@ const COPY = {
     historyRestored: (name) => `${name}을(를) 다시 넣었어요.`,
 
     // 식단 화면
-    mealplanTitle: "이번 주 저녁, 미리 정해둘까요?",
-    mealplanIntro: "지금 만들 수 있는 요리부터 즐겨찾기·최근 추천까지 한 번에 모아드려요. 마음에 드는 것만 담아서 원하는 요일에 넣어보세요.",
-    submitMealplan: "식단 짜기",
+    mealplanTitle: "오늘·내일·모레 저녁, 미리 정해둘까요?",
+    mealplanIntro: "지금 만들 수 있는 요리부터 즐겨찾기까지 한 번에 모아드려요. 마음에 드는 것만 골라서 원하는 요일에 놓아보세요.",
     clearPlan: "계획 지우기",
     editMenu: "메뉴 바꾸기",
     // 상세 모달 안에서 한 칸만 바로 바꾸는 지름길(21칸 편집 모드와 별개)
@@ -325,8 +321,9 @@ const COPY = {
     add: (name) => `${name} 즐겨찾기에 담기`,
     remove: (name) => `${name} 즐겨찾기에서 빼기`,
 
-    // 식단 빈 칸에서 "최근 추천받은 요리" 위에 서는 목록의 이름
-    pickTitle: "즐겨찾기에 담아둔 요리",
+    // 식단 빈 칸에서 "최근 추천받은 요리" 위에 서는 목록의 이름, 레시피 리스트의
+    // 아코디언 제목으로도 쓴다
+    pickTitle: "즐겨찾기 요리",
 
     /* 가득 찼을 때. 조용히 안 담기면 별이 고장 난 것으로 읽힌다(C3).
        나무라지 않고 다음에 할 수 있는 일을 알려준다 — 냉장고 상한 안내와 같은 방침이다. */
@@ -334,10 +331,7 @@ const COPY = {
       `즐겨찾기는 ${limit}개까지 담을 수 있어요. 안 보는 것 하나만 빼면 이 요리도 담을 수 있어요.`,
     failed: "브라우저에 저장하지 못했어요. 시크릿 창이라면 일반 창에서 다시 열어주세요.",
 
-    // 즐겨찾기 목록 모달(D-0s) — 왼쪽 목록 + 오른쪽 상세 카드, 그 자리에서 별 해제.
-    listDialogTitle: "즐겨찾기한 요리",
     listEmpty: "아직 담아둔 즐겨찾기가 없어요. 레시피 결과에서 별을 눌러 담아보세요.",
-    detailEmpty: "왼쪽에서 즐겨찾기한 요리를 골라주세요.",
     detailIngredients: "재료",
   },
 
@@ -367,30 +361,35 @@ const COPY = {
     // 빈 칸에 메뉴 이름 없이 등록하려 했을 때
     nameRequired: "넣을 메뉴 이름을 적어주세요.",
 
-    // 즐겨찾기 목록 모달을 여는 버튼(D-0s). 빈 칸 팝업 안이 아니라 페이지 어디서든 눌러
-    // 전체 목록을 훑어볼 수 있게 한다.
-    viewFavorites: "즐겨찾기 보기",
+    // 레시피 리스트(고르기)나 "이번 주 후보"에서 뭔가를 든 상태. 편집 모드 밖에서도 뜬다 —
+    // 그리드 내부 이동(selectedIndex)의 안내 문구와 같은 자리, 같은 role="status"를 쓴다.
+    holding: (name) => `"${name}"을(를) 골랐어요. 빈 요일 칸을 누르면 그 자리에 놓여요. 다시 누르면 취소돼요.`,
   },
 
-  // 요일 배정 없이도 쓸 수 있는 "이번 주 후보" 목록(D-0y). 냉장고 매칭/즐겨찾기/최근 추천
-  // 세 곳에서 골라 담고, 요일에 안 넣어도 바로 해먹을 수 있다.
+  // 왼쪽 "레시피 리스트"(냉장고 매칭/즐겨찾기/AI 추천 세 아코디언) + 오른쪽 "상세 보기"
+  // 짜임. 요일 배정 없이도 쓸 수 있는 "후보"(day 없는 planItems, D-0y) 개념은 그대로 두되,
+  // 그 후보들을 훑어보던 별도 목록 화면은 없애고 상세 보기 하나로 합쳤다.
   MEALPOOL: {
-    sectionTitle: "이번 주 후보",
-    openButton: "후보 고르기",
-    empty: "아직 담아둔 후보가 없어요. 위에서 후보를 골라보세요.",
-    pantryMatchTitle: "지금 냉장고로 만들 수 있는 요리",
+    pickerTitle: "레시피 리스트",
+    // 제목 옆 물음표 아이콘(.info-tooltip, 다른 페이지의 안내 아이콘과 같은 컴포넌트) 안의
+    // 문구. 예전엔 제목 아래 상시 노출 문장이었다 — 호버로 여닫는 편이 화면을 덜 차지한다.
+    pickInfoAria: "레시피 고르기 안내",
+    pickHint: "레시피를 고르면 오른쪽에 자세히 나와요. 계획에 넣거나 요일에 바로 놓을 수 있어요.",
+    pantryMatchTitle: "만들 수 있는 요리",
     pantryMatchLoading: "냉장고로 만들 수 있는 요리를 찾고 있어요…",
-    aiSuggestedTitle: "장을 조금 더 보면 만들 수 있는 요리",
     // AI로 채우지 않고 정직하게 적게(또는 0개) 보여준다 — 레시피 매칭 우선 원칙과 같다.
     pantryMatchEmpty: "지금 냉장고로는 충분히 겹치는 레시피가 없어요.",
-    confirmDialogTitle: "이번 주 후보 고르기",
-    confirmDialogHint: "체크된 요리가 후보로 담겨요.",
-    confirmButton: "담기",
-    cancelButton: "취소",
-    assignConfirm: "배정",
-    assignNoSlot: "먼저 위에서 식단 짜기를 눌러야 배정할 수 있어요.",
+    // 레시피 리스트 줄에서 이미 후보로 담긴 것을 표시하는 짧은 배지. CHECK_ICON과 같이 쓴다.
+    pooledBadge: "담음",
+    detailTitle: "상세 보기",
+    empty: "왼쪽에서 요리를 골라보세요.",
+    confirmButton: "계획에 넣기",
+    // 클릭한 자리(왼쪽 목록)와 반응이 뜨는 자리(오른쪽 상세)가 달라, 문구로도 반응을 보여준다(C3).
+    addedToPool: (name) => `"${name}"을(를) 계획에 넣었어요.`,
     removeButton: "빼기",
-    detailButton: "자세히 보기",
+    pickButton: "요일에 놓기",
+    pickButtonCancel: "선택 취소",
+    noSlot: "지금은 빈 요일 칸이 없어요.",
   },
 
   // 5개 페이지가 공유하는 머리말 — 건너뛰기 링크, 로고, 햄버거, 메뉴
@@ -480,7 +479,6 @@ const COPY = {
   // 추천·식단 입력 폼
   FORM: {
     portion: "만들 분량",
-    portionPerMeal: "한 끼당 만들 분량",
     timeLimit: "희망 조리 시간",
     category: "요리 종류",
 
@@ -488,7 +486,6 @@ const COPY = {
        그 값이 그대로 서버 프롬프트로 나가서, 바꾸면 AI가 받는 지시가 달라진다. */
     portionOne: "한 끼",
     portionTwoRecipe: "두 끼 (내일 점심까지)",
-    portionTwoMealplan: "두 끼 (다음 끼니까지)",
     portionFew: "3~4끼 (며칠치)",
     timeAny: "상관없음",
     time15: "15분 이내",
