@@ -730,13 +730,12 @@ function renderMealpickLists() {
   if (pantryEl) pantryEl.innerHTML = mealpickSources.pantry.map((r, i) => mealpickRowHtml(r, "pantry", i)).join("");
 }
 
+/* 목록을 그리는 일은 renderMealpickLists() 하나뿐이다 — 여기서는 캐시와 빈 상태만
+   세운다. 그리는 줄을 여기에도 두면 행 모양을 고칠 때 세 곳을 같이 고쳐야 한다. */
 function loadMealpickFavorites() {
-  const emptyEl = document.getElementById("mealpick-favorites-empty");
-  const listEl = document.getElementById("mealpick-favorites-list");
-  const favorites = loadFavorites();
-  mealpickSources.favorite = favorites;
-  emptyEl.hidden = favorites.length > 0;
-  listEl.innerHTML = favorites.map((r, i) => mealpickRowHtml(r, "favorite", i)).join("");
+  mealpickSources.favorite = loadFavorites();
+  document.getElementById("mealpick-favorites-empty").hidden = mealpickSources.favorite.length > 0;
+  renderMealpickLists();
 }
 
 /* 즐겨찾기 목록·냉장고 매칭과 같은 이유로 즉시 그리고 바로 보인다(C3) — 서버 응답을
@@ -744,15 +743,14 @@ function loadMealpickFavorites() {
 async function loadMealpickPantry() {
   const emptyEl = document.getElementById("mealpick-pantry-empty");
   const loadingEl = document.getElementById("mealpick-pantry-loading");
-  const listEl = document.getElementById("mealpick-pantry-list");
   emptyEl.hidden = true;
   loadingEl.hidden = false;
-  listEl.innerHTML = "";
-  const matches = await fetchPoolPantryMatches();
-  mealpickSources.pantry = matches;
+  mealpickSources.pantry = [];
+  renderMealpickLists();
+  mealpickSources.pantry = await fetchPoolPantryMatches();
   loadingEl.hidden = true;
-  emptyEl.hidden = matches.length > 0;
-  listEl.innerHTML = matches.map((r, i) => mealpickRowHtml(r, "pantry", i)).join("");
+  emptyEl.hidden = mealpickSources.pantry.length > 0;
+  renderMealpickLists();
 }
 
 /* heldPick을 바꾸는 단 하나의 자리 — 그리드 내부 고르기(selectedIndex)·빈 자리 넣기

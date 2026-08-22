@@ -109,28 +109,19 @@ def test_handle_filters_unknown_ingredient_recipes():
 
 def test_exclude_prompt():
     """재추천일 때만 제외 목록이 프롬프트에 들어간다."""
-    without = recommend.build_user_prompt("계란", "한 끼", "상관없음", False)
+    without = recommend.build_user_prompt("계란", "한 끼", "상관없음")
     assert "빼고" not in without, without
 
-    with_exclude = recommend.build_user_prompt("계란", "한 끼", "상관없음", False, ["계란말이", "계란찜"])
+    with_exclude = recommend.build_user_prompt("계란", "한 끼", "상관없음", ["계란말이", "계란찜"])
     assert "계란말이, 계란찜" in with_exclude, with_exclude
-
-
-def test_healthy_is_disabled():
-    """건강 관리 필터는 UI/UX와 함께 뺐다(2026-08-20) — healthy=True를 줘도 프롬프트에
-    아무 영향이 없어야 한다. 되살릴 때 이 테스트부터 고쳐야 한다는 신호가 된다."""
-    with_true = recommend.build_user_prompt("계란", "한 끼", "상관없음", True)
-    without = recommend.build_user_prompt("계란", "한 끼", "상관없음", False)
-    assert with_true == without, (with_true, without)
-    assert "건강" not in with_true, with_true
 
 
 def test_category_prompt():
     """요리 종류를 지정했을 때만 조건 문장이 들어간다. "상관없음"이면 생략한다."""
-    without = recommend.build_user_prompt("계란", "한 끼", "상관없음", False, category="상관없음")
+    without = recommend.build_user_prompt("계란", "한 끼", "상관없음", category="상관없음")
     assert "요리 종류" not in without, without
 
-    with_category = recommend.build_user_prompt("계란", "한 끼", "상관없음", False, category="국/탕")
+    with_category = recommend.build_user_prompt("계란", "한 끼", "상관없음", category="국/탕")
     assert "요리 종류: 국/탕에 해당하는 요리로 추천해줘" in with_category, with_category
 
 

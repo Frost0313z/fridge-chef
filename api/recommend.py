@@ -3,7 +3,6 @@ POST /api/recommend
 입력한 재료로 AI가 만들 수 있는 요리를 추천하는 Vercel Serverless Function.
 
 요청 페이로드: {"ingredients": str, "portion": str, "timeLimit": str, "category": str}
-(healthy는 UI/UX와 함께 뺐다(2026-08-20) — 보내도 무시한다. build_user_prompt의 주석 참고.)
 반환(200): {"recipes": [{"name": str, "searchKeyword": str, "time": str, "ingredients": [str], "steps": [str]}]}
 반환(4xx/5xx): {"error": str, "message": str}  # message는 화면에 그대로 표시할 한국어 안내문
 """
@@ -51,11 +50,8 @@ searchKeyword는 레시피 사이트에서 검색할 때 쓰는 값입니다. �
 # 이전에는 "자취생 간단요리 / 가족 식사 / 다이어트·건강식" 3지선다였다.
 # 타겟이 1인 가구 자취생으로 고정돼 있으므로 "가족 식사"는 모순이고 "자취생 간단요리"는
 # 선택지가 아니라 기본값이어야 한다(SYSTEM_PROMPT로 승격). 세대 구성과 무관한 축 하나만 남긴다.
-#
-# 2026-08-20 매칭 결과가 있으면 이 힌트까지 안 가고 그대로 반환되므로(레시피 매칭이
-# healthy를 모른다 — KADX 데이터에 칼로리·기름기 정보가 없다), 체크해도 매칭이 걸리면
-# 조용히 무시됐다. UI/UX 제거하고 여기 로직은 되살릴 수 있게 주석만 처리해 남겨둔다.
-# HEALTHY_HINT = "건강 관리를 신경 쓰는 중이야. 기름지거나 자극적인 조리법은 피하고 칼로리가 낮은 쪽으로 추천해줘."
+# 건강 관리 필터도 2026-08-20에 없앴다 — 매칭 경로가 칼로리를 모르니(KADX 데이터에 없다)
+# 매칭이 걸리면 체크가 조용히 무시됐다. 되살릴 일이 생기면 git에서 꺼낸다.
 
 
 MAX_RECIPES = 3
@@ -158,7 +154,7 @@ def sanitize_recipes(raw, pantry_ingredients=None):
     return (recipes or dropped)[:MAX_RECIPES]
 
 
-def build_user_prompt(ingredients, portion, time_limit, healthy, exclude=(), category=None):
+def build_user_prompt(ingredients, portion, time_limit, exclude=(), category=None):
     lines = [
         f"보유 재료: {ingredients}",
         # 혼자 먹는다는 전제이므로 "몇 인분"이 아니라 "몇 끼 분량"으로 전달한다.
@@ -167,10 +163,6 @@ def build_user_prompt(ingredients, portion, time_limit, healthy, exclude=(), cat
     ]
     if category and category != "상관없음":
         lines.append(f"요리 종류: {category}에 해당하는 요리로 추천해줘")
-    # 건강 관리 필터 제거(2026-08-20) — 매칭 경로가 healthy를 몰라서 매칭이 걸리면 조용히
-    # 무시됐다. HEALTHY_HINT 정의부의 주석 참고.
-    # if healthy:
-    #     lines.append(HEALTHY_HINT)
     # "다른 요리 추천받기"를 눌렀는데 같은 요리가 다시 나오면 버튼이 거짓말이 된다.
     # 같은 요청을 온도에만 맡기지 않고, 방금 본 요리를 이름으로 빼달라고 명시한다.
     if exclude:
@@ -188,7 +180,6 @@ def handle(payload):
     portion = (payload.get("portion") or "한 끼").strip()
     time_limit = (payload.get("timeLimit") or "상관없음").strip()
     category = (payload.get("category") or "상관없음").strip()
-    healthy = bool(payload.get("healthy"))
     # 식단 계획의 "이번 주 후보" 모달 전용 — AI 폴백을 아예 안 탄다(POOL_MATCH_LIMIT 주석 참고).
     match_only = bool(payload.get("matchOnly"))
 
@@ -204,7 +195,7 @@ def handle(payload):
     매칭과 생성을 한 응답에 섞지 않는다 — 섞으면 카드마다 있는 것과 없는 것(조리 순서)이
     달라져 화면 규칙이 둘이 된다."""
     matched = recipe_match.match(
-        recipe_match.pantry_keys_from(ingredients),
+        _pantry_keys(ingredients),
         limit=(POOL_MATCH_LIMIT if match_only else MAX_RECIPES),
         category=category,
     )
@@ -218,7 +209,7 @@ def handle(payload):
 
     data, error = call_openai(
         SYSTEM_PROMPT,
-        build_user_prompt(ingredients, portion, time_limit, healthy, exclude, category),
+        build_user_prompt(ingredients, portion, time_limit, exclude, category),
         timeout=15.0,
         temperature=0.7,
     )

@@ -10,9 +10,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const portionEl = document.getElementById("portion");
   const timeLimitEl = document.getElementById("timeLimit");
   const categoryEl = document.getElementById("category");
-  // healthy 체크박스는 UI/UX와 함께 뺐다(2026-08-20) — 매칭 경로가 healthy를 몰라서
-  // 매칭이 걸리면 조용히 무시됐다. api/recommend.py의 HEALTHY_HINT 주석 참고.
-  // const healthyEl = document.getElementById("healthy");
   const submitBtn = document.getElementById("submit-btn");
   const loadingEl = document.getElementById("loading");
   const errorEl = document.getElementById("error");
@@ -29,7 +26,6 @@ document.addEventListener("DOMContentLoaded", () => {
   restorePreferences();
 
   portionEl.addEventListener("change", () => savePrefs({ portion: portionEl.value }));
-  // healthyEl.addEventListener("change", () => savePrefs({ healthy: healthyEl.checked }));
   timeLimitEl.addEventListener("change", () => savePrefs({ timeLimit: timeLimitEl.value }));
   categoryEl.addEventListener("change", () => savePrefs({ category: categoryEl.value }));
 
@@ -38,7 +34,6 @@ document.addEventListener("DOMContentLoaded", () => {
     setSelectValue(portionEl, prefs.portion);
     setSelectValue(timeLimitEl, prefs.timeLimit);
     setSelectValue(categoryEl, prefs.category);
-    // healthyEl.checked = Boolean(prefs.healthy);
   }
 
   /* 오류 문구가 "잠시 후 다시 시도해주세요"로 끝나면 지금 저녁을 정해야 하는 사람에게는
@@ -91,7 +86,6 @@ document.addEventListener("DOMContentLoaded", () => {
         portion: portionEl.value,
         timeLimit: timeLimitEl.value,
         category: categoryEl.value,
-        // healthy: healthyEl.checked,
         exclude,
       },
       REQUEST_TIMEOUT_MS

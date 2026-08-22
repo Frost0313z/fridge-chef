@@ -739,6 +739,9 @@ function initCooked(containerEl, onChange) {
     /* 조회 바에도 되돌리기 버튼이 있다. 먼저 .cooked 안인지 확인해 서로를 건드리지 않게 한다. */
     const root = e.target.closest(".cooked");
     if (!root) return;
+    /* 어느 갈래로 가든 직전 강조는 먼저 지운다 — 보상을 주는 두 자리에서만 다시 켠다.
+       갈래마다 지우면 하나 빠뜨렸을 때 지난 강조가 지금 문구와 모순돼 보인다. */
+    setSavingsHighlight(root, 0);
 
     if (e.target.closest(".cooked-confirm")) {
       const names = Array.from(
@@ -747,14 +750,12 @@ function initCooked(containerEl, onChange) {
       );
       /* 전부 체크를 풀고 눌렀을 때. 아무 말 없이 끝나면 버튼이 고장 난 것으로 읽힌다(C3). */
       if (!names.length) {
-        setSavingsHighlight(root, 0);
         setCookedStatus(root, COPY.COOKED.nothing, false);
         return;
       }
 
       const result = consumeFromPantry(names);
       if (!result.stored) {
-        setSavingsHighlight(root, 0);
         setCookedStatus(root, COPY.COOKED.failed, false);
         return;
       }
@@ -786,7 +787,6 @@ function initCooked(containerEl, onChange) {
       if (!undone) return;
       /* 되돌리기는 방금 그 확인으로 늘어난 만큼만 취소한다(main.js의 undoSavings).
          잘못 누른 것을 되돌리는 자리이지, 기록을 깎는 자리가 아니다. */
-      setSavingsHighlight(root, 0);
       setCookedStatus(
         root,
         undone.stored

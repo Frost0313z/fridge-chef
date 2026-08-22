@@ -155,11 +155,3 @@ def to_response(recipe, rate):
         "coverage": round(rate, 3),
     }
 
-
-def pantry_keys_from(ingredients_str):
-    """사용자 입력 문자열을 비교용 이름 목록으로. recommend.py가 top-level에서 이 모듈을
-    import하므로(순환을 피하려고) 여기서는 늦게 받는다 — match()의 dedupe_key와 같은 이유다.
-    규칙만 맞추는 게 아니라 구현 자체를 공유해야, 한쪽만 고쳐 갈라지는 일이 없다."""
-    from recommend import _pantry_keys
-
-    return _pantry_keys(ingredients_str)
