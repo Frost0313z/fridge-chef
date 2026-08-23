@@ -517,14 +517,28 @@ def test_recipes_dedupe_applies_to_dropped_too():
 
 def _fake_index(recipes):
     """실제 인덱스 파일(api/recipes_index.json)은 용량 때문에 저장소에 없다.
-    역색인까지 직접 채워서 파일 없이 매칭 로직만 본다."""
-    import collections
+    파일 없이 매칭 로직만 보려고 메모리에 직접 채운다.
 
-    recipe_match._index = recipes
-    recipe_match._inverted = collections.defaultdict(list)
-    for i, r in enumerate(recipes):
-        for n in set(r["ing"]):
-            recipe_match._inverted[n].append(i)
+    받는 모양은 사람이 읽기 쉬운 dict 그대로 두고, 여기서 실제 파일과 같은 모양으로
+    접는다 — 빌더의 pack()과 같은 규칙이다. 내부 표현이 바뀌어도 고칠 자리가 여기
+    하나뿐이라, 호출하는 테스트 12곳은 손대지 않아도 된다."""
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
+    import build_recipe_index as builder
+
+    packed = builder.pack([
+        {
+            "id": r.get("id", 0),
+            "name": r.get("name", ""),
+            "ing": list(r.get("ing") or ()),
+            "time": r.get("time", ""),
+            "inbun": r.get("inbun", ""),
+            "cat": r.get("cat", ""),
+            "pop": r.get("pop", 0),
+        }
+        for r in recipes
+    ])
+    recipe_match._index = packed
+    recipe_match._inverted = packed["p"]
 
 
 def test_load_index_logs_when_missing():
@@ -543,7 +557,7 @@ def test_load_index_logs_when_missing():
         captured = io.StringIO()
         with contextlib.redirect_stderr(captured):
             index, inverted = recipe_match.load_index()
-        assert index == [] and dict(inverted) == {}, (index, inverted)
+        assert index["r"] == [] and inverted == [], (index, inverted)
         assert "recipes_index.json not found" in captured.getvalue(), captured.getvalue()
     finally:
         recipe_match._index = original_index
@@ -577,7 +591,7 @@ def test_load_index_survives_a_broken_file():
         captured = io.StringIO()
         with contextlib.redirect_stderr(captured):
             index, inverted = recipe_match.load_index()
-        assert index == [] and dict(inverted) == {}, (index, inverted)
+        assert index["r"] == [] and inverted == [], (index, inverted)
         assert "unreadable" in captured.getvalue(), captured.getvalue()
         # 부르는 쪽이 죽지 않고 빈 결과로 넘어가야 AI 생성 폴백이 살아난다.
         assert recipe_match.match(["김치", "두부"]) == []
@@ -616,6 +630,41 @@ def test_recipe_index_is_written_atomically():
             assert not os.path.exists(out + ".tmp"), "임시 파일이 남았다"
         finally:
             builder.OUT, builder.SOURCES = original_out, original_sources
+
+
+def test_load_index_refuses_a_different_format():
+    """인덱스는 .gitignore라 코드와 따로 움직인다 — 코드만 되돌리거나 인덱스만 옛것이
+    남는 일이 실제로 생긴다. 그냥 읽으면 TypeError로 매 요청 500이 되고 스스로 낫지
+    않으므로, 깨진 파일과 똑같이 취급해 AI 폴백으로 보낸다."""
+    import contextlib
+    import io
+    import tempfile
+
+    original_index = recipe_match._index
+    original_inverted = recipe_match._inverted
+    original_path = recipe_match.INDEX_PATH
+
+    # v1(레시피 dict를 그냥 늘어놓던 옛 포맷)
+    old = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8")
+    old.write('[{"id":1,"name":"김치찌개","ing":["김치","두부","대파"]}]')
+    old.close()
+
+    recipe_match._index = None
+    recipe_match._inverted = None
+    recipe_match.INDEX_PATH = old.name
+    try:
+        captured = io.StringIO()
+        with contextlib.redirect_stderr(captured):
+            index, inverted = recipe_match.load_index()
+        assert index["r"] == [] and inverted == [], (index, inverted)
+        assert "format mismatch" in captured.getvalue(), captured.getvalue()
+        # 부르는 쪽이 죽지 않고 빈 결과로 넘어가야 AI 생성 폴백이 산다.
+        assert recipe_match.match(["김치", "두부", "대파"]) == []
+    finally:
+        os.remove(old.name)
+        recipe_match._index = original_index
+        recipe_match._inverted = original_inverted
+        recipe_match.INDEX_PATH = original_path
 
 
 def test_match_prefers_using_more_of_the_fridge():

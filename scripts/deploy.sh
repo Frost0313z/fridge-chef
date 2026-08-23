@@ -26,6 +26,20 @@ if [ ! -f "$INDEX_FILE" ]; then
   exit 1
 fi
 
+# 파일이 있어도 낡았으면 소용없다. 빌더를 고치고 다시 안 돌리면 구조는 맞는데 내용만
+# 옛것인 인덱스가 배포된다 — 2026-08-20에 cat(요리 종류) 필드를 추가하고 재빌드를 안 해서
+# 카테고리 필터가 조용히 아무것도 못 찾았다. 런타임의 포맷 버전 검사는 "구조가 다름"만
+# 잡지 이건 못 잡고, 배포 후 검증도 매칭 자체는 되니까 통과한다. 시각으로 비교한다.
+BUILDER="scripts/build_recipe_index.py"
+if [ "$BUILDER" -nt "$INDEX_FILE" ]; then
+  echo "배포 중단: $BUILDER 가 $INDEX_FILE 보다 최신입니다." >&2
+  echo "빌더를 고친 뒤 인덱스를 다시 만들지 않았습니다. 구조는 맞는데 내용이 옛것이라" >&2
+  echo "런타임 버전 검사도 배포 후 검증도 이걸 못 잡습니다." >&2
+  echo "" >&2
+  echo "  python scripts/build_recipe_index.py" >&2
+  exit 1
+fi
+
 echo "✓ $INDEX_FILE 확인됨 ($(du -h "$INDEX_FILE" | cut -f1)). 운영 배포를 시작합니다..."
 vercel --prod "$@"
 

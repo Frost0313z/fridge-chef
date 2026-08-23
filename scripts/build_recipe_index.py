@@ -10,6 +10,7 @@
 내보내는 것은 사실 데이터(재료명·시간·인분·인기도)와 원본 링크를 만들 RCP_SNO뿐이다.
 """
 
+import collections
 import csv
 import glob
 import io
@@ -25,6 +26,13 @@ csv.field_size_limit(10 ** 7)
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
 OUT = os.path.join(ROOT, "api", "recipes_index.json")
+
+# 파일 구조가 바뀌면 올린다. api/recipe_match.py의 INDEX_FORMAT과 같아야 한다.
+#
+# 인덱스는 .gitignore에 있어서 코드와 따로 움직인다 — git으로 코드만 되돌리면 파일은
+# 옛것 그대로다. 그때 버전을 안 보면 TypeError가 나면서 매 요청 500이 되고 스스로
+# 낫지도 않는다. 버전이 다르면 파일이 깨진 것과 똑같이 취급해 AI 폴백으로 보낸다.
+FORMAT_VERSION = 2
 
 # 네 스냅샷은 부분집합이 아니라 기간별 증분이다 — 251231은 231130과 한 건도 안 겹친다.
 # 두 개만 쓰면 코퍼스의 79%를 버리게 되므로 전부 병합한다(스펙 실측 ⓐ).
@@ -98,6 +106,62 @@ def to_int(value):
             return 0
 
 
+def pack(recipes):
+    """읽는 쪽이 루프를 안 돌아도 되는 모양으로 접는다.
+
+    예전에는 레시피 dict를 그대로 늘어놓고, 서버가 뜰 때마다 23만 건을 훑어 역색인을
+    다시 만들었다. 그 루프가 콜드 스타트의 절반이었다(709ms/1452ms). 결정적인 값을
+    매번 다시 계산할 이유가 없어서 여기서 만들어 파일에 넣는다.
+
+    같이 하는 것이 이름의 정수화다. 재료명은 고유 62,150종인데 217만 칸에 들어가
+    평균 35번씩 중복된다 — 정수 id로 바꾸면 파일이 50.6MB에서 31.7MB로 줄고,
+    문자열 217만 개를 만들지 않아 메모리도 324MB에서 207MB가 된다.
+
+    실측: 콜드 1452ms -> 633ms.
+    """
+    names, times, inbuns, cats = {}, {}, {}, {}
+
+    def intern(table, value):
+        if value not in table:
+            table[value] = len(table)
+        return table[value]
+
+    rows = []
+    for recipe in recipes:
+        # 같은 재료가 두 번 적힌 원본이 있다. 여기서 한 번만 남기면 읽는 쪽이 set()을
+        # 다시 만들 필요가 없다 — 채점 루프가 후보 16만 건마다 그걸 하고 있었다(156ms).
+        seen, ing = set(), []
+        for name in recipe["ing"]:
+            nid = intern(names, name)
+            if nid not in seen:
+                seen.add(nid)
+                ing.append(nid)
+        rows.append([
+            recipe["id"],
+            recipe["name"],
+            intern(times, recipe["time"]),
+            intern(inbuns, recipe["inbun"]),
+            intern(cats, recipe["cat"]),
+            recipe["pop"],
+            ing,
+        ])
+
+    postings = collections.defaultdict(list)
+    for i, row in enumerate(rows):
+        for nid in row[6]:
+            postings[nid].append(i)
+
+    return {
+        "v": FORMAT_VERSION,
+        "n": list(names),
+        "p": [postings.get(nid, []) for nid in range(len(names))],
+        "t": list(times),
+        "b": list(inbuns),
+        "c": list(cats),
+        "r": rows,
+    }
+
+
 def main():
     merged = {}
     seen_rows = 0
@@ -139,6 +203,7 @@ def main():
         print(f"  {rel:<46} {len(rows):>7,}행 → {kept:>7,}건")
 
     recipes = sorted(merged.values(), key=lambda r: -r["pop"])
+    blob = pack(recipes)
 
     # 23만 건을 덤프하는 중간에 멈추면(Ctrl-C, 디스크 부족) 잘린 46MB 파일이 그 자리에
     # 남는다. 그러면 배포된 서버가 그걸 읽다 매 요청 500이 된다. 임시 파일에 다 쓰고
@@ -146,7 +211,7 @@ def main():
     tmp = OUT + ".tmp"
     try:
         with io.open(tmp, "w", encoding="utf-8", newline="") as fh:
-            json.dump(recipes, fh, ensure_ascii=False, separators=(",", ":"))
+            json.dump(blob, fh, ensure_ascii=False, separators=(",", ":"))
         os.replace(tmp, OUT)
     except BaseException:
         if os.path.exists(tmp):
@@ -157,6 +222,7 @@ def main():
     print()
     print(f"  읽은 행 합계  : {seen_rows:,}")
     print(f"  중복 제거 후  : {len(recipes):,}건")
+    print(f"  고유 재료명   : {len(blob['n']):,}종  (역색인 함께 저장, 포맷 v{FORMAT_VERSION})")
     print(f"  출력          : {os.path.relpath(OUT, ROOT)}  ({size / 1024 / 1024:.1f}MB)")
 
 

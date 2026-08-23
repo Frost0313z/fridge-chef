@@ -17,6 +17,13 @@ from shopping import find_owned
 
 INDEX_PATH = os.path.join(os.path.dirname(__file__), "recipes_index.json")
 
+# scripts/build_recipe_index.py의 FORMAT_VERSION과 같아야 한다. 인덱스는 .gitignore라
+# 코드와 따로 움직이므로, 어긋난 파일을 그냥 읽으면 TypeError로 매 요청 500이 된다.
+INDEX_FORMAT = 2
+
+# 빈 인덱스. 파일이 없거나 못 읽거나 버전이 안 맞으면 이걸 쓰고 AI 생성으로 넘어간다.
+EMPTY_INDEX = {"v": INDEX_FORMAT, "n": [], "p": [], "t": [], "b": [], "c": [], "r": []}
+
 RECIPE_URL = "https://www.10000recipe.com/recipe/{}"
 
 # 화면의 "만들 분량"은 혼자 먹는 끼니 수이고, 데이터의 인분은 몇 명 몫인가다.
@@ -48,10 +55,13 @@ _inverted = None
 def load_index():
     """한 번만 읽고 프로세스에 들고 있는다. 서버리스는 콜드 스타트에서만 이 비용을 낸다.
 
-    같이 만드는 역색인(재료명 -> 레시피 번호)이 매칭 속도를 정한다. 이게 없으면 요청마다
-    레시피 233,283건을 전부 돌며 find_owned를 217만 번 부른다(재료 7개에 약 1.9초).
-    그런데 그 비교의 대상인 고유 재료명은 111,854종뿐이라, 같은 이름을 평균 19번씩 다시
-    비교하고 있었다. 이름 기준으로 한 번만 판정하고 후보만 만지면 356ms가 된다.
+    역색인(재료명 -> 레시피 번호)이 매칭 속도를 정한다. 이게 없으면 요청마다 레시피
+    233,283건을 전부 돌며 find_owned를 217만 번 부른다(재료 7개에 약 1.9초). 고유
+    재료명은 6만여 종뿐이라 같은 이름을 평균 35번씩 다시 비교하는 셈이었다.
+
+    그 역색인을 여기서 만들지 않고 **파일에서 그대로 받는다.** 결정적인 값이라 서버가
+    뜰 때마다 다시 만들 이유가 없는데, 그 루프가 콜드 스타트의 절반을 먹고 있었다
+    (709ms/1452ms). scripts/build_recipe_index.py의 pack()이 만들어 넣는다.
 
     파일이 없으면(로컬에서 파이프라인을 안 돌렸거나 배포에 안 실렸으면) 빈 목록이 되고,
     부르는 쪽은 지금까지 하던 대로 AI 생성으로 간다 — 매칭은 어디까지나 앞단이다.
@@ -62,10 +72,7 @@ def load_index():
     global _index, _inverted
     if _index is None:
         _index = _read_index()
-        _inverted = collections.defaultdict(list)
-        for i, recipe in enumerate(_index):
-            for name in set(recipe.get("ing") or ()):
-                _inverted[name].append(i)
+        _inverted = _index["p"]
     return _index, _inverted
 
 
@@ -80,13 +87,26 @@ def _read_index():
     """
     if not os.path.exists(INDEX_PATH):
         print(f"recipes_index.json not found at {INDEX_PATH} — falling back to AI-only", file=sys.stderr)
-        return []
+        return EMPTY_INDEX
     try:
         with open(INDEX_PATH, encoding="utf-8") as fh:
-            return json.load(fh)
+            blob = json.load(fh)
     except (ValueError, OSError) as error:
         print(f"recipes_index.json unreadable ({error}) — falling back to AI-only", file=sys.stderr)
-        return []
+        return EMPTY_INDEX
+
+    # 버전이 다르면 읽지 않는다. 인덱스는 .gitignore라 코드와 따로 움직여서, 코드만
+    # 되돌리거나 인덱스만 옛것이 남는 일이 실제로 생긴다. 그냥 읽으면 TypeError가 나며
+    # 매 요청 500이 되고 스스로 낫지 않는다 — 깨진 파일과 똑같이 취급하는 편이 낫다.
+    if not isinstance(blob, dict) or blob.get("v") != INDEX_FORMAT:
+        found = blob.get("v") if isinstance(blob, dict) else "old-array"
+        print(
+            f"recipes_index.json format mismatch (want v{INDEX_FORMAT}, found {found}) "
+            "— rebuild with scripts/build_recipe_index.py; falling back to AI-only",
+            file=sys.stderr,
+        )
+        return EMPTY_INDEX
+    return blob
 
 
 def vocab_with_min_occurrence(min_count):
@@ -97,8 +117,9 @@ def vocab_with_min_occurrence(min_count):
     어휘와 대조할 때, 어휘에 있다는 사실만으로는 "진짜 자주 쓰이는 재료"를 보장 못 한다
     — docs/spec-pantry-photo-import.md 핵심 원칙 3.
     """
-    _, inverted = load_index()
-    return [name for name, ids in inverted.items() if len(ids) >= min_count]
+    index, postings = load_index()
+    names = index["n"]
+    return [names[nid] for nid, ids in enumerate(postings) if len(ids) >= min_count]
 
 
 def score(hit, total):
@@ -127,32 +148,36 @@ def match(pantry_keys, limit=3, category=None, portion=None):
     if not pantry_keys:
         return []
 
-    index, inverted = load_index()
+    index, postings = load_index()
+    names, rows = index["n"], index["r"]
+    inbuns, cats = index["b"], index["c"]
 
     # 재료명 사전을 냉장고와 한 번만 대조한다. find_owned는 양방향 부분 문자열이라
     # 어떤 색인도 못 타므로(그래서 SQLite도 답이 아니었다) 이 한 번은 어차피 남는다.
     hits = collections.Counter()
-    for name, recipe_ids in inverted.items():
+    for nid, name in enumerate(names):
         if find_owned(name, pantry_keys):
-            for i in recipe_ids:
+            for i in postings[nid]:
                 hits[i] += 1
 
     wanted = PORTION_PREFERENCE.get(portion, ())
 
+    filter_cat = category if category and category != "상관없음" else None
+
     scored = []
     for i, hit in hits.items():
-        recipe = index[i]
-        if category and category != "상관없음" and recipe.get("cat") != category:
+        row = rows[i]
+        if filter_cat and cats[row[4]] != filter_cat:
             continue
-        # hit은 set(ing)로 만든 색인 기준(중복 재료명 1회) 이므로 분모도 같은 기준이어야
-        # 한다. 원본 리스트 길이를 쓰면 중복 재료가 있는 레시피의 커버율이 실제보다 낮게 나온다.
-        total = len(set(recipe.get("ing") or ()))
+        # 재료 id는 빌드 때 이미 중복을 없앴으므로 길이가 곧 분모다. 예전에는 후보마다
+        # set()을 새로 만들었는데, 후보가 16만 건이라 그것만 156ms였다.
+        total = len(row[6])
         if total < MIN_INGREDIENTS:
             continue
         rate = hit / total
         if rate >= MIN_COVERAGE:
-            fits = 1 if recipe.get("inbun") in wanted else 0
-            scored.append((fits, score(hit, total), recipe.get("pop", 0), rate, recipe))
+            fits = 1 if inbuns[row[3]] in wanted else 0
+            scored.append((fits, score(hit, total), row[5], rate, i))
 
     # 분량이 맞는 것이 먼저, 그 안에서 점수, 같으면 인기도(추천수+스크랩수)로 가른다.
     # 분량을 점수보다 앞에 두는 것은 이게 사용자가 직접 고른 조건이기 때문이다 —
@@ -168,29 +193,34 @@ def match(pantry_keys, limit=3, category=None, portion=None):
     from recommend import dedupe_key
 
     out, seen = [], set()
-    for _, _, _, rate, recipe in scored:
-        key = dedupe_key(recipe.get("name", ""))
+    for _, _, _, rate, i in scored:
+        row = rows[i]
+        key = dedupe_key(row[1])
         if not key or key in seen:
             continue
         seen.add(key)
-        out.append(to_response(recipe, rate))
+        out.append(to_response(index, row, rate))
         if len(out) >= limit:
             break
     return out
 
 
-def to_response(recipe, rate):
-    """프론트가 받을 모양. steps가 빈 배열인 것이 이 응답의 핵심이다 — 원문을 재구성하지 않는다."""
+def to_response(index, row, rate):
+    """프론트가 받을 모양. steps가 빈 배열인 것이 이 응답의 핵심이다 — 원문을 재구성하지 않는다.
+
+    파일에는 재료·시간·인분이 정수 id로 들어 있다. 이름으로 되돌리는 것은 화면에 나갈
+    최대 3건뿐이라 값이 싸다 — 23만 건을 미리 풀어두는 것과는 비용이 다르다."""
+    names = index["n"]
     return {
-        "name": recipe.get("name", ""),
+        "name": row[1],
         "source": "matched",
-        "recipeUrl": RECIPE_URL.format(recipe.get("id")),
-        "time": recipe.get("time", ""),
-        "portion": recipe.get("inbun", ""),
-        "ingredients": list(recipe.get("ing") or []),
+        "recipeUrl": RECIPE_URL.format(row[0]),
+        "time": index["t"][row[2]],
+        "portion": index["b"][row[3]],
+        "ingredients": [names[nid] for nid in row[6]],
         "steps": [],
         # 검색 링크 폴백용 — 원본이 삭제됐을 때 프론트가 쓸 수 있다.
-        "searchKeyword": recipe.get("name", ""),
+        "searchKeyword": row[1],
         "coverage": round(rate, 3),
     }
 
