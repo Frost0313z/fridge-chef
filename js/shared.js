@@ -326,6 +326,22 @@ function recipeSearchLinkHtml(name, searchKeyword) {
     aria-label="${escapeHtml(query)} 레시피를 만개의레시피에서 찾아보기">만개의레시피에서 찾아보기 →</a>`;
 }
 
+/* 카드 위쪽 한 줄 — 조리 시간과 인분. 두 화면이 같은 마크업을 따로 들고 있었다.
+
+   인분은 매칭된 레시피에만 있다(AI가 지어낸 것에는 없다). 있으면 반드시 보여준다 —
+   추천 카드의 92%가 2인분 이상인데 화면이 그걸 말해주지 않으면, "한 끼"를 고른
+   사람이 4인분 양인 줄 모르고 만든다. 고르게 해놓고 무시하는 것보다 나쁘다. */
+function recipeMetaHtml(r) {
+  const bits = [];
+  if (r.time) bits.push(`<span class="recipe-time">⏱ ${escapeHtml(r.time)}</span>`);
+  if (r.portion) {
+    bits.push(
+      `<span class="recipe-portion">${escapeHtml(COPY.UI.portionNote(r.portion))}</span>`
+    );
+  }
+  return bits.length ? `<p class="recipe-meta">${bits.join("")}</p>` : "";
+}
+
 /* recipe.js의 결과 카드와 mealplan.js의 즐겨찾기 상세 카드가 똑같이 쓴다.
 
    실제 레시피와 매칭된 것은 조리 순서를 우리 화면에 적지 않는다. 데이터 라이선스
@@ -1528,6 +1544,9 @@ function toggleFavorite(recipe) {
     /* 실제 레시피와 매칭된 항목은 원본 주소가 곧 조리 순서다(steps가 비어 있다).
        여기서 빠뜨리면 담아둔 뒤 다시 열었을 때 이름으로 검색하는 링크로 떨어진다. */
     recipeUrl: recipe.recipeUrl || "",
+    /* 원본에 적힌 인분. 같은 이유로 빠뜨리면 안 된다 — 담아둔 뒤 다시 열었을 때
+       "4인분 기준"이 사라져, 한 끼 분량인 줄 알고 만들게 된다. */
+    portion: recipe.portion || "",
   });
   return { on: true, stored: saveJson(FAVORITES_KEY, items), full: false };
 }

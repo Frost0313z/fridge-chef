@@ -198,6 +198,7 @@ def handle(payload):
         _pantry_keys(ingredients),
         limit=(POOL_MATCH_LIMIT if match_only else MAX_RECIPES),
         category=category,
+        portion=portion,
     )
     if exclude:
         # "다른 요리 보기"로 다시 부른 경우. 방금 보여준 것을 빼야 버튼 문구가 거짓말이 아니다.

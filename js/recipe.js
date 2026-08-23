@@ -156,7 +156,7 @@ function recipeCardHtml(r, pantryNames = [], index = 0) {
         <h3>${escapeHtml(r.name)}</h3>
         ${favoriteToggleHtml(r.name, `data-recipe-index="${index}"`)}
       </div>
-      <p class="recipe-time">⏱ ${escapeHtml(r.time || "")}</p>
+      ${recipeMetaHtml(r)}
       <h4>재료</h4>
       <ul class="recipe-ingredients">${(r.ingredients || [])
         .map((i) => ingredientLiHtml(i, pantryNames))

@@ -2697,11 +2697,26 @@ body[data-page="recipe"] .recipe-form-section > .result-grid {
   font-size: var(--fs-105);
 }
 
-.recipe-time {
+/* 조리 시간과 인분을 한 줄에 둔다. 인분은 매칭된 레시피에만 붙는다. */
+.recipe-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-10);
   margin: 0 0 12px;
+}
+
+.recipe-time {
   color: var(--accent-strong);
   font-size: var(--fs-90);
   font-weight: 600;
+}
+
+/* 시간과 나란히 두되 강조는 시간 쪽에 남긴다 — 인분은 "참고하세요"지
+   "이 시간 안에 됩니다" 같은 약속이 아니다. 강조색을 둘 쓰지 않는다는 규칙도 있다. */
+.recipe-portion {
+  color: var(--text-muted);
+  font-size: var(--fs-85);
 }
 
 /* 즐겨찾기 상세 카드(.favorites-detail)도 같은 타이포를 쓴다 — 같은 정보(재료·조리

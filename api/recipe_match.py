@@ -19,6 +19,21 @@ INDEX_PATH = os.path.join(os.path.dirname(__file__), "recipes_index.json")
 
 RECIPE_URL = "https://www.10000recipe.com/recipe/{}"
 
+# 화면의 "만들 분량"은 혼자 먹는 끼니 수이고, 데이터의 인분은 몇 명 몫인가다.
+# 혼자 두 끼 먹을 양이면 2인분 한 번이 대체로 맞다 — 그 대응을 여기 적는다.
+#
+# 거르지 않고 "먼저 올리기"만 하는 이유는 코퍼스가 그렇게 생겼기 때문이다. 1인분은
+# 전체의 15.4%뿐이라 걸러내면 85%를 버리고, 매칭이 자주 실패해 오히려 덜 믿을 만한
+# AI 생성으로 넘어간다. 게다가 인분은 올린 사람이 스스로 적은 값이라 같은 김치찌개가
+# 1인분으로도 4인분으로도 올라와 있다 — 요리 자체는 인분에 따라 바뀌지 않는다.
+# 실측: 우선순위만 줘도 1~2인분 카드가 42% -> 75%가 되고 커버리지 손실은 없었다.
+PORTION_PREFERENCE = {
+    "한 끼": ("1인분", "2인분"),
+    "두 끼": ("2인분", "3인분"),
+    "3~4끼": ("3인분", "4인분", "5인분", "6인분이상"),
+}
+
+
 # 커버율 기준. 레시피 재료 중 사용자가 가진 것의 비율이 이 값을 넘어야 후보로 본다.
 MIN_COVERAGE = 0.7
 
@@ -98,13 +113,17 @@ def score(hit, total):
     return (hit / total) * hit if total else 0.0
 
 
-def match(pantry_keys, limit=3, category=None):
+def match(pantry_keys, limit=3, category=None, portion=None):
     """냉장고 재료로 만들 수 있는 실제 레시피를 찾는다. 없으면 빈 배열.
 
     category가 주어지면(값이 있고 "상관없음"이 아니면) CKG_KND_ACTO_NM(cat)이 정확히
     같은 레시피만 후보로 남긴다. 큐레이션한 13개 밖의 원본 값(기타·과자 등)은 UI에
     선택지로 없으므로 여기로 들어올 일이 없다 — 걸러도 정확히 일치해야 하므로 별도
-    화이트리스트 검증은 하지 않는다."""
+    화이트리스트 검증은 하지 않는다.
+
+    portion이 주어지면 그 끼니 수에 어울리는 인분을 **먼저 올린다**(거르지는 않는다).
+    이게 없으면 "한 끼"를 고른 사람에게 6인분짜리가 그대로 나가고, 화면은 그걸
+    말해주지도 않는다 — 선택이 조용히 무시되는 셈이다(healthy를 뺀 것과 같은 이유)."""
     if not pantry_keys:
         return []
 
@@ -118,6 +137,8 @@ def match(pantry_keys, limit=3, category=None):
             for i in recipe_ids:
                 hits[i] += 1
 
+    wanted = PORTION_PREFERENCE.get(portion, ())
+
     scored = []
     for i, hit in hits.items():
         recipe = index[i]
@@ -130,10 +151,13 @@ def match(pantry_keys, limit=3, category=None):
             continue
         rate = hit / total
         if rate >= MIN_COVERAGE:
-            scored.append((score(hit, total), recipe.get("pop", 0), rate, recipe))
+            fits = 1 if recipe.get("inbun") in wanted else 0
+            scored.append((fits, score(hit, total), recipe.get("pop", 0), rate, recipe))
 
-    # 점수가 먼저, 같으면 인기도(추천수+스크랩수)로 가른다.
-    scored.sort(key=lambda x: (-x[0], -x[1]))
+    # 분량이 맞는 것이 먼저, 그 안에서 점수, 같으면 인기도(추천수+스크랩수)로 가른다.
+    # 분량을 점수보다 앞에 두는 것은 이게 사용자가 직접 고른 조건이기 때문이다 —
+    # 점수는 우리가 매긴 값이고, 분량은 사용자가 말한 값이다.
+    scored.sort(key=lambda x: (-x[0], -x[1], -x[2]))
 
     # 같은 이름이 여러 장 뜨지 않게 거른다. 인덱스에는 RCP_SNO가 다른 별개 레시피로 남아
     # 있는 게 맞고("만능간장"이라는 이름의 서로 다른 레시피가 실제로 여럿 있다), 화면에
@@ -144,7 +168,7 @@ def match(pantry_keys, limit=3, category=None):
     from recommend import dedupe_key
 
     out, seen = [], set()
-    for _, _, rate, recipe in scored:
+    for _, _, _, rate, recipe in scored:
         key = dedupe_key(recipe.get("name", ""))
         if not key or key in seen:
             continue

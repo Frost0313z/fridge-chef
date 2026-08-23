@@ -669,12 +669,11 @@ function detailActionsHtml(recipe, poolIndex) {
 /* 즐겨찾기 다이얼로그가 쓰던 상세 렌더(재료+조리법)를 그대로 옮겨온다 —
    조리법·링크 갈림길은 shared.js의 recipeStepsOrLinkHtml이 recipe.js 카드와 함께 쓴다. */
 function recipeDetailHtml(r) {
-  const timeHtml = r.time ? `<p class="recipe-time">⏱ ${escapeHtml(r.time)}</p>` : "";
   const ingredientsHtml = (r.ingredients || []).length
     ? `<h4>${escapeHtml(COPY.FAVORITES.detailIngredients)}</h4>
        <ul>${r.ingredients.map((ing) => `<li>${escapeHtml(ing)}</li>`).join("")}</ul>`
     : "";
-  return `<h3 class="favorites-detail-name">${escapeHtml(r.name)}</h3>${timeHtml}${ingredientsHtml}${recipeStepsOrLinkHtml(r)}`;
+  return `<h3 class="favorites-detail-name">${escapeHtml(r.name)}</h3>${recipeMetaHtml(r)}${ingredientsHtml}${recipeStepsOrLinkHtml(r)}`;
 }
 
 /* 오른쪽 "상세 보기" 전체를 다시 그린다. selectedRecipe가 day-less 후보로도 담겨 있으면

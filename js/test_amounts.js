@@ -325,6 +325,9 @@ const kimchiJjigae = {
   /* 실제 레시피 매칭 항목은 원본 주소가 곧 조리 순서다(steps가 비어 있다).
      즐겨찾기가 이 필드를 버리면 담아둔 뒤 링크가 사라진다. */
   recipeUrl: "",
+  /* 인분도 같은 이유로 지켜야 한다 — 버리면 "4인분 기준"이 사라져서
+     한 끼 분량인 줄 알고 만들게 된다. */
+  portion: "",
 };
 
 store[FAV] = JSON.stringify([]);
@@ -332,6 +335,14 @@ check("처음은 비어 있다", loadFavorites(), []);
 check("담으면 켜진다", toggleFavorite(kimchiJjigae).on, true);
 check("담긴 것으로 읽힌다", isFavorite("김치찌개"), true);
 check("이력과 같은 모양으로 저장한다", loadFavorites(), [kimchiJjigae]);
+
+// 매칭된 레시피를 담았다가 다시 열었을 때 인분이 살아 있어야 한다.
+store[FAV] = JSON.stringify([]);
+toggleFavorite({ name: "돼지고기김치찌개", portion: "4인분", recipeUrl: "https://x/1" });
+check("인분을 잃지 않는다", loadFavorites()[0].portion, "4인분");
+check("원본 주소도 함께 지킨다", loadFavorites()[0].recipeUrl, "https://x/1");
+store[FAV] = JSON.stringify([]);
+toggleFavorite(kimchiJjigae);
 check("띄어쓰기가 달라도 같은 요리", isFavorite("김치 찌개"), true);
 check("다시 누르면 빠진다", toggleFavorite(kimchiJjigae).on, false);
 check("빠지면 목록도 빈다", loadFavorites(), []);

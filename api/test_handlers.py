@@ -673,6 +673,45 @@ def test_match_drops_duplicate_names():
     assert [r["name"] for r in out] == ["만능간장", "다른요리"], out
 
 
+def test_match_prefers_the_portion_the_user_picked():
+    """"한 끼"를 고르면 1~2인분이 먼저 온다. 점수가 낮아도 먼저다 —
+    점수는 우리가 매긴 값이고 분량은 사용자가 말한 값이다."""
+    _fake_index([
+        # 점수가 더 높다(재료 4개를 다 씀). 하지만 6인분이다.
+        {"id": 1, "name": "대용량찌개", "ing": ["김치", "두부", "대파", "계란"],
+         "pop": 100, "inbun": "6인분이상"},
+        # 점수는 낮지만(재료 3개) 혼자 먹기에 맞다.
+        {"id": 2, "name": "김치두부", "ing": ["김치", "두부", "대파"],
+         "pop": 1, "inbun": "1인분"},
+    ])
+    names = [r["name"] for r in recipe_match.match(["김치", "두부", "대파", "계란"], portion="한 끼")]
+    assert names[0] == "김치두부", names
+
+    # 분량을 안 주면 예전처럼 점수 순이다.
+    names = [r["name"] for r in recipe_match.match(["김치", "두부", "대파", "계란"])]
+    assert names[0] == "대용량찌개", names
+
+
+def test_match_never_drops_a_recipe_for_its_portion():
+    """우선순위지 필터가 아니다. 1인분은 코퍼스의 15.4%뿐이라 걸러내면 85%를 버리고,
+    매칭이 자주 실패해 오히려 덜 믿을 만한 AI 생성으로 넘어간다."""
+    _fake_index([
+        {"id": 1, "name": "대용량찌개", "ing": ["김치", "두부", "대파"], "pop": 1, "inbun": "6인분이상"},
+    ])
+    names = [r["name"] for r in recipe_match.match(["김치", "두부", "대파"], portion="한 끼")]
+    assert names == ["대용량찌개"], names
+
+
+def test_matched_recipe_reports_its_portion():
+    """원본에 적힌 인분을 그대로 내려보낸다. 화면이 "4인분 기준이에요"를 띄우는 근거다 —
+    말해주지 않으면 한 끼를 고른 사람이 4인분 양을 그대로 만든다."""
+    _fake_index([
+        {"id": 7, "name": "김치찌개", "ing": ["김치", "두부", "대파"], "pop": 1, "inbun": "4인분"},
+    ])
+    out = recipe_match.match(["김치", "두부", "대파"])
+    assert out[0]["portion"] == "4인분", out[0]
+
+
 def test_matched_recipe_never_carries_steps():
     """조리 순서 원문을 우리 응답에 싣지 않는다 — 데이터 라이선스의 ND 조건이라
     문구 문제가 아니라 지켜야 하는 경계다(docs/spec-recipe-match.md)."""
