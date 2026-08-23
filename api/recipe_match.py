@@ -46,17 +46,32 @@ def load_index():
     """
     global _index, _inverted
     if _index is None:
-        if os.path.exists(INDEX_PATH):
-            with open(INDEX_PATH, encoding="utf-8") as fh:
-                _index = json.load(fh)
-        else:
-            print(f"recipes_index.json not found at {INDEX_PATH} — falling back to AI-only", file=sys.stderr)
-            _index = []
+        _index = _read_index()
         _inverted = collections.defaultdict(list)
         for i, recipe in enumerate(_index):
             for name in set(recipe.get("ing") or ()):
                 _inverted[name].append(i)
     return _index, _inverted
+
+
+def _read_index():
+    """인덱스를 읽는다. 못 읽으면 빈 목록 — 부르는 쪽은 AI 생성으로 넘어간다.
+
+    파일이 "없을" 때만 막고 "깨졌을" 때를 안 막으면 방향이 거꾸로가 된다. 46MB짜리를
+    로컬에서 만들어 Vercel CLI가 통째로 올리는 구조라 잘린 파일이 실제로 생길 수 있는데,
+    그러면 json.load가 던지고 매 요청이 500이 된다 — 사용자에게는 "잠시 후 다시
+    시도해주세요"가 나가지만 스스로 낫지 않는 상태다. 파일이 없을 때처럼 폴백시키고
+    로그로만 알린다. 서비스가 조금 나빠지는 것과 통째로 멈추는 것은 다르다.
+    """
+    if not os.path.exists(INDEX_PATH):
+        print(f"recipes_index.json not found at {INDEX_PATH} — falling back to AI-only", file=sys.stderr)
+        return []
+    try:
+        with open(INDEX_PATH, encoding="utf-8") as fh:
+            return json.load(fh)
+    except (ValueError, OSError) as error:
+        print(f"recipes_index.json unreadable ({error}) — falling back to AI-only", file=sys.stderr)
+        return []
 
 
 def vocab_with_min_occurrence(min_count):

@@ -766,15 +766,20 @@ function initCooked(containerEl, onChange) {
 
          절약은 이 경우에도 센다. 뺄 재료가 없었다는 것이지 요리를 안 해먹었다는 뜻이
          아니다 — 사용자는 분명히 해먹었고, 그러면 배달을 안 시킨 것이 맞다. */
+      /* addSavings는 저장에 실패하면 총액을 올리지 않고 되돌리기도 세우지 않는다.
+         강조 문구만 먼저 무조건 켜면, 시크릿 모드에서 "이번 끼니 얼마"는 뜨는데 총액은
+         그대로인 상태가 된다 — 화면이 사실과 달라진다. 먼저 더해보고 늘었을 때만 켠다. */
+      const before = savingsTotal();
+      const total = addSavings();
+      setSavingsHighlight(root, total > before ? SAVED_PER_MEAL : 0);
+
       if (!result.removed.length) {
-        setSavingsHighlight(root, SAVED_PER_MEAL);
-        setCookedStatus(root, `${COPY.COOKED.already} ${COPY.SAVINGS.inline(addSavings())}`, false);
+        setCookedStatus(root, `${COPY.COOKED.already} ${COPY.SAVINGS.inline(total)}`, false);
         return;
       }
-      setSavingsHighlight(root, SAVED_PER_MEAL);
       setCookedStatus(
         root,
-        `${COPY.COOKED.done(result.removed.join(", "))} ${COPY.SAVINGS.inline(addSavings())}`,
+        `${COPY.COOKED.done(result.removed.join(", "))} ${COPY.SAVINGS.inline(total)}`,
         true
       );
       renderPantryBar();
@@ -1268,7 +1273,7 @@ function initPantryImport({ setPantry, render, setStatus }) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(reader.error);
+        reader.onerror = () => reject(reader.error || new Error("file_read_failed"));
         reader.readAsDataURL(file);
       });
     }
@@ -1276,16 +1281,25 @@ function initPantryImport({ setPantry, render, setStatus }) {
     return new Promise((resolve, reject) => {
       const img = new Image();
       const objectUrl = URL.createObjectURL(file);
+      /* onload 콜백 안에서 던진 예외는 이 Promise를 reject하지 않는다 — 바깥 try/catch가
+         못 잡고 await가 영영 안 풀려서, 사진을 골랐는데 화면에 아무 변화도 없게 된다(C3).
+         getContext는 메모리가 모자라면 null을 주고, toDataURL도 캔버스가 너무 크면 던진다. */
       img.onload = () => {
         URL.revokeObjectURL(objectUrl);
-        const scale = Math.min(1, MAX_DIM / Math.max(img.naturalWidth, img.naturalHeight));
-        const w = Math.round(img.naturalWidth * scale);
-        const h = Math.round(img.naturalHeight * scale);
-        const canvas = document.createElement("canvas");
-        canvas.width = w;
-        canvas.height = h;
-        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL("image/jpeg", QUALITY));
+        try {
+          const scale = Math.min(1, MAX_DIM / Math.max(img.naturalWidth, img.naturalHeight));
+          const w = Math.round(img.naturalWidth * scale);
+          const h = Math.round(img.naturalHeight * scale);
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) throw new Error("canvas_context_unavailable");
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL("image/jpeg", QUALITY));
+        } catch (err) {
+          reject(err);
+        }
       };
       img.onerror = () => {
         URL.revokeObjectURL(objectUrl);

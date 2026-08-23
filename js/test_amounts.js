@@ -260,6 +260,17 @@ setSavings({ legacy: 1000, days: { "2026-08-17": -3000, "엉뚱한키": 5000, "2
 check("음수·엉뚱한 날짜 키는 버린다", days(), { "2026-08-18": 2000 });
 check("남은 것만 누적에 든다", savingsTotal(), 3000);
 
+/* 시크릿 모드·용량 초과에서는 setItem이 던진다. 그때 총액이 오른 것처럼 보이면 화면이
+   사실과 달라진다 — initCooked가 "이번 끼니 얼마" 강조를 켤지도 이 반환값으로 판단한다. */
+setSavings({ legacy: 0, days: {} });
+addSavings();
+const realSetItem = sandbox.localStorage.setItem;
+sandbox.localStorage.setItem = () => { throw new Error("QuotaExceededError"); };
+check("저장이 막히면 총액은 그대로", addSavings(), 13000);
+check("저장이 막히면 기록도 그대로", days(), { [todayISO()]: 13000 });
+sandbox.localStorage.setItem = realSetItem;
+check("막힌 뒤에도 되돌리기가 헛돌지 않는다", undoSavings(), 0);
+
 /* 주 경계 — 월요일에 시작해서 일요일에 끝난다.
    2026-08-17은 월요일이고 2026-08-23이 그 주 일요일이다. */
 check("월요일의 주 시작은 그날", weekStartISO("2026-08-17"), "2026-08-17");

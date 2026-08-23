@@ -551,6 +551,73 @@ def test_load_index_logs_when_missing():
         recipe_match.INDEX_PATH = original_path
 
 
+def test_load_index_survives_a_broken_file():
+    """잘린 인덱스도 없는 것과 같게 다룬다.
+
+    46MB짜리를 로컬에서 만들어 Vercel CLI가 통째로 올리는 구조라 잘린 파일이 실제로
+    생길 수 있다. 파일 없음만 막고 깨진 것을 안 막으면 방향이 거꾸로가 된다 —
+    없으면 서비스가 살고 깨지면 매 요청이 500이 되어 스스로 낫지도 않는다.
+    """
+    import contextlib
+    import io
+    import tempfile
+
+    original_index = recipe_match._index
+    original_inverted = recipe_match._inverted
+    original_path = recipe_match.INDEX_PATH
+
+    broken = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8")
+    broken.write('[{"id":1,"name":"김치찌개","ing":["김치","두부"')  # 덤프 중간에 끊긴 모양
+    broken.close()
+
+    recipe_match._index = None
+    recipe_match._inverted = None
+    recipe_match.INDEX_PATH = broken.name
+    try:
+        captured = io.StringIO()
+        with contextlib.redirect_stderr(captured):
+            index, inverted = recipe_match.load_index()
+        assert index == [] and dict(inverted) == {}, (index, inverted)
+        assert "unreadable" in captured.getvalue(), captured.getvalue()
+        # 부르는 쪽이 죽지 않고 빈 결과로 넘어가야 AI 생성 폴백이 살아난다.
+        assert recipe_match.match(["김치", "두부"]) == []
+    finally:
+        os.remove(broken.name)
+        recipe_match._index = original_index
+        recipe_match._inverted = original_inverted
+        recipe_match.INDEX_PATH = original_path
+
+
+def test_recipe_index_is_written_atomically():
+    """덤프 중간에 죽어도 예전 인덱스가 남아야 한다 — 잘린 파일을 남기면 위 테스트의
+    상황을 우리가 직접 만드는 셈이다."""
+    import json as _json
+    import tempfile
+    from unittest import mock
+
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts"))
+    import build_recipe_index as builder
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        out = os.path.join(tmpdir, "recipes_index.json")
+        with open(out, "w", encoding="utf-8") as fh:
+            fh.write('[{"id":1,"name":"예전 인덱스"}]')
+
+        original_out, original_sources = builder.OUT, builder.SOURCES
+        builder.OUT, builder.SOURCES = out, []  # CSV는 읽지 않는다 — 쓰기만 본다
+        try:
+            with mock.patch.object(builder.json, "dump", side_effect=KeyboardInterrupt):
+                try:
+                    builder.main()
+                except KeyboardInterrupt:
+                    pass
+            with open(out, encoding="utf-8") as fh:
+                assert _json.load(fh) == [{"id": 1, "name": "예전 인덱스"}], "예전 인덱스가 덮여 썼다"
+            assert not os.path.exists(out + ".tmp"), "임시 파일이 남았다"
+        finally:
+            builder.OUT, builder.SOURCES = original_out, original_sources
+
+
 def test_match_prefers_using_more_of_the_fridge():
     """커버율만 보면 재료 적은 레시피가 늘 이긴다. score=(hit/total)*hit이 그걸 뒤집는다 —
     3개를 다 맞춘 것(3점)보다 8개 중 7개를 맞춘 것(6.1점)이 냉장고를 더 쓴다."""

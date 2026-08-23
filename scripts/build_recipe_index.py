@@ -139,8 +139,19 @@ def main():
         print(f"  {rel:<46} {len(rows):>7,}행 → {kept:>7,}건")
 
     recipes = sorted(merged.values(), key=lambda r: -r["pop"])
-    with io.open(OUT, "w", encoding="utf-8", newline="") as fh:
-        json.dump(recipes, fh, ensure_ascii=False, separators=(",", ":"))
+
+    # 23만 건을 덤프하는 중간에 멈추면(Ctrl-C, 디스크 부족) 잘린 46MB 파일이 그 자리에
+    # 남는다. 그러면 배포된 서버가 그걸 읽다 매 요청 500이 된다. 임시 파일에 다 쓰고
+    # 마지막에 이름만 바꾼다 — 남는 것은 "완성본" 아니면 "직전 것", 둘 중 하나다.
+    tmp = OUT + ".tmp"
+    try:
+        with io.open(tmp, "w", encoding="utf-8", newline="") as fh:
+            json.dump(recipes, fh, ensure_ascii=False, separators=(",", ":"))
+        os.replace(tmp, OUT)
+    except BaseException:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+        raise
 
     size = os.path.getsize(OUT)
     print()
