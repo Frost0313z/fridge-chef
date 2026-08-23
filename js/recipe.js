@@ -10,7 +10,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const portionEl = document.getElementById("portion");
   const timeLimitEl = document.getElementById("timeLimit");
   const categoryEl = document.getElementById("category");
-  const submitBtn = document.getElementById("submit-btn");
+  const readyBtn = document.getElementById("submit-ready");
+  const shoppingBtn = document.getElementById("submit-shopping");
   const loadingEl = document.getElementById("loading");
   const errorEl = document.getElementById("error");
   const resultEl = document.getElementById("result");
@@ -21,7 +22,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const REQUEST_TIMEOUT_MS = 20000;
   /* 기다리는 화면이 "최대 몇 초"를 말하려면 실제로 포기하는 시각을 알아야 한다.
      여기서 넘기지 않으면 화면과 AbortController가 서로 다른 마감을 갖게 된다. */
-  const status = createFormStatus({ loadingEl, errorEl, submitBtn, timeoutMs: REQUEST_TIMEOUT_MS });
+  const status = createFormStatus({
+    loadingEl, errorEl, submitBtn: [readyBtn, shoppingBtn], timeoutMs: REQUEST_TIMEOUT_MS,
+  });
+
+  /* 어느 버튼으로 물었는지. "다른 요리 보기"는 방금 고른 쪽을 그대로 이어야 하므로
+     (submitter 없이 requestSubmit이 불린다) 마지막 값을 들고 있는다. */
+  let lastMode = "ready";
 
   restorePreferences();
 
@@ -54,6 +61,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    /* 두 버튼이 같은 폼을 제출한다. 어느 쪽인지는 submitter가 알려준다 —
+       "다른 요리 보기"처럼 코드가 부른 제출에는 submitter가 없어서 직전 모드를 잇는다. */
+    const mode = event.submitter?.dataset.mode || lastMode;
+    lastMode = mode;
     status.setError("");
     fallbackEl.hidden = true;
     rerecommendBtn.hidden = true;
@@ -87,6 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
         timeLimit: timeLimitEl.value,
         category: categoryEl.value,
         exclude,
+        mode,
       },
       REQUEST_TIMEOUT_MS
     );
@@ -97,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    renderRecipes(result.data.recipes || []);
+    renderRecipes(result.data.recipes || [], mode);
   });
 
   /* 빈 입력은 사용자가 바로 고칠 수 있으므로 대안을 권하지 않는다.
@@ -107,9 +119,17 @@ document.addEventListener("DOMContentLoaded", () => {
     fallbackEl.hidden = historyItems.length === 0;
   }
 
-  function renderRecipes(recipes) {
+  /* 결과가 없을 때 무엇을 말할지는 어느 버튼을 눌렀는지에 달렸다. 두 버튼은 서로의
+     막다른 길을 열어주는 관계라, 한쪽이 비면 다른 쪽을 권한다. */
+  function emptyMessageFor(mode) {
+    if (mode === "ready") return COPY.UI.emptyReadyMode;
+    if (mode === "shopping") return COPY.UI.emptyShoppingMode;
+    return COPY.UI.emptyResult;
+  }
+
+  function renderRecipes(recipes, mode) {
     if (!recipes.length) {
-      showErrorWithFallback(COPY.UI.emptyResult);
+      showErrorWithFallback(emptyMessageFor(mode));
       return;
     }
 
@@ -118,7 +138,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const pantryNames = pantryNamesFor(loadPantry());
     shownRecipes = recipes;
     resultEl.innerHTML =
-      resultLeadHtml(recipes, pantryNames) +
+      resultLeadHtml(recipes, pantryNames, mode) +
       recipes.map((r, i) => recipeCardHtml(r, pantryNames, i)).join("");
     document.getElementById("result-empty").hidden = true;
     addToHistory(recipes);
@@ -139,7 +159,9 @@ function ingredientLiHtml(name, pantryNames) {
   const safe = escapeHtml(name);
   if (!pantryNames.length) return `<li data-name="${safe}">${safe}</li>`;
 
-  return isCovered(normalizeIngredient(name), pantryNames)
+  /* 기본 조미료에는 "사야 해요"를 붙이지 않는다. 서버가 커버율을 같은 기준으로 세므로
+     (api/recipe_match.py), 안 맞추면 "다 있어요"로 온 카드에 "소금 사야 해요"가 붙는다. */
+  return isPantryStaple(name) || isCovered(normalizeIngredient(name), pantryNames)
     ? `<li class="ing-has" data-name="${safe}">${safe}</li>`
     : `<li class="ing-missing" data-name="${safe}">${safe} <span class="ing-tag">${escapeHtml(
         COPY.UI.needToBuyBadge
@@ -155,32 +177,40 @@ let shownRecipes = [];
    의미 없으므로(전부 "사야 해요"가 된다) 세지 않는다 — ingredientLiHtml과 같은 조건이다. */
 function isReadyToCook(r, pantryNames) {
   if (!pantryNames.length) return false;
-  return missingIngredients({ ingredients: r.ingredients }, pantryNames).length === 0;
+  return missingForCooking(r.ingredients, pantryNames).length === 0;
 }
 
 /* 결과 목록 맨 앞 한 줄. 지금 바로 되는 게 있으면 몇 개인지 말하고, 하나도 없으면
    그 사실을 먼저 말한 뒤 몇 개만 사면 되는지 알려준다. 서버가 이미 바로 되는 것을
    앞으로 정렬해 보내므로(api/recipe_match.py), 여기서 다시 줄을 세우지는 않는다. */
-function resultLeadHtml(recipes, pantryNames) {
+function resultLeadHtml(recipes, pantryNames, mode) {
   if (!pantryNames.length) return "";
 
-  const ready = recipes.filter((r) => isReadyToCook(r, pantryNames)).length;
-  if (ready) return `<p class="result-lead">${escapeHtml(COPY.UI.readyLead(ready))}</p>`;
-
+  const line = (text) => `<p class="result-lead">${escapeHtml(text)}</p>`;
   const fewest = Math.min(
-    ...recipes.map((r) => missingIngredients({ ingredients: r.ingredients }, pantryNames).length)
+    ...recipes.map((r) => missingForCooking(r.ingredients, pantryNames).length)
   );
+
+  /* 사서 만드는 쪽에서는 "사야 해요"가 붙는 게 당연하다. 놀랄 일이 아니라고 먼저 말해두고,
+     가장 적게 사도 되는 것이 몇 개인지로 안내한다. */
+  if (mode === "shopping") {
+    return Number.isFinite(fewest) && fewest > 0 ? line(COPY.UI.shoppingLead(fewest)) : "";
+  }
+
+  const ready = recipes.filter((r) => isReadyToCook(r, pantryNames)).length;
+  if (ready) return line(COPY.UI.readyLead(ready));
   if (!Number.isFinite(fewest) || fewest <= 0) return "";
-  return `<p class="result-lead">${escapeHtml(COPY.UI.almostLead(fewest))}</p>`;
+  return line(COPY.UI.almostLead(fewest));
 }
 
 function recipeCardHtml(r, pantryNames = [], index = 0) {
-  const readyBadge = isReadyToCook(r, pantryNames)
-    ? `<p class="recipe-ready">${escapeHtml(COPY.UI.readyBadge)}</p>`
-    : "";
+  /* 배지를 아예 안 그리지 않고 숨겨만 두는 이유는, 냉장고가 이 화면에서 바뀌기 때문이다.
+     "해먹었어요"로 재료가 빠지면 배지가 사라져야 하고 되돌리면 다시 나와야 하는데,
+     없는 요소는 되살릴 수 없다(refreshCardIngredients가 hidden만 토글한다). */
+  const hidden = isReadyToCook(r, pantryNames) ? "" : " hidden";
   return `
     <article class="recipe-card" data-recipe-index="${index}">
-      ${readyBadge}
+      <p class="recipe-ready"${hidden}>${escapeHtml(COPY.UI.readyBadge)}</p>
       <div class="recipe-card-head">
         <h3>${escapeHtml(r.name)}</h3>
         ${favoriteToggleHtml(r.name, `data-recipe-index="${index}"`)}
@@ -255,6 +285,11 @@ function refreshCardIngredients(card) {
   const names = Array.from(listEl.querySelectorAll("li"), (li) => li.dataset.name);
   const pantryNames = pantryNamesFor(loadPantry());
   listEl.innerHTML = names.map((n) => ingredientLiHtml(n, pantryNames)).join("");
+
+  /* 배지도 같은 기준으로 다시 판단한다. 재료 표시만 고치면 "해먹었어요"로 재료가 빠진
+     뒤에도 "지금 바로 가능"이 남아, 한 카드 안에서 배지와 "사야 해요"가 서로 다른 말을 한다. */
+  const badge = card.querySelector(".recipe-ready");
+  if (badge) badge.hidden = !isReadyToCook({ ingredients: names }, pantryNames);
 }
 
 /* 냉장고가 바뀌면 이 화면에서 다시 그려야 하는 것은 카드의 보유 표시다

@@ -14,19 +14,6 @@ from openai import OpenAI, APITimeoutError, APIStatusError, APIConnectionError
 
 MODEL = "gpt-4o-mini"
 
-# 대부분의 가정에 있다고 가정하는 기본 조미료. recommend.py의 SYSTEM_PROMPT가 AI에게
-# "목록에 없어도 써도 된다"고 알려주는 재료와 shopping.py가 "사러 갈 일이 없다"고 보는
-# 재료가 사실 같은 개념이라, 한 곳에만 적어 두 파일이 갈라지지 않게 한다.
-BASIC_SEASONINGS = frozenset(
-    {
-        "소금", "후추", "후춧가루", "후추가루", "설탕",
-        "식용유", "올리브유", "올리브오일", "참기름", "들기름",
-        "간장", "된장", "고추장", "고춧가루", "고추가루", "다진마늘",
-        "물", "밥", "쌀",
-    }
-)
-
-
 def to_str_list(value):
     """AI가 배열 대신 문자열/숫자를 줘도 프론트의 .map()이 터지지 않도록 문자열 배열로 강제한다."""
     if isinstance(value, str):

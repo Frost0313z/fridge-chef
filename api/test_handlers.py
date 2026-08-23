@@ -59,10 +59,10 @@ def test_recipes_reject_unknown_ingredient():
     어긋난 카드를 반쪽만 보여주는 것보다, 그 카드 자체를 안 보여주는 쪽이 낫다."""
     out = recommend.sanitize_recipes(
         [
-            {"name": "계란찜", "ingredients": ["계란", "물", "소금"]},  # 전부 보유+기본 조미료
+            {"name": "계란찜", "ingredients": ["계란", "물", "소금"]},  # 전부 실제 보유
             {"name": "새우볶음밥", "ingredients": ["계란", "새우", "밥"]},  # 새우는 안 알려줌
         ],
-        pantry_ingredients="계란 2개, 대파",
+        pantry_ingredients="계란 2개, 대파, 물, 소금",
     )
     assert [r["name"] for r in out] == ["계란찜"], out
 
@@ -100,7 +100,7 @@ def test_handle_filters_unknown_ingredient_recipes():
 
     original, recommend.call_openai = recommend.call_openai, fake_call
     try:
-        status, body = recommend.handle({"ingredients": "계란"})
+        status, body = recommend.handle({"ingredients": "계란, 밥"})
         assert status == 200
         assert [r["name"] for r in body["recipes"]] == ["계란볶음밥"], body
     finally:
@@ -132,6 +132,11 @@ def test_exclude_payload_is_guarded():
     def fake_call(system, user, timeout, temperature):
         seen["user"] = user
         return {"recipes": [{"name": "계란밥"}]}, None
+
+    # test_recipes_dedupe와 같은 이유로 매칭을 비운다 — 안 비우면 로컬에 있는 실제 인덱스를
+    # 읽고, 매칭이 걸리는 날에는 AI를 아예 안 불러 이 테스트가 조용히 뜻을 잃는다.
+    # (로컬 인덱스 내용에 따라 "계란" 하나로도 매칭이 걸릴 수 있다.)
+    _fake_index([])
 
     original, recommend.call_openai = recommend.call_openai, fake_call
     try:
@@ -263,10 +268,11 @@ def test_shopping_handler_needs_no_ai():
             }
         )
         assert status == 200
-        # 계란은 4개 필요한데 1개뿐이라 3개, 두부는 없으니 1모. "밥"은 사러 갈 일이 없다.
+        # 계란은 4개 필요한데 1개뿐이라 3개, 두부와 밥은 없으니 그대로 장보기에 남는다.
         assert brief(body["shoppingList"]) == [
             {"name": "계란", "amount": "3개"},
             {"name": "두부", "amount": "1모"},
+            {"name": "밥", "amount": "1공기"},
         ], body
     finally:
         mealplan.call_openai = original
@@ -426,10 +432,14 @@ def test_shopping_rounds_up():
     assert brief(shopping.build_shopping_list(plan, [])) == [{"name": "두부", "amount": "1모"}]
 
 
-def test_shopping_excludes_staples():
-    """소금·밥처럼 사러 갈 일이 없는 것은 재료로 적혀 있어도 목록에서 뺀다."""
-    plan = [{"ingredients": ["소금 1작은술", "밥 1공기", "고춧가루 1큰술", "계란 1개"]}]
-    assert brief(shopping.build_shopping_list(plan, [])) == [{"name": "계란", "amount": "1개"}]
+def test_shopping_includes_missing_staples():
+    """기본 재료도 실제로 없으면 장보기 대상이다. 물과 뭉뚱그린 이름만 뺀다."""
+    plan = [{"ingredients": ["물 1컵", "소금 1작은술", "고춧가루 1큰술", "계란 1개"]}]
+    assert brief(shopping.build_shopping_list(plan, [])) == [
+        {"name": "소금", "amount": "1작은술"},
+        {"name": "고춧가루", "amount": "1큰술"},
+        {"name": "계란", "amount": "1개"},
+    ]
 
 
 def test_shopping_full_week_regression():
@@ -474,7 +484,7 @@ def test_recipes_keep_one_letter_staples_with_amount():
     들어간 레시피가 전부 버려진다(찌개·국·찜이 다 여기 해당한다)."""
     out = recommend.sanitize_recipes(
         [{"name": "계란찜", "ingredients": ["계란 2개", "물 1컵", "소금 약간"]}],
-        pantry_ingredients="계란 2개, 밥",
+        pantry_ingredients="계란 2개, 밥, 물, 소금",
     )
     assert [r["name"] for r in out] == ["계란찜"], out
 
@@ -487,7 +497,7 @@ def test_recipes_keep_only_the_clean_ones():
             {"name": "새우볶음밥", "ingredients": ["계란", "새우 100g", "밥"]},
             {"name": "랍스터파스타", "ingredients": ["랍스터 1마리", "생크림 200ml"]},
         ],
-        pantry_ingredients="계란 2개, 밥",
+        pantry_ingredients="계란 2개, 밥, 물, 소금",
     )
     assert [r["name"] for r in out] == ["계란찜"], out
 
@@ -705,6 +715,71 @@ def test_match_prefers_using_more_of_the_fridge():
     ])
     out = recipe_match.match(["김치", "밥", "참기름", "두부", "대파", "계란", "양파", "당근"])
     assert [r["name"] for r in out] == ["제대로된것", "간단한것"], out
+
+
+def test_match_ready_mode_returns_only_what_can_be_cooked_now():
+    """"지금 있는 걸로 해먹기"는 추가 구매가 필요한 것을 아예 내보내지 않는다.
+    한 장이라도 섞이면 버튼이 한 약속이 깨진다."""
+    _fake_index([
+        {"id": 1, "name": "바로되는것", "ing": ["김치", "밥", "참기름"], "pop": 0},
+        {"id": 2, "name": "사야되는것", "ing": ["김치", "밥", "참기름", "참치"], "pop": 999},
+    ])
+    out = recipe_match.match(["김치", "밥", "참기름"], mode="ready")
+    assert [r["name"] for r in out] == ["바로되는것"], out
+    # 인기도가 높아도(pop 999) 사야 하는 것은 못 들어온다.
+    assert all(r["coverage"] >= 1.0 for r in out), out
+
+
+def test_match_only_counts_registered_basic_ingredients():
+    """기본 재료도 실제로 등록한 것만 보유로 센다."""
+    _fake_index([
+        {"id": 1, "name": "두부조림", "ing": ["두부", "대파", "소금", "간장", "설탕"], "pop": 0},
+    ])
+    assert recipe_match.match(["두부", "대파"], mode="ready") == []
+    out = recipe_match.match(["두부", "대파", "소금", "간장", "설탕"], mode="ready")
+    assert [r["name"] for r in out] == ["두부조림"], out
+
+
+def test_match_shopping_mode_puts_the_cheapest_trip_first():
+    """"사서 해먹기"는 반대로 지금 되는 것을 빼고, 적게 사도 되는 것부터 올린다.
+    이 버튼을 누른 사람은 이미 사기로 정했으므로 질문이 "얼마나 사야 하나"로 바뀐다."""
+    _fake_index([
+        {"id": 1, "name": "바로되는것", "ing": ["김치", "밥", "참기름"], "pop": 999},
+        {"id": 2, "name": "세개사야함",
+         "ing": ["김치", "밥", "참기름", "참치", "치즈", "김", "깻잎", "당근", "무", "파"], "pop": 999},
+        {"id": 3, "name": "하나만사면됨", "ing": ["김치", "밥", "참기름", "참치"], "pop": 0},
+    ])
+    out = recipe_match.match(["김치", "밥", "참기름"], limit=5, mode="shopping")
+    names = [r["name"] for r in out]
+    assert "바로되는것" not in names, out
+    # 인기도가 낮아도 적게 사도 되는 쪽이 먼저다.
+    assert names[0] == "하나만사면됨", out
+
+
+def test_shopping_mode_never_calls_ai():
+    """코퍼스에 없으면 없다고 말한다. SYSTEM_PROMPT는 "알려주지 않은 재료를 추가하지
+    말라"고 지시하므로, 이 모드가 원하는 답을 AI에게 시킬 수 없다 — 부르면 엉뚱한 것이 온다."""
+    def fake_call(*args, **kwargs):
+        raise AssertionError("사서 해먹기에서 AI를 부르면 안 된다")
+
+    _fake_index([])
+    original, recommend.call_openai = recommend.call_openai, fake_call
+    try:
+        status, body = recommend.handle({"ingredients": "계란", "mode": "shopping"})
+        assert status == 200 and body["recipes"] == [], body
+    finally:
+        recommend.call_openai = original
+
+
+def test_ready_mode_does_not_revive_recipes_that_need_shopping():
+    """재료 검증에 걸린 레시피를 되살리는 폴백은 "지금 있는 걸로"에서는 거짓말이 된다.
+    사야 할 게 없다고 약속한 자리에 "사야 해요" 카드를 내미는 셈이기 때문이다.
+    대신 빈 결과로 두고, 화면이 다른 버튼을 권한다(js/copy.js emptyReadyMode)."""
+    raw = [{"name": "랍스터파스타", "ingredients": ["랍스터", "생크림"], "steps": []}]
+    # 평소에는 전부 걸렸을 때 그대로 되살린다(B7 막다른 길 방지).
+    assert recommend.sanitize_recipes(raw, "계란")
+    # strict에서는 되살리지 않는다.
+    assert recommend.sanitize_recipes(raw, "계란", strict=True) == []
 
 
 def test_find_owned_does_not_count_a_product_as_its_ingredient():

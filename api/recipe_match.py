@@ -134,8 +134,15 @@ def score(hit, total):
     return (hit / total) * hit if total else 0.0
 
 
-def match(pantry_keys, limit=3, category=None, portion=None):
+def match(pantry_keys, limit=3, category=None, portion=None, mode=None):
     """냉장고 재료로 만들 수 있는 실제 레시피를 찾는다. 없으면 빈 배열.
+
+    mode는 화면의 두 버튼에 대응한다. 한 화면에 섞어 놓으면 "지금 되는 것"과 "사야 되는 것"이
+    한 목록에 들어가 사용자가 매번 카드를 읽어 골라내야 하므로, 물어보는 단계에서 가른다.
+
+      "ready"    — 추가 구매가 필요 없는 것만(hit == total). 오늘 저녁을 해결하러 온 경우다.
+      "shopping" — 뭔가 사야 하는 것만(hit < total). 적게 사도 되는 것부터 올린다.
+      None       — 가르지 않는다(식단 계획의 "이번 주 후보"가 쓴다).
 
     category가 주어지면(값이 있고 "상관없음"이 아니면) CKG_KND_ACTO_NM(cat)이 정확히
     같은 레시피만 후보로 남긴다. 큐레이션한 13개 밖의 원본 값(기타·과자 등)은 UI에
@@ -180,7 +187,11 @@ def match(pantry_keys, limit=3, category=None, portion=None):
             # 지금 장을 안 보고 만들 수 있는가. 이 서비스가 약속한 것이 그것이므로
             # 다른 무엇보다 앞에 둔다(아래 정렬 주석 참고).
             ready = 1 if hit >= total else 0
-            scored.append((ready, fits, score(hit, total), row[5], rate, i))
+            if mode == "ready" and not ready:
+                continue
+            if mode == "shopping" and ready:
+                continue
+            scored.append((ready, fits, score(hit, total), row[5], rate, i, total - hit))
 
     # 지금 바로 만들 수 있는 것이 먼저, 그다음 분량이 맞는 것, 그 안에서 점수,
     # 같으면 인기도(추천수+스크랩수)로 가른다.
@@ -193,7 +204,14 @@ def match(pantry_keys, limit=3, category=None, portion=None):
     #
     # 분량을 점수보다 앞에 두는 것은 이게 사용자가 직접 고른 조건이기 때문이다 —
     # 점수는 우리가 매긴 값이고, 분량은 사용자가 말한 값이다.
-    scored.sort(key=lambda x: (-x[0], -x[1], -x[2], -x[3]))
+    #
+    # "사서 만들기"에서는 ready가 전부 0이라 맨 앞 기준이 놀고, 대신 **몇 개를 사야 하는가**가
+    # 그 자리를 대신한다. 이 모드로 들어온 사람은 이미 사기로 마음먹은 사람이므로 질문이
+    # "살 수 있나"가 아니라 "얼마나 사야 하나"로 바뀐다 — 적게 사도 되는 것이 먼저다.
+    if mode == "shopping":
+        scored.sort(key=lambda x: (x[6], -x[1], -x[2], -x[3]))
+    else:
+        scored.sort(key=lambda x: (-x[0], -x[1], -x[2], -x[3]))
 
     # 같은 이름이 여러 장 뜨지 않게 거른다. 인덱스에는 RCP_SNO가 다른 별개 레시피로 남아
     # 있는 게 맞고("만능간장"이라는 이름의 서로 다른 레시피가 실제로 여럿 있다), 화면에
@@ -204,7 +222,7 @@ def match(pantry_keys, limit=3, category=None, portion=None):
     from recommend import dedupe_key
 
     out, seen = [], set()
-    for _, _, _, _, rate, i in scored:
+    for _, _, _, _, rate, i, _ in scored:
         row = rows[i]
         key = dedupe_key(row[1])
         if not key or key in seen:
@@ -241,4 +259,3 @@ def to_response(index, row, rate):
         "searchKeyword": row[1],
         "coverage": round(rate, 3),
     }
-

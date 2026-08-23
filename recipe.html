@@ -132,7 +132,12 @@
             </div>
           </div>
 
-          <button type="submit" id="submit-btn" class="cta-button" data-copy="UI.submitRecipe">오늘 뭐 해먹지?</button>
+          <div class="submit-row">
+            <button type="submit" id="submit-ready" class="cta-button" data-mode="ready"
+              data-copy="UI.submitReady">지금 있는 걸로 해먹기</button>
+            <button type="submit" id="submit-shopping" class="cta-button cta-button-secondary" data-mode="shopping"
+              data-copy="UI.submitShopping">재료 한두 개 사서 해먹기</button>
+          </div>
         </form>
 
         <p id="loading" class="loading" role="status" aria-live="polite" data-copy="UI.loading" hidden>있는 재료로 뭘 만들 수 있을지 찾고 있어요…</p>

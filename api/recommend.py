@@ -8,12 +8,12 @@ POST /api/recommend
 """
 
 import recipe_match
-from _common import BASIC_SEASONINGS, call_openai, to_str_list
+from _common import call_openai, to_str_list
 from shopping import find_owned, normalize_name, parse_line
 
 SYSTEM_PROMPT = """당신은 냉장고에 있는 재료로 만들 수 있는 한식/양식/중식 요리를 추천하는 요리 도우미입니다.
 사용자가 알려준 재료를 최대한 활용하는 요리 1~3개를 추천하세요.
-소금, 후추, 식용유, 물처럼 대부분의 가정에 있는 기본 조미료는 목록에 없어도 사용할 수 있다고 가정합니다.
+소금, 간장, 된장 같은 기본 재료도 사용자가 알려준 목록에 있을 때만 사용하세요.
 사용자가 알려주지 않은 값비싸거나 특수한 재료를 임의로 추가하지 마세요.
 
 당신은 실제로 존재하는 레시피 중에 이 재료 조합과 충분히 겹치는 것이 없어서 대신 호출됐습니다.
@@ -83,7 +83,7 @@ def _pantry_keys(ingredients_str):
 
 
 def _unknown_ingredients(ingredients, pantry_keys):
-    """레시피가 쓴 재료 중 사용자 재료에도, 기본 조미료에도 없는 것만 골라낸다.
+    """레시피가 쓴 재료 중 사용자 재료에 없는 것만 골라낸다.
     find_owned는 shopping.py가 "냉장고에 이 재료가 있는가"를 판단할 때 쓰는 것과 같은
     함수라, 여기서도 같은 기준으로 "있다/없다"를 가른다.
 
@@ -91,22 +91,21 @@ def _unknown_ingredients(ingredients, pantry_keys):
     글자가 달라 find_owned의 포함 비교에 기대게 되는데, 그 비교는 짧은 쪽이 한 글자면
     우연한 겹침으로 보고 거절한다 — 그래서 물·밥·쌀처럼 한 글자짜리는 수량이 붙는 순간
     영영 못 알아본다. 양쪽을 같은 방법으로 다듬어야 같은 것을 같다고 한다."""
-    known = pantry_keys + list(BASIC_SEASONINGS)
     unknown = []
     for raw in ingredients:
         name, _, _ = parse_line(raw)
         key = normalize_name(name or raw)
-        if key and not find_owned(key, known):
+        if key and not find_owned(key, pantry_keys):
             unknown.append(raw)
     return unknown
 
 
-def sanitize_recipes(raw, pantry_ingredients=None):
+def sanitize_recipes(raw, pantry_ingredients=None, strict=False):
     """response_format으로 JSON은 보장되지만 '스키마'까지 보장되지는 않는다.
     이름 없는 항목은 버리고, 나머지 필드는 프론트가 기대하는 타입으로 맞춰서 내보낸다.
 
     pantry_ingredients(사용자가 입력한 재료 문자열)가 주어지면, 레시피의 ingredients에
-    사용자가 갖고 있지 않고 기본 조미료도 아닌 재료가 하나라도 섞인 레시피는 통째로 버린다.
+    사용자가 갖고 있지 않은 재료가 하나라도 섞인 레시피는 통째로 버린다.
     "알려주지 않은 재료를 임의로 추가하지 마세요"는 SYSTEM_PROMPT가 지시만 할 뿐 강제하지
     않는다 — shopping.py가 장보기 합산을 AI에게 맡겼다가 34종 중 6종을 놓쳤던 것과 같은
     종류의 문제다("이 끼니에 뭐가 들어가는지"까지만 AI에게 맡기고, 맞는지 확인은 코드가 한다).
@@ -151,6 +150,12 @@ def sanitize_recipes(raw, pantry_ingredients=None):
     # 그때 빈 손으로 돌려보내면 화면은 "재료를 다르게 입력해보세요"라는 엉뚱한 말을 하고
     # 막다른 길이 된다(B7). 카드는 없는 재료에 이미 "사야 해요"를 붙이므로 속지도 않는다.
     # 검증은 결과의 질을 올리는 장치이지 결과를 없애는 장치가 아니다.
+    #
+    # strict는 "지금 있는 걸로" 버튼 전용이다. 거기서는 되살리기가 오히려 거짓말이 된다 —
+    # 사야 하는 게 없다고 약속한 자리에 "사야 해요"가 붙은 카드를 내미는 셈이기 때문이다.
+    # 그 버튼은 결과가 없으면 없다고 말하고 다른 버튼으로 안내한다(js/copy.js emptyReady).
+    if strict:
+        return recipes[:MAX_RECIPES]
     return (recipes or dropped)[:MAX_RECIPES]
 
 
@@ -182,6 +187,10 @@ def handle(payload):
     category = (payload.get("category") or "상관없음").strip()
     # 식단 계획의 "이번 주 후보" 모달 전용 — AI 폴백을 아예 안 탄다(POOL_MATCH_LIMIT 주석 참고).
     match_only = bool(payload.get("matchOnly"))
+    # 레시피 추천 화면의 두 버튼. 모르는 값이 오면 가르지 않는 예전 동작으로 둔다.
+    mode = (payload.get("mode") or "").strip()
+    if mode not in ("ready", "shopping"):
+        mode = None
 
     # 프롬프트에 그대로 들어가므로 개수를 제한한다. 이력이 5개라 실제로는 넘칠 일이 없다.
     # str(None)은 "None"이라 참 같은 값이 된다. 문자열만 받아야 프롬프트에 "None"이 섞이지 않는다.
@@ -199,6 +208,7 @@ def handle(payload):
         limit=(POOL_MATCH_LIMIT if match_only else MAX_RECIPES),
         category=category,
         portion=portion,
+        mode=mode,
     )
     if exclude:
         # "다른 요리 보기"로 다시 부른 경우. 방금 보여준 것을 빼야 버튼 문구가 거짓말이 아니다.
@@ -207,6 +217,12 @@ def handle(payload):
     if matched or match_only:
         return 200, {"recipes": matched}
 
+    # "사서 만들기"는 AI를 부르지 않는다. 이 모드가 원하는 답("냉장고를 거의 쓰면서 조금만
+    # 사면 되는 요리")은 실제 레시피 23만 건에서 고르는 쪽이 낫고, SYSTEM_PROMPT는 반대로
+    # "알려주지 않은 재료를 임의로 추가하지 마세요"라고 지시하고 있어 애초에 이 답을 만들 수
+    # 없다. 코퍼스에 없으면 없다고 말하는 편이 정직하다.
+    if mode == "shopping":
+        return 200, {"recipes": []}
 
     data, error = call_openai(
         SYSTEM_PROMPT,
@@ -218,4 +234,4 @@ def handle(payload):
         return error
 
     raw_recipes = data.get("recipes") if isinstance(data, dict) else None
-    return 200, {"recipes": sanitize_recipes(raw_recipes, ingredients)}
+    return 200, {"recipes": sanitize_recipes(raw_recipes, ingredients, strict=(mode == "ready"))}

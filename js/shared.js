@@ -284,6 +284,32 @@ function amountIn(lines, name, unit) {
   }, 0);
 }
 
+/* 냉장고 화면에서 일반 재료와 나눠 보여줄 기본 재료 이름. 이 목록은 **분류만** 한다.
+   예전처럼 모두 갖고 있다고 가정하지 않는다 — 실제 보유 여부는 다른 재료와 똑같이
+   localStorage에 들어있는지로 판단한다. 별칭도 같은 영역에 들어가게 함께 둔다. */
+const BASIC_INGREDIENTS = [
+  "소금", "후추", "후춧가루", "후추가루", "설탕",
+  "식용유", "올리브유", "올리브오일", "참기름", "들기름",
+  "간장", "된장", "고추장", "고춧가루", "고추가루", "다진마늘",
+];
+
+/* 빠른 추가에는 같은 뜻의 표기를 두 개씩 내놓지 않는다. 사용자가 직접 적은 별칭은 위
+   분류 목록이 받아주고, 버튼은 가장 익숙한 이름만 보여준다. */
+const BASIC_INGREDIENT_EXAMPLES = [
+  "소금", "후추", "설탕", "식용유", "올리브유", "참기름", "들기름",
+  "간장", "된장", "고추장", "고춧가루", "다진마늘",
+];
+
+function isPantryStaple(name) {
+  return BASIC_INGREDIENTS.includes(normalizeIngredient(name));
+}
+
+/* 이 요리를 하려고 실제로 사러 나가야 하는 재료만 센다. 기본 재료도 실제로 냉장고에
+   등록돼 있어야 보유로 친다 — 화면과 서버가 같은 사실을 말해야 한다. */
+function missingForCooking(ingredients, pantryNames) {
+  return (ingredients || []).filter((raw) => !isCovered(normalizeIngredient(raw), pantryNames));
+}
+
 /* 완제품·가공품 접미어. api/shopping.py의 PRODUCT_SUFFIXES와 같은 목록이어야 한다 —
    "같은 재료인지" 판단이 앞뒤에서 갈라지면 화면은 있다고 하고 서버는 없다고 하게 된다.
    왜 이 목록인지와 실측 근거는 그쪽 주석에 적어두었다. */
@@ -504,10 +530,14 @@ function createWaitIndicator(loadingEl, timeoutMs) {
 function createFormStatus({ loadingEl, errorEl, submitBtn, timeoutMs }) {
   const wait = createWaitIndicator(loadingEl, timeoutMs);
 
+  /* 제출 버튼이 둘인 화면이 있다(레시피 추천의 "지금 있는 걸로" / "사서 해먹기").
+     하나만 잠그면 기다리는 동안 다른 버튼으로 두 번째 요청을 보낼 수 있다. */
+  const buttons = [].concat(submitBtn).filter(Boolean);
+
   return {
     setLoading(isLoading) {
       loadingEl.hidden = !isLoading;
-      submitBtn.disabled = isLoading;
+      buttons.forEach((btn) => { btn.disabled = isLoading; });
       if (isLoading) wait.start();
       else wait.stop();
     },
@@ -868,7 +898,7 @@ function showDetails() {
 
 /* 칩만 돌려준다. 감싸는 상자는 부르는 쪽이 이미 갖고 있다
    (냉장고 화면은 #pantry-chips, 조회 바는 새로 그리는 div). */
-function pantryChipsHtml(pantry, withDetails) {
+function pantryChipsHtml(pantry, withDetails, sourceIndexes) {
   return pantry
     .map((item, index) => {
       /* 오래된 재료에만 붙는다. 자세히 보기와 무관하게 항상 보인다 —
@@ -889,7 +919,7 @@ function pantryChipsHtml(pantry, withDetails) {
         ${escapeHtml(item.name)}
         ${meta ? `<span class="pantry-chip-meta">${escapeHtml(meta)}</span>` : ""}
         ${badge ? `<span class="pantry-chip-age${isDanger ? " pantry-chip-age-danger" : ""}">${badge}</span>` : ""}
-        <button type="button" class="pantry-chip-remove" data-index="${index}"
+        <button type="button" class="pantry-chip-remove" data-index="${sourceIndexes ? sourceIndexes[index] : index}"
           aria-label="${escapeHtml(pantryText(item))} 삭제">×</button>
       </span>`;
     })
@@ -1148,6 +1178,10 @@ function initPantry() {
   const input = document.getElementById("pantry-input");
   const addBtn = document.getElementById("pantry-add-btn");
   const chipsEl = document.getElementById("pantry-chips");
+  const staplesEl = document.getElementById("pantry-staples-chips");
+  const staplesEmptyEl = document.getElementById("pantry-staples-empty");
+  const staplesExamplesEl = document.getElementById("pantry-staples-examples");
+  const staplesCountEl = document.getElementById("pantry-staples-count");
   const emptyEl = document.getElementById("pantry-empty");
   const statusEl = document.getElementById("pantry-status");
   if (!input || !chipsEl) return;
@@ -1167,8 +1201,33 @@ function initPantry() {
   const limitEl = document.getElementById("pantry-limit-note");
 
   function render() {
-    emptyEl.hidden = pantry.length > 0;
-    chipsEl.innerHTML = pantryChipsHtml(pantry, showDetails());
+    const regular = [];
+    const regularIndexes = [];
+    const staples = [];
+    const stapleIndexes = [];
+    pantry.forEach((item, index) => {
+      if (isPantryStaple(item.name)) {
+        staples.push(item);
+        stapleIndexes.push(index);
+      } else {
+        regular.push(item);
+        regularIndexes.push(index);
+      }
+    });
+
+    emptyEl.hidden = regular.length > 0;
+    chipsEl.innerHTML = pantryChipsHtml(regular, showDetails(), regularIndexes);
+    if (staplesEl) staplesEl.innerHTML = pantryChipsHtml(staples, showDetails(), stapleIndexes);
+    if (staplesEmptyEl) staplesEmptyEl.hidden = staples.length > 0;
+    if (staplesCountEl) staplesCountEl.textContent = COPY.PANTRY.staplesCount(staples.length);
+    if (staplesExamplesEl) {
+      const owned = new Set(staples.map((item) => normalizeIngredient(item.name)));
+      staplesExamplesEl.innerHTML = BASIC_INGREDIENT_EXAMPLES
+        .filter((name) => !owned.has(normalizeIngredient(name)))
+        .map((name) => `<button type="button" class="pantry-example" data-name="${escapeHtml(name)}"><span
+          class="pantry-example-plus" aria-hidden="true">+</span>${escapeHtml(name)}</button>`)
+        .join("");
+    }
     if (limitEl) {
       limitEl.innerHTML = pantryLimitNoticeHtml(pantry);
       limitEl.hidden = pantry.length <= MEALPLAN_PANTRY_LIMIT;
@@ -1227,7 +1286,15 @@ function initPantry() {
     });
   }
 
-  chipsEl.addEventListener("click", (e) => {
+  const listCard = chipsEl.closest(".pantry-list-card");
+  if (listCard) {
+    listCard.addEventListener("click", (e) => {
+      const btn = e.target.closest("#pantry-staples-examples .pantry-example");
+      if (btn) addItems(btn.dataset.name);
+    });
+  }
+
+  const removeChip = (e) => {
     const btn = e.target.closest(".pantry-chip-remove");
     if (!btn) return;
 
@@ -1243,7 +1310,9 @@ function initPantry() {
         : "브라우저에 저장하지 못했어요. 시크릿 창이라면 일반 창에서 다시 열어주세요.",
       result.stored
     );
-  });
+  };
+  chipsEl.addEventListener("click", removeChip);
+  if (staplesEl) staplesEl.addEventListener("click", removeChip);
 
   /* 평소에는 이름만, 필요할 때만 수량까지. 선택은 기억한다 — 매번 다시 켜게 하지 않는다. */
   const amountToggle = document.getElementById("pantry-amount-toggle");

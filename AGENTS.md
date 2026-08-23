@@ -9,6 +9,7 @@
 | `CLAUDE.md` | 브랜드·보이스·디자인 시스템. 문구와 색을 건드리면 여기가 기준이다. |
 | `README.md` | 로컬 실행, 배포, 프로젝트 구조, 설계 노트. |
 | `docs/spec-recipe-match.md` | 레시피 매칭 스펙과 KADX 데이터 취급 규칙. |
+| `docs/린캔버스.md` | 이 서비스가 무엇을 왜 하는지 9블록 요약. 제품 판단이 필요할 때 먼저 본다. |
 
 이 파일은 그 셋에 없는 것만 적는다 — 옮겨 적으면 곧 어긋나기 때문이다.
 
@@ -61,6 +62,11 @@ python scripts/build_recipe_index.py     # data/kadx-recipes/*.csv -> api/recipe
 `api/test_handlers.py`의 매칭 테스트는 `_fake_index()`로 인덱스를 가짜로 채운다.
 실제 46MB 파일 없이도 돌아야 하기 때문이다 — 새 매칭 테스트도 같은 방식으로 쓴다.
 
+> **AI 경로를 보는 테스트는 반드시 `_fake_index([])`로 매칭을 비운다.** 안 비우면 로컬에
+> 인덱스가 있는 사람에게만 매칭이 걸려서 AI가 아예 안 불리고, 테스트가 죽지 않은 채로
+> 뜻만 잃는다. 로컬 인덱스 내용이 바뀌면 같은 입력도 매칭될 수 있어 실제로
+> `test_exclude_payload_is_guarded`가 이 문제로 깨진 적이 있다.
+
 ---
 
 ## KADX 데이터 — 지켜야 하는 경계
@@ -85,6 +91,34 @@ python scripts/build_recipe_index.py     # data/kadx-recipes/*.csv -> api/recipe
 
 ---
 
+## 추천 화면의 두 버튼 — 깨뜨리면 안 되는 약속
+
+`recipe.html`은 추천을 **두 버튼으로 나눠 묻는다.** `/api/recommend`에 `mode`를 함께 보낸다.
+
+| `mode` | 버튼 | 내보내는 것 | 정렬 |
+|---|---|---|---|
+| `"ready"` | 지금 있는 걸로 해먹기 | 추가 구매가 필요 없는 것만 (`hit == total`) | 기존 점수 규칙 |
+| `"shopping"` | 재료 한두 개 사서 해먹기 | 뭔가 사야 하는 것만 (`hit < total`) | **부족 개수가 적은 것부터** |
+| 없음 | — | 가르지 않는다 | 기존 규칙 (식단 계획의 "이번 주 후보"가 쓴다) |
+
+지켜야 하는 것 네 가지다. 왜 그런지는 README 설계 노트 "추천 버튼을 둘로 나눈 이유"에 있다.
+
+1. **`ready`에 "사야 해요" 카드가 한 장이라도 섞이면 안 된다.** 그래서 이 모드만
+   `sanitize_recipes(..., strict=True)`로 부른다 — 재료 검증에 다 걸렸을 때 거른 것을
+   되살리는 폴백이 여기서는 거짓말이 되기 때문이다.
+2. **`shopping`은 AI를 부르지 않는다.** `SYSTEM_PROMPT`가 "알려주지 않은 재료를 임의로
+   추가하지 마세요"라고 지시하므로, 이 모드가 원하는 답을 AI에게 시킬 수 없다.
+   코퍼스에 없으면 빈 배열로 답한다.
+3. **기본 재료도 냉장고에 등록된 것만 보유로 센다.** `BASIC_INGREDIENTS`는 냉장고 화면의
+   하위 카드로 분류하기 위한 목록이지 자동 보유 목록이 아니다.
+4. **한쪽이 비면 다른 쪽을 권한다**(`COPY.UI.emptyReadyMode` / `emptyShoppingMode`).
+   두 버튼은 서로의 막다른 길을 열어주는 관계다. 한쪽만 남기지 말 것.
+
+`limit`은 `MAX_RECIPES`(3)이지만 후보 풀 전체를 정렬한 뒤 자르므로, 조건에 맞는 것이
+풀 어디에 있든 앞으로 올라온다. 상한을 올리려고 필터를 손대지 말 것.
+
+---
+
 ## 쌍으로 고칠 것
 
 같은 규칙이 두 곳에 있다. **한쪽만 고치면 화면이 수량으로 지운 글자를 서버는 이름으로
@@ -97,6 +131,17 @@ python scripts/build_recipe_index.py     # data/kadx-recipes/*.csv -> api/recipe
 | `_VAGUE_RE` | `VAGUE_AMOUNT_PATTERN` |
 | `parse_line()` 이름 추출 | `stripAmounts()` / `splitIngredient()` |
 | `normalize_name()` | `normalizeIngredient()` |
+| `find_owned()` | `isCovered()` |
+| `PRODUCT_SUFFIXES` | `PRODUCT_SUFFIXES` |
+| 냉장고에 들어온 기본 재료 | `BASIC_INGREDIENTS` / `isPantryStaple()`(화면 분류만) |
+
+뒤의 세 줄은 **"같은 재료인가"를 판단하는 규칙**이라 특히 위험하다. 어긋나면 서버는
+"다 있어요"로 카드를 보내고 화면은 그 카드에 "소금 사야 해요"를 붙인다 — 한 화면이
+두 가지 말을 한다. 목록을 늘릴 때는 양쪽을 같이 고치고 양쪽 테스트에 같은 사례를 넣는다.
+
+`PRODUCT_SUFFIXES`(완제품 접미어)를 늘릴 때는 **인덱스 전수 대조로 실측하고 넘어간다.**
+부분 문자열 매칭은 옳은 매칭(`다진대파`→`대파`)이 훨씬 많아서, 규칙을 세게 잡으면
+반대 방향으로 망가진다. 근거는 `api/shopping.py`의 해당 주석에 있다.
 
 **재료 이름은 첫 숫자 앞까지다.** 단위 목록에 없는 세는 말이 이름에 눌러앉으면
 ("김치 1/4포기" → "김치포기") 매칭이 어긋난다. 단위 목록은 장보기 합산에 여전히
@@ -112,12 +157,23 @@ python scripts/build_recipe_index.py     # data/kadx-recipes/*.csv -> api/recipe
 - 모듈 번들러가 없다. `<script>` 순서가 곧 의존성이다 — `copy.js`가 항상 먼저다.
 - `api/recommend.py`가 `recipe_match`를 import하므로, `recipe_match`에서 `recommend`를
   모듈 최상단에서 되받으면 순환 import가 된다. 쓰는 자리에서 늦게 가져온다.
-- 파일이 CRLF다. 스크립트로 일괄 치환할 때 줄바꿈을 섞지 않는다.
+- **`display`를 주는 요소에는 `[hidden]`이 안 먹는다.** UA 스타일시트의
+  `[hidden]{display:none}`보다 클래스 선택자가 구체적이라, JS로 `hidden`만 켜도 안 숨는다.
+  `display`를 준 요소를 `hidden`으로 토글할 거면 `.그것[hidden]{display:none}`을 같이 쓴다
+  (현재 `.rerecommend-btn` `.meal-brief` `.loading-wait` `.recipe-ready` 네 곳).
+- 파일이 CRLF다. 스크립트로 일괄 치환할 때 줄바꿈을 섞지 않는다. `core.autocrlf=true`라
+  저장소에 들어가는 내용은 LF로 정규화되므로, 치환 후 `LF will be replaced by CRLF` 경고가
+  떠도 diff가 커지지 않으면 정상이다 — 커밋 전에 `git diff --stat`으로 확인한다.
 - 사용자 데이터는 전부 localStorage다(`fridge-chef-*`). 계정도 서버 DB도 없다.
 
 ## 검증과 기록
 
 - 비자명한 로직에는 **돌아가는 점검 하나**를 남긴다. 기존 두 점검 파일에 assert로 붙인다.
+  `js/test_amounts.js`는 이름과 달리 수량만 보지 않는다 — `copy.js` `main.js` `shared.js`
+  `shopping.js` `recipe.js`를 브라우저 흉내 샌드박스에 올려 화면 쪽 순수 함수를 두루 본다.
+  새 화면 로직을 순수 함수로 빼두면 여기서 바로 검사할 수 있다.
+- `js/copy.js`는 **같은 객체 안에 같은 키를 두 번 쓰면 뒤엣것이 조용히 이긴다.** 문구를
+  추가할 때 이름이 이미 있는지 먼저 본다(실제로 `emptyShopping`이 겹칠 뻔했다).
 - 화면을 확인했으면 스크린샷을 `docs/qa-screenshots/`에 파일로 남긴다
   (`{페이지}-{뷰포트}-{설명}.png`). 대화에 이미지로만 보여주고 끝내지 않는다.
 - 커밋 메시지는 영문 태그 + 한국어 본문: `feat:` / `fix:` / `docs:` / `perf:` / `refactor:`.

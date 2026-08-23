@@ -33,7 +33,7 @@ const sandbox = {
 sandbox.globalThis = sandbox;
 vm.createContext(sandbox);
 
-for (const file of ["js/copy.js", "js/main.js", "js/shared.js", "js/shopping.js"]) {
+for (const file of ["js/copy.js", "js/main.js", "js/shared.js", "js/shopping.js", "js/recipe.js"]) {
   vm.runInContext(fs.readFileSync(path.join(ROOT, file), "utf8"), sandbox, { filename: file });
 }
 
@@ -47,6 +47,7 @@ const {
   savingsTotal, savingsWeek, savingsMonth, weekStartISO, todayISO,
   loadFavorites, isFavorite, toggleFavorite,
   pantryChipsHtml,
+  isReadyToCook, resultLeadHtml, isPantryStaple, missingForCooking,
 } = sandbox;
 
 /* copy.js의 COPY는 const라 전역 객체에 붙지 않는다(함수 선언만 붙는다).
@@ -221,6 +222,39 @@ check("삶은계란은 계란이다", isCovered("삶은계란", ["계란"]), tru
 check("같은 완제품 계열끼리는 인정한다", isCovered("모짜렐라치즈", ["치즈"]), true);
 check("둘 중 아무거나 표기는 그대로 인정한다", isCovered("우유또는생크림", ["우유"]), true);
 check("한 글자 겹침은 여전히 안 센다", isCovered("파프리카", ["파"]), false);
+
+/* 추천 결과 맨 앞 안내문. 어느 버튼을 눌렀는지에 따라 다른 말을 해야 한다 —
+   "사서 해먹기"에서는 "사야 해요"가 붙는 게 당연하므로 놀랄 일이 아니라고 말해두고,
+   "지금 있는 걸로"에서는 몇 개가 바로 되는지를 센다. */
+const leadFridge = asNames(["계란", "대파"]);
+const oneShort = { ingredients: ["계란 2개", "연어 200g"] };
+const twoShort = { ingredients: ["계란 2개", "연어 200g", "레몬 1개"] };
+const allHere = { ingredients: ["계란 2개", "대파 1대"] };
+
+/* 기본 재료는 화면 분류일 뿐, 실제로 등록돼 있어야 보유로 센다. */
+check("소금은 기본 재료로 분류한다", isPantryStaple("소금 1큰술"), true);
+check("참기름도 기본 재료로 분류한다", isPantryStaple("참기름"), true);
+check("참치는 일반 재료다", isPantryStaple("참치 1캔"), false);
+check("등록하지 않은 기본 재료도 사야 할 것으로 센다",
+  missingForCooking(["계란 2개", "대파 1대", "소금", "간장 2큰술"], leadFridge), ["소금", "간장 2큰술"]);
+check("등록한 기본 재료는 보유로 센다",
+  missingForCooking(["계란 2개", "소금", "연어 200g"], [...leadFridge, "소금"]), ["연어 200g"]);
+check("식단 계획의 부족 판정은 그대로 둔다 (밥이 남는다)",
+  missingIngredients({ ingredients: ["밥 1공기"] }, leadFridge), ["밥 1공기"]);
+
+check("지금 바로 되는 것을 센다", isReadyToCook(allHere, leadFridge), true);
+check("하나라도 없으면 바로 되는 게 아니다", isReadyToCook(oneShort, leadFridge), false);
+check("냉장고가 비면 판정하지 않는다", isReadyToCook(allHere, []), false);
+
+check("사서 해먹기는 가장 적게 사도 되는 개수를 말한다",
+  resultLeadHtml([twoShort, oneShort], leadFridge, "shopping").includes("하나만 사면"), true);
+check("지금 있는 걸로는 바로 되는 개수를 말한다",
+  resultLeadHtml([allHere, oneShort], leadFridge, "ready").includes("2개"), false);
+check("바로 되는 게 하나면 1개로 센다",
+  resultLeadHtml([allHere, oneShort], leadFridge, "ready").includes("1개"), true);
+check("모드가 없으면 예전 문구 규칙을 그대로 쓴다",
+  resultLeadHtml([oneShort], leadFridge).includes("하나만 사면"), true);
+check("냉장고가 비면 안내문을 안 붙인다", resultLeadHtml([oneShort], []), "");
 
 // 코퍼스 표기를 화면에서만 띄운다. 원문 값은 인분 대조에 쓰이므로 고치지 않는다.
 check("30분이내를 띄운다", spacedRange("30분이내"), "30분 이내");
@@ -408,6 +442,12 @@ check("8일은 아직 강조색이 아니다", noticeChip.includes("pantry-chip-
 
 const dangerChip = pantryChipsHtml([{ name: "오래됨", amount: "", addedAt: daysAgoISO(14) }], false);
 check("14일부터는 강조색이 붙는다", dangerChip.includes("pantry-chip-age-danger"), true);
+
+/* 일반/기본 재료를 화면에서 나눠도 삭제 버튼은 원본 냉장고 배열의 자리를 가리켜야 한다. */
+const classifiedChip = pantryChipsHtml(
+  [{ name: "소금", amount: "", addedAt: daysAgoISO(0) }], false, [3]
+);
+check("분류된 칩도 원본 배열 위치로 삭제한다", classifiedChip.includes('data-index="3"'), true);
 
 console.log(failed ? `\n${failed}개 실패` : "\nall passed");
 process.exit(failed ? 1 : 0);

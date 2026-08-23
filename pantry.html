@@ -116,6 +116,21 @@
             aria-pressed="false" data-copy="PANTRY.detailOn">자세히</button>
         </div>
         <div id="pantry-chips" class="pantry-chips"></div>
+        <details id="pantry-staples" class="pantry-staples">
+          <summary>
+            <span data-copy="PANTRY.staplesTitle">기본 재료</span>
+            <span id="pantry-staples-count" class="pantry-staples-count"></span>
+          </summary>
+          <div class="pantry-staples-body">
+            <p class="pantry-staples-hint" data-copy="PANTRY.staplesHint">실제로 있는 것만 넣어두면 추천할 때 정확히 반영해요.</p>
+            <div id="pantry-staples-chips" class="pantry-chips pantry-staples-chips"></div>
+            <p id="pantry-staples-empty" class="pantry-staples-empty" data-copy="PANTRY.staplesEmpty">등록된 기본 재료가 없어요.</p>
+            <div class="pantry-staples-add">
+              <p data-copy="PANTRY.staplesAddLabel">있는 기본 재료를 눌러서 추가하세요</p>
+              <div id="pantry-staples-examples" class="pantry-examples"></div>
+            </div>
+          </div>
+        </details>
         <div id="pantry-limit-note" hidden></div>
         <div id="pantry-empty" class="pantry-empty">
           <p data-copy="PANTRY.empty">아직 넣어둔 재료가 없어요. 두세 개만 적어도 충분해요.</p>
