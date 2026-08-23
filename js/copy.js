@@ -69,7 +69,8 @@ const COPY = {
 
   // pantry.html 재료 입력
   PANTRY: {
-    title: "냉장고",
+    title: "냉장고 현황",
+    barSummary: (count) => count > 0 ? `(총 ${count}개)` : "(비어 있음)",
 
     /* 빈 화면의 "눌러서 바로 넣기" 버튼과 입력칸 placeholder가 쓰는 하나의 예시 세트.
        예전에는 버튼 목록이 pantry.html에, placeholder가 여기에 따로 적혀 있어서

@@ -47,12 +47,13 @@ const {
   savingsTotal, savingsWeek, savingsMonth, weekStartISO, todayISO,
   loadFavorites, isFavorite, toggleFavorite,
   pantryChipsHtml,
-  isReadyToCook, resultLeadHtml, isPantryStaple, missingForCooking,
+  isReadyToCook, resultLeadHtml, isPantryStaple, missingForCooking, pantrySummaryText,
 } = sandbox;
 
 /* copy.js의 COPY는 const라 전역 객체에 붙지 않는다(함수 선언만 붙는다).
    같은 컨텍스트 안에서 이름을 평가해 꺼내온다. */
 const COPY = vm.runInContext("COPY", sandbox);
+
 /* 상한값도 const라 같은 방식으로 꺼낸다 — 테스트가 숫자를 따로 적어두면 코드와 갈라진다. */
 const FAVORITES_LIMIT = vm.runInContext("FAVORITES_LIMIT", sandbox);
 const HISTORY_LIMIT = vm.runInContext("HISTORY_LIMIT", sandbox);
@@ -65,6 +66,11 @@ function check(label, actual, expected) {
   const detail = ok ? "" : `  → ${JSON.stringify(actual)} (기대: ${JSON.stringify(expected)})`;
   console.log(`${ok ? "  ok  " : "FAIL  "}${label}${detail}`);
 }
+
+check("냉장고 현황은 재료명 없이 개수만 알린다", pantrySummaryText([
+  { name: "계란" }, { name: "대파" }, { name: "두부" },
+]), "(총 3개)");
+check("빈 냉장고 현황은 짧게 알린다", pantrySummaryText([]), "(비어 있음)");
 
 function setPantry(items) {
   store["fridge-chef-pantry"] = JSON.stringify(items);

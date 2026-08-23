@@ -565,13 +565,10 @@ function pantryLimitNoticeHtml(pantry) {
     (레시피 추천은 개수 제한 없이 전부 씁니다.)</p>`;
 }
 
-/* 접혀 있어도 지금 뭐가 들었는지 알 수 있어야 한다. 앞의 두 개만 보여주고 나머지는 개수로 줄인다.
-   냉장고 페이지의 재료함과 다른 페이지의 조회 바가 같은 문구를 써야 하므로 여기 둔다. */
+/* 접힌 바에서는 개별 재료명을 나열하지 않는다. 모바일의 작은 버튼은 확인·이동 역할만 하고,
+   상세 목록은 사용자가 직접 펼쳤을 때 보여주는 편이 본문을 덜 가린다. */
 function pantrySummaryText(pantry) {
-  if (!pantry.length) return "(비어 있음 · 등록해두면 다음부터 편해요)";
-  const head = pantry.slice(0, 2).map((item) => item.name).join(", ");
-  const rest = pantry.length - 2;
-  return rest > 0 ? `(${head} 외 ${rest}개)` : `(${head})`;
+  return COPY.PANTRY.barSummary(pantry.length);
 }
 
 /* 냉장고에 재료를 넣는 유일한 경로. 냉장고 페이지와 조회 바가 함께 쓴다.
@@ -956,7 +953,7 @@ function addResultMessage({ empty, added, updated, unchanged, stored }) {
 let pantryBarStatus = "";
 
 /* 레시피 추천·식단 계획·장보기는 모두 "지금 냉장고에 뭐가 있는지"를 알아야 판단이 된다.
-   한 줄 요약만으로는 "외 3개"가 뭔지 몰라 부족하므로, 펼치면 전체 목록이 보이는 조회 바를 둔다.
+   접힌 상태에서는 개수만 간략히 알리고, 펼치면 전체 목록이 보이는 조회 바를 둔다.
 
    추가도 삭제도 여기서 된다. 흐름 중간에 "아 양파도 있지" 하고 냉장고로 넘어가면 적던 재료와
    추천 결과가 날아가기 때문이다. 대신 삭제에는 되돌리기를 붙인다 — 페이지를 옮기게 하는 것은
