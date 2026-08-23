@@ -13,6 +13,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 INDEX_FILE="api/recipes_index.json"
+PROD_URL="https://fridge-chef-gamma.vercel.app"
 
 if [ ! -f "$INDEX_FILE" ]; then
   echo "배포 중단: $INDEX_FILE 이 없습니다." >&2
@@ -27,3 +28,25 @@ fi
 
 echo "✓ $INDEX_FILE 확인됨 ($(du -h "$INDEX_FILE" | cut -f1)). 운영 배포를 시작합니다..."
 vercel --prod "$@"
+
+# 로컬에 파일이 있는 것과 그게 번들에 실린 것은 다르다 — 2026-08-23에 파일이 있는데도
+# 인덱스 없이 배포돼 모든 요청이 조용히 AI 폴백으로 빠졌다(원인 미상). 에러도 안 나고
+# 화면도 멀쩡해서 로그를 뒤지기 전까지 알 수 없다. 그래서 배포한 것이 실제로 매칭하는지
+# 여기서 한 번 물어본다. "배포했다"와 "동작한다"는 다른 확인이다.
+echo
+echo "배포된 서비스가 실제로 매칭하는지 확인합니다..."
+PROBE='{"ingredients":"돼지고기 300g, 김치 1/4포기, 두부 1모, 양파 1개, 계란 2개, 대파 1대, 마늘 5쪽"}'
+RESPONSE=$(curl -s --max-time 30 -X POST "$PROD_URL/api/recommend"   -H "Content-Type: application/json" --data-binary "$PROBE" || true)
+
+if printf '%s' "$RESPONSE" | grep -q '"source": *"matched"'; then
+  echo "✓ 매칭 동작 확인 — 실제 레시피가 나옵니다."
+else
+  echo "" >&2
+  echo "경고: 배포는 됐지만 매칭이 안 걸립니다 — AI 전용으로 돌고 있습니다." >&2
+  echo "인덱스가 번들에 안 실렸을 가능성이 큽니다. 확인:" >&2
+  echo "  vercel logs $PROD_URL --scope frost0313zs-projects | grep recipes_index" >&2
+  echo "  (\"not found\" 또는 \"unreadable\"이 보이면 그것이다)" >&2
+  echo "" >&2
+  echo "되돌리려면: vercel rollback <직전 배포 URL> --scope frost0313zs-projects" >&2
+  exit 1
+fi
