@@ -1115,7 +1115,7 @@ function initPantryBarDrag(barEl) {
     const lift = () => {
       const view = window.visualViewport;
       const hidden = window.innerHeight - view.height - view.offsetTop;
-      barEl.style.bottom = hidden > 0 ? `${hidden}px` : "";
+      barEl.style.setProperty("--keyboard-offset", hidden > 0 ? `${hidden}px` : "0px");
     };
     window.visualViewport.addEventListener("resize", lift);
     window.visualViewport.addEventListener("scroll", lift);

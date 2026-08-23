@@ -14,6 +14,8 @@
      오른쪽 끝이 들쭉날쭉해 보이므로 하나로 통일한다 */
   --content-width: 860px;
   --header-height: 64px;
+  --mobile-nav-height: 64px;
+  --pantry-peek-height: 52px;
 }
 
 /* ==========================================================================
@@ -205,6 +207,19 @@ a {
   border-bottom-color: var(--accent);
 }
 
+.nav-icon,
+.nav-label-short {
+  display: none;
+}
+
+.nav-icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 /* 테마 전환은 상단 내비게이션에는 안 둔다 — 내비게이션은 "어디로 갈지"만 담는다(D-0m).
    처음엔 홈에만 뒀다가(D-0m), 다른 화면에서는 못 바꾸는 게 실제로 불편해서 다섯 페이지
    전부에 같은 자리(본문 맨 위 오른쪽)로 넣었다(D-0t). main.js는 원래도 페이지마다
@@ -299,32 +314,6 @@ a {
   border-radius: 999px;
 }
 
-.nav-toggle {
-  order: 4;
-  flex: none;
-  display: none;
-  flex-direction: column;
-  justify-content: center;
-  gap: var(--sp-5);
-  width: 40px;
-  height: 40px;
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
-.nav-toggle span {
-  display: block;
-  height: 2px;
-  background: var(--text);
-  border-radius: 2px;
-}
-
-/* 배경도 테두리도 없는 버튼이라 막대 색으로만 반응을 보일 수 있다. */
-.nav-toggle:hover span {
-  background: var(--accent-strong);
-}
-
 /* ==========================================================================
    재료 현황 조회 바 (레시피 추천 / 식단 계획 / 장보기 공통)
    ==========================================================================
@@ -355,7 +344,7 @@ a {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: var(--keyboard-offset, 0px);
   max-width: var(--max-width);
   margin-inline: auto;
   z-index: 40;
@@ -3215,39 +3204,105 @@ body[data-page="recipe"] .recipe-form-section > .result-grid {
 }
 
 @media (max-width: 640px) {
-  .nav-toggle {
-    display: flex;
-  }
-
   .nav-menu {
-    position: absolute;
-    top: var(--header-height);
+    position: fixed;
+    z-index: 100;
+    top: auto;
+    bottom: 0;
     left: 0;
     right: 0;
     background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    flex-direction: column;
+    border-top: 1px solid var(--border-strong);
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0;
-    max-height: 0;
-    overflow: hidden;
-    /* max-height:0 만으로는 화면에서 사라져도 링크가 여전히 Tab 이동 대상으로 남는다.
-       닫힌 메뉴가 키보드 포커스를 가져가지 않도록 visibility로 함께 감춘다. */
-    visibility: hidden;
-    transition: max-height 0.2s ease, visibility 0.2s ease;
-  }
-
-  /* max-height는 transition을 걸기 위해 고정값이어야 하는데(auto로는 전환이 안 됨),
-     링크가 늘면 마지막 항목이 잘린다. 실제로 4개 -> 5개가 되면서 240px을 넘어
-     "장보기"가 34px 잘렸다. 항목이 더 늘어도 견디도록 여유를 둔다. */
-  .nav-menu.open {
-    max-height: 420px;
-    visibility: visible;
+    height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom));
+    padding: 0 max(4px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(4px, env(safe-area-inset-left));
+    box-shadow: 0 -4px 18px rgba(24, 46, 35, .1);
   }
 
   .nav-menu a {
-    padding: var(--sp-14) var(--sp-20);
-    border-bottom: 1px solid var(--border);
+    min-width: 0;
+    min-height: var(--mobile-nav-height);
+    padding: 7px 2px 5px;
+    border: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    font-size: var(--fs-78);
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .nav-menu a:hover,
+  .nav-menu a.active {
+    border: 0;
+    background: var(--accent-soft);
+  }
+
+  .nav-icon,
+  .nav-label-short {
+    display: block;
+  }
+
+  .nav-icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .nav-label-full {
+    display: none;
+  }
+
+  body {
+    padding-bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom));
+  }
+
+  body:has(.pantry-bar) {
+    padding-bottom: calc(var(--mobile-nav-height) + var(--pantry-peek-height) + var(--sp-14) + env(safe-area-inset-bottom));
+  }
+
+  .pantry-bar {
+    bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom) + var(--keyboard-offset, 0px));
+    z-index: 80;
+  }
+
+  .pantry-bar:not([open]) {
+    left: auto;
+    right: var(--gutter);
+    width: min(220px, calc(100vw - (var(--gutter) * 2)));
+    margin: 0;
+    border-bottom: 1px solid var(--pantry-sheet-border);
+    border-radius: var(--r-xl);
+  }
+
+  .pantry-bar:not([open]) > summary {
+    min-height: var(--pantry-peek-height);
+    padding: 8px 14px;
+    flex-direction: row;
+    justify-content: center;
+    gap: 0;
+    border-radius: var(--r-xl);
+  }
+
+  .pantry-bar:not([open]) > summary::before {
+    display: none;
+  }
+
+  .pantry-bar:not([open]) .pantry-bar-head {
     width: 100%;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+  }
+
+  .pantry-bar[open] {
+    max-width: none;
+  }
+
+  .pantry-bar[open] .pantry-bar-body {
+    max-height: calc(100dvh - var(--header-height) - var(--mobile-nav-height) - 120px - env(safe-area-inset-bottom));
   }
 
   .features {

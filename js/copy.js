@@ -442,10 +442,15 @@ const COPY = {
     brandAria: "있는대로 홈으로",
     menuAria: "메뉴 열기",
     home: "홈",
+    homeShort: "홈",
     pantry: "냉장고",
+    pantryShort: "냉장고",
     recipe: "레시피 추천",
+    recipeShort: "레시피",
     mealplan: "식단 계획",
+    mealplanShort: "식단",
     shopping: "장보기",
+    shoppingShort: "장보기",
   },
 
   // index.html 섹션 제목

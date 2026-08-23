@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>내 냉장고 · 있는대로</title>
   <meta name="description" content="냉장고에 있는 재료를 넣어두면 추천·식단·장보기에 자동으로 반영돼요." />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -41,15 +41,12 @@
         </svg>
         <span class="brand-name" data-copy="BRAND.name">있는대로</span>
       </a>
-      <button id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-controls="nav-menu" data-copy="NAV.menuAria" data-copy-attr="aria-label" aria-label="메뉴 열기">
-        <span></span><span></span><span></span>
-      </button>
-      <nav id="nav-menu" class="nav-menu">
-        <a href="index.html" data-copy="NAV.home">홈</a>
-        <a href="pantry.html" class="active" data-copy="NAV.pantry">냉장고</a>
-        <a href="recipe.html" data-copy="NAV.recipe">레시피 추천</a>
-        <a href="mealplan.html" data-copy="NAV.mealplan">식단 계획</a>
-        <a href="shopping.html" data-copy="NAV.shopping">장보기</a>
+      <nav id="nav-menu" class="nav-menu" aria-label="주요 메뉴">
+        <a href="index.html"><svg class="nav-icon" aria-hidden="true"><use href="assets/nav-icons.svg#home"></use></svg><span class="nav-label-full" data-copy="NAV.home">홈</span><span class="nav-label-short" data-copy="NAV.homeShort">홈</span></a>
+        <a href="pantry.html" class="active" aria-current="page"><svg class="nav-icon" aria-hidden="true"><use href="assets/nav-icons.svg#pantry"></use></svg><span class="nav-label-full" data-copy="NAV.pantry">냉장고</span><span class="nav-label-short" data-copy="NAV.pantryShort">냉장고</span></a>
+        <a href="recipe.html"><svg class="nav-icon" aria-hidden="true"><use href="assets/nav-icons.svg#recipe"></use></svg><span class="nav-label-full" data-copy="NAV.recipe">레시피 추천</span><span class="nav-label-short" data-copy="NAV.recipeShort">레시피</span></a>
+        <a href="mealplan.html"><svg class="nav-icon" aria-hidden="true"><use href="assets/nav-icons.svg#mealplan"></use></svg><span class="nav-label-full" data-copy="NAV.mealplan">식단 계획</span><span class="nav-label-short" data-copy="NAV.mealplanShort">식단</span></a>
+        <a href="shopping.html"><svg class="nav-icon" aria-hidden="true"><use href="assets/nav-icons.svg#shopping"></use></svg><span class="nav-label-full" data-copy="NAV.shopping">장보기</span><span class="nav-label-short" data-copy="NAV.shoppingShort">장보기</span></a>
       </nav>
     </div>
   </header>
