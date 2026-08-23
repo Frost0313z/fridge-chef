@@ -284,17 +284,43 @@ function amountIn(lines, name, unit) {
   }, 0);
 }
 
+/* 완제품·가공품 접미어. api/shopping.py의 PRODUCT_SUFFIXES와 같은 목록이어야 한다 —
+   "같은 재료인지" 판단이 앞뒤에서 갈라지면 화면은 있다고 하고 서버는 없다고 하게 된다.
+   왜 이 목록인지와 실측 근거는 그쪽 주석에 적어두었다. */
+const PRODUCT_SUFFIXES = [
+  "양념장", "양념", "소스", "드레싱", "만두", "과자", "라면", "치즈", "식빵", "빵",
+  "케이크", "쿠키", "파이", "통조림", "스프", "젓갈", "맛살", "어묵", "햄",
+  "생크림", "크림", "주스", "시럽", "잼", "아이스크림", "초콜릿", "버터",
+];
+
+/* "우유또는생크림"처럼 둘 중 아무거나 되는 표기에는 접미어 규칙을 적용하지 않는다. */
+const ALTERNATIVE_MARKERS = ["또는", "or", "이나", "나또는"];
+
+function productClass(name) {
+  return PRODUCT_SUFFIXES.find((suffix) => name.endsWith(suffix)) || null;
+}
+
+/* 부분 문자열이 겹쳐도 서로 다른 물건인지 가른다 — "김치"와 "김치만두". */
+function sameProductClass(a, b) {
+  if (ALTERNATIVE_MARKERS.some((m) => a.includes(m) || b.includes(m))) return true;
+  return productClass(a) === productClass(b);
+}
+
 /* 한 방향 비교(`식단재료.includes(재료함항목)`)는 재료함에 "파"가 있으면
    "파프리카"·"파스타"까지 보유로 간주해버린다. 양방향으로 비교하되,
    짧은 쪽이 1글자면 우연한 겹침이므로 포함 매칭을 인정하지 않는다.
-   그 경우 "이미 있는 걸 또 사는" 쪽으로 틀리는데, 이는 "필요한 걸 안 사는" 쪽보다 안전하다. */
+   그 경우 "이미 있는 걸 또 사는" 쪽으로 틀리는데, 이는 "필요한 걸 안 사는" 쪽보다 안전하다.
+   겹치더라도 한쪽만 완제품이면(김치 / 김치만두) 다른 물건으로 본다 — 같은 이유로,
+   못 가진 것을 가졌다고 하는 쪽이 더 위험하다. */
 function isCovered(target, pantryNames) {
   if (!target) return false;
   return pantryNames.some((p) => {
     if (!p) return false;
     if (p === target) return true;
     const shorter = p.length <= target.length ? p : target;
-    return shorter.length >= 2 && (target.includes(p) || p.includes(target));
+    if (shorter.length < 2) return false;
+    if (!target.includes(p) && !p.includes(target)) return false;
+    return sameProductClass(target, p);
   });
 }
 
@@ -331,12 +357,20 @@ function recipeSearchLinkHtml(name, searchKeyword) {
    인분은 매칭된 레시피에만 있다(AI가 지어낸 것에는 없다). 있으면 반드시 보여준다 —
    추천 카드의 92%가 2인분 이상인데 화면이 그걸 말해주지 않으면, "한 끼"를 고른
    사람이 4인분 양인 줄 모르고 만든다. 고르게 해놓고 무시하는 것보다 나쁘다. */
+/* 레시피 코퍼스는 "30분이내"·"6인분이상"처럼 붙여 쓴다. 맞춤법상 '이내'·'이상'은
+   띄어 쓰는 게 맞지만, 원문 값 자체를 고치지는 않는다 — 인분 우선순위 대조
+   (api/recipe_match.py의 PORTION_PREFERENCE)가 이 표기를 그대로 쓰기 때문이다.
+   화면에 나가는 순간에만 띄운다. AI가 만든 "15분"처럼 접미어가 없는 값은 건드리지 않는다. */
+function spacedRange(text) {
+  return String(text).replace(/(\S)(이내|이상)$/, "$1 $2");
+}
+
 function recipeMetaHtml(r) {
   const bits = [];
-  if (r.time) bits.push(`<span class="recipe-time">⏱ ${escapeHtml(r.time)}</span>`);
+  if (r.time) bits.push(`<span class="recipe-time">⏱ ${escapeHtml(spacedRange(r.time))}</span>`);
   if (r.portion) {
     bits.push(
-      `<span class="recipe-portion">${escapeHtml(COPY.UI.portionNote(r.portion))}</span>`
+      `<span class="recipe-portion">${escapeHtml(COPY.UI.portionNote(spacedRange(r.portion)))}</span>`
     );
   }
   return bits.length ? `<p class="recipe-meta">${bits.join("")}</p>` : "";

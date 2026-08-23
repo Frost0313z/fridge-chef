@@ -156,10 +156,49 @@ def _format_amounts(amounts):
     return ", ".join(format_amount(total, unit) for unit, total in amounts.items())
 
 
+# 완제품·가공품을 가리키는 접미어. "김치"를 가진 사람이 "김치만두"까지 가진 것으로
+# 세지 않기 위한 목록이다. 부분 문자열 비교만으로는 재료(김치)와 그 재료로 만든
+# 완제품(김치만두)을 구분할 수 없는데, 이 둘은 사러 가야 하는지가 정반대다.
+#
+# 인덱스 62,150종을 전수 대조해 고른 값이다. 흔한 재료 10종(계란·김치·대파·두부·우유·
+# 고기·김·밥·양파·파)을 기준으로 이 목록이 새로 걸러내는 이름이 243종이고, 그중
+# "우유식빵"·"불고기양념장"·"서울우유고다치즈"·"마파두부소스"처럼 전부 실제 오탐이었다.
+# 접미어를 늘릴 때는 반드시 같은 방식으로 실측해서 옳은 매칭을 깨지 않는지 확인할 것.
+PRODUCT_SUFFIXES = (
+    "양념장", "양념", "소스", "드레싱", "만두", "과자", "라면", "치즈", "식빵", "빵",
+    "케이크", "쿠키", "파이", "통조림", "스프", "젓갈", "맛살", "어묵", "햄",
+    "생크림", "크림", "주스", "시럽", "잼", "아이스크림", "초콜릿", "버터",
+)
+
+# "우유또는생크림"처럼 둘 중 아무거나 되는 표기. 접미어만 보면 생크림으로 읽혀
+# 우유를 가진 사람이 못 가진 것이 되므로, 이 표기가 있으면 접미어 규칙을 적용하지 않는다.
+_ALTERNATIVE_MARKERS = ("또는", "or", "이나", "나또는")
+
+
+def _product_class(name):
+    """이 이름이 어떤 완제품 계열인지. 재료 그 자체면 None."""
+    for suffix in PRODUCT_SUFFIXES:
+        if name.endswith(suffix):
+            return suffix
+    return None
+
+
+def _same_product_class(a, b):
+    """부분 문자열이 겹쳐도 서로 다른 물건인지 가른다.
+
+    한쪽만 완제품 접미어를 달고 있으면 다른 물건이다 — "김치"와 "김치만두",
+    "고기"와 "불고기양념장". 둘 다 같은 계열이면(치즈-모짜렐라치즈) 같은 물건으로 본다.
+    """
+    if any(m in a or m in b for m in _ALTERNATIVE_MARKERS):
+        return True
+    return _product_class(a) == _product_class(b)
+
+
 def find_owned(target, owned_keys):
     """냉장고(또는 그에 준하는 목록)에서 같은 재료를 찾는다. js/shared.js의 isCovered와
     같은 규칙 — 한 방향 포함 비교는 "파"가 "파프리카"까지 보유로 만들어버리므로
     양방향으로 보되, 짧은 쪽이 한 글자면 우연한 겹침이라 인정하지 않는다.
+    거기에 더해, 겹치더라도 한쪽만 완제품이면 다른 물건으로 본다(_same_product_class).
     recommend.py가 레시피의 재료가 사용자 재료에 있는지 확인할 때도 이 함수를 그대로 쓴다 —
     "같은 이름인지 판단하는 규칙"이 갈라지면 한쪽은 있다고 하고 한쪽은 없다고 하게 된다."""
     for key in owned_keys:
@@ -167,7 +206,8 @@ def find_owned(target, owned_keys):
             return key
         shorter = key if len(key) <= len(target) else target
         if len(shorter) >= 2 and (target in key or key in target):
-            return key
+            if _same_product_class(target, key):
+                return key
     return None
 
 

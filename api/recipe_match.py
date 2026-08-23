@@ -177,12 +177,23 @@ def match(pantry_keys, limit=3, category=None, portion=None):
         rate = hit / total
         if rate >= MIN_COVERAGE:
             fits = 1 if inbuns[row[3]] in wanted else 0
-            scored.append((fits, score(hit, total), row[5], rate, i))
+            # 지금 장을 안 보고 만들 수 있는가. 이 서비스가 약속한 것이 그것이므로
+            # 다른 무엇보다 앞에 둔다(아래 정렬 주석 참고).
+            ready = 1 if hit >= total else 0
+            scored.append((ready, fits, score(hit, total), row[5], rate, i))
 
-    # 분량이 맞는 것이 먼저, 그 안에서 점수, 같으면 인기도(추천수+스크랩수)로 가른다.
+    # 지금 바로 만들 수 있는 것이 먼저, 그다음 분량이 맞는 것, 그 안에서 점수,
+    # 같으면 인기도(추천수+스크랩수)로 가른다.
+    #
+    # "지금 바로"를 맨 앞에 두는 이유: 이 서비스의 약속은 "냉장고에 있는 대로, 오늘 한끼
+    # 완성"인데, 커버율 70%면 통과시키는 규칙(MIN_COVERAGE)과 점수순 정렬이 맞물려
+    # 실제로는 매번 "사야 해요"가 붙은 카드만 올라왔다. 재료 3개(계란·김치·대파)로 실측했을
+    # 때 후보 5개 중 추가 구매 없이 되는 것이 0개였다. 만들 수 있는 것이 하나라도 있으면
+    # 그것부터 보여주는 것이 맞다 — 사러 나가라는 답은 배달앱으로 가는 지름길이다.
+    #
     # 분량을 점수보다 앞에 두는 것은 이게 사용자가 직접 고른 조건이기 때문이다 —
     # 점수는 우리가 매긴 값이고, 분량은 사용자가 말한 값이다.
-    scored.sort(key=lambda x: (-x[0], -x[1], -x[2]))
+    scored.sort(key=lambda x: (-x[0], -x[1], -x[2], -x[3]))
 
     # 같은 이름이 여러 장 뜨지 않게 거른다. 인덱스에는 RCP_SNO가 다른 별개 레시피로 남아
     # 있는 게 맞고("만능간장"이라는 이름의 서로 다른 레시피가 실제로 여럿 있다), 화면에
@@ -193,7 +204,7 @@ def match(pantry_keys, limit=3, category=None, portion=None):
     from recommend import dedupe_key
 
     out, seen = [], set()
-    for _, _, _, rate, i in scored:
+    for _, _, _, _, rate, i in scored:
         row = rows[i]
         key = dedupe_key(row[1])
         if not key or key in seen:

@@ -2685,11 +2685,33 @@ body[data-page="recipe"] .recipe-form-section > .result-grid {
   gap: var(--sp-18);
 }
 
+/* 결과 목록 맨 앞 한 줄. 그리드 한 칸에 들어가면 카드처럼 보이므로 전체 폭을 쓴다. */
+.result-lead {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--fs-90);
+}
+
 .recipe-card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   padding: 20px;
+}
+
+/* "지금 바로 가능". 같은 카드 안의 "사야 해요"(.ing-tag)와 모양은 같은 계열로 두되,
+   이쪽은 채우고 저쪽은 테두리만 남겨 좋은 소식과 할 일을 구분한다. 강조색을 새로
+   추가하지 않고 --accent-strong 하나만 쓴다 — 흰 글씨는 이 색에만 허용된다(대비 5.11:1). */
+.recipe-ready {
+  display: inline-block;
+  margin: 0 0 var(--sp-10);
+  padding: var(--sp-3) var(--sp-8);
+  border-radius: 999px;
+  background: var(--accent-strong);
+  color: var(--on-accent);
+  font-size: var(--fs-75);
+  font-weight: 600;
 }
 
 .recipe-card h3 {

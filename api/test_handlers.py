@@ -673,16 +673,59 @@ def test_load_index_refuses_a_different_format():
         recipe_match.INDEX_PATH = original_path
 
 
-def test_match_prefers_using_more_of_the_fridge():
-    """커버율만 보면 재료 적은 레시피가 늘 이긴다. score=(hit/total)*hit이 그걸 뒤집는다 —
-    3개를 다 맞춘 것(3점)보다 8개 중 7개를 맞춘 것(6.1점)이 냉장고를 더 쓴다."""
+def test_match_puts_ready_to_cook_first():
+    """지금 장을 안 보고 만들 수 있는 것이 무엇보다 먼저다.
+
+    점수(score)만 보면 "8개 중 7개를 맞춘 것"(6.1점)이 "3개를 다 맞춘 것"(3점)을 이기고,
+    한동안 실제로 그렇게 정렬했다 — 냉장고를 더 많이 쓰는 쪽이 이 서비스의 목적에 맞다고
+    봤기 때문이다. 그런데 그 결과가 "재료 하나만 사 오세요"인 카드가 매번 맨 위에 오는
+    것이었다. 오늘 저녁을 해결하러 온 사람에게 장을 보라는 답은 배달앱으로 가는 길이고
+    (기획서의 장벽 3), 그러면 서비스가 약속한 "있는 대로 오늘 한끼"가 깨진다.
+    그래서 다 갖춘 쪽을 먼저 올린다. 점수 규칙은 아래 테스트처럼 그대로 살아 있다."""
     _fake_index([
         {"id": 1, "name": "간단한것", "ing": ["김치", "밥", "참기름"], "pop": 999},
         {"id": 2, "name": "제대로된것",
          "ing": ["김치", "밥", "참기름", "두부", "대파", "계란", "양파", "당근"], "pop": 0},
     ])
+    # 당근이 없어서 "제대로된것"은 87.5%다 — 만들려면 사러 나가야 한다.
     out = recipe_match.match(["김치", "밥", "참기름", "두부", "대파", "계란", "양파"])
+    assert [r["name"] for r in out] == ["간단한것", "제대로된것"], out
+
+
+def test_match_prefers_using_more_of_the_fridge():
+    """커버율만 보면 재료 적은 레시피가 늘 이긴다. score=(hit/total)*hit이 그걸 뒤집는다 —
+    3개를 다 맞춘 것(3점)보다 8개 중 7개를 맞춘 것(6.1점)이 냉장고를 더 쓴다.
+
+    위 테스트가 "지금 바로 되는 것"을 앞으로 뺐으므로, 이 규칙은 같은 그룹 안에서 작동한다.
+    여기서는 둘 다 100%라 둘 다 지금 만들 수 있고, 그때 냉장고를 더 쓰는 쪽이 이긴다."""
+    _fake_index([
+        {"id": 1, "name": "간단한것", "ing": ["김치", "밥", "참기름"], "pop": 999},
+        {"id": 2, "name": "제대로된것",
+         "ing": ["김치", "밥", "참기름", "두부", "대파", "계란", "양파", "당근"], "pop": 0},
+    ])
+    out = recipe_match.match(["김치", "밥", "참기름", "두부", "대파", "계란", "양파", "당근"])
     assert [r["name"] for r in out] == ["제대로된것", "간단한것"], out
+
+
+def test_find_owned_does_not_count_a_product_as_its_ingredient():
+    """부분 문자열이 겹쳐도 한쪽만 완제품이면 다른 물건이다.
+
+    "김치"를 가졌다고 "김치만두"까지 가진 것이 되면, 화면은 다 있다고 하는데 실제로는
+    만들 수 없다 — 이 서비스에서 가장 비싼 종류의 거짓말이다. 실측으로는 흔한 재료 10종에
+    이런 이름이 243종 걸렸다(shopping.PRODUCT_SUFFIXES 주석 참고)."""
+    assert shopping.find_owned("김치만두", ["김치"]) is None
+    assert shopping.find_owned("불고기양념장", ["고기"]) is None
+    assert shopping.find_owned("서울우유고다치즈", ["우유"]) is None
+    assert shopping.find_owned("마파두부소스", ["두부"]) is None
+
+    # 같은 재료를 다르게 적은 것은 그대로 인정해야 한다 — 규칙이 과하면 반대로 틀린다.
+    assert shopping.find_owned("다진대파", ["대파"]) == "대파"
+    assert shopping.find_owned("삶은계란", ["계란"]) == "계란"
+    assert shopping.find_owned("배추김치", ["김치"]) == "김치"
+    # 둘 다 같은 완제품 계열이면 같은 물건으로 본다.
+    assert shopping.find_owned("모짜렐라치즈", ["치즈"]) == "치즈"
+    # "둘 중 아무거나" 표기는 접미어로 읽지 않는다.
+    assert shopping.find_owned("우유또는생크림", ["우유"]) == "우유"
 
 
 def test_match_filters_by_category():

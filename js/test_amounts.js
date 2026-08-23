@@ -42,7 +42,7 @@ const {
   normalizeIngredient,
   remainingAmount, buyIntoPantry, loadPantry,
   consumeFromPantry, undoRemove, removeFromPantry,
-  missingIngredients, planShortages, pantryNamesFor,
+  missingIngredients, planShortages, pantryNamesFor, isCovered, spacedRange,
   loadSavings, addSavings, undoSavings, chickenText,
   savingsTotal, savingsWeek, savingsMonth, weekStartISO, todayISO,
   loadFavorites, isFavorite, toggleFavorite,
@@ -210,6 +210,23 @@ check("해먹은 항목은 통째로 뺀다",
   missingIngredients({ ingredients: ["연어 200g"], done: true }, fridge), []);
 check("냉장고가 비면 전부 부족",
   missingIngredients({ ingredients: ["계란 2개"] }, []), ["계란 2개"]);
+
+/* 완제품 오인식 — api/shopping.py의 find_owned와 같은 규칙이어야 한다.
+   한쪽이 틀리면 화면은 "있어요"인데 서버는 "사야 해요"가 되고, 그 반대도 된다. */
+check("김치가 김치만두가 되지 않는다", isCovered("김치만두", ["김치"]), false);
+check("고기가 불고기양념장이 되지 않는다", isCovered("불고기양념장", ["고기"]), false);
+check("우유가 치즈가 되지 않는다", isCovered("서울우유고다치즈", ["우유"]), false);
+check("다진대파는 대파다", isCovered("다진대파", ["대파"]), true);
+check("삶은계란은 계란이다", isCovered("삶은계란", ["계란"]), true);
+check("같은 완제품 계열끼리는 인정한다", isCovered("모짜렐라치즈", ["치즈"]), true);
+check("둘 중 아무거나 표기는 그대로 인정한다", isCovered("우유또는생크림", ["우유"]), true);
+check("한 글자 겹침은 여전히 안 센다", isCovered("파프리카", ["파"]), false);
+
+// 코퍼스 표기를 화면에서만 띄운다. 원문 값은 인분 대조에 쓰이므로 고치지 않는다.
+check("30분이내를 띄운다", spacedRange("30분이내"), "30분 이내");
+check("6인분이상을 띄운다", spacedRange("6인분이상"), "6인분 이상");
+check("접미어가 없으면 그대로 둔다", spacedRange("15분"), "15분");
+check("빈 값도 안전하다", spacedRange(""), "");
 
 const plan = [
   { day: "1일차", meal: "아침", menu: "계란말이", ingredients: ["계란 2개"] },

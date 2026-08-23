@@ -117,7 +117,9 @@ document.addEventListener("DOMContentLoaded", () => {
        다시 계산하는 것과 같은 규칙으로, 항상 "지금의 재료함" 기준이 되게 한다. */
     const pantryNames = pantryNamesFor(loadPantry());
     shownRecipes = recipes;
-    resultEl.innerHTML = recipes.map((r, i) => recipeCardHtml(r, pantryNames, i)).join("");
+    resultEl.innerHTML =
+      resultLeadHtml(recipes, pantryNames) +
+      recipes.map((r, i) => recipeCardHtml(r, pantryNames, i)).join("");
     document.getElementById("result-empty").hidden = true;
     addToHistory(recipes);
 
@@ -149,9 +151,36 @@ function ingredientLiHtml(name, pantryNames) {
    (이력 목록이 historyItems를 들고 있는 것과 같은 이유). */
 let shownRecipes = [];
 
+/* 이 요리를 지금 장을 안 보고 만들 수 있는지. 재료함이 비어 있으면 판정 자체가
+   의미 없으므로(전부 "사야 해요"가 된다) 세지 않는다 — ingredientLiHtml과 같은 조건이다. */
+function isReadyToCook(r, pantryNames) {
+  if (!pantryNames.length) return false;
+  return missingIngredients({ ingredients: r.ingredients }, pantryNames).length === 0;
+}
+
+/* 결과 목록 맨 앞 한 줄. 지금 바로 되는 게 있으면 몇 개인지 말하고, 하나도 없으면
+   그 사실을 먼저 말한 뒤 몇 개만 사면 되는지 알려준다. 서버가 이미 바로 되는 것을
+   앞으로 정렬해 보내므로(api/recipe_match.py), 여기서 다시 줄을 세우지는 않는다. */
+function resultLeadHtml(recipes, pantryNames) {
+  if (!pantryNames.length) return "";
+
+  const ready = recipes.filter((r) => isReadyToCook(r, pantryNames)).length;
+  if (ready) return `<p class="result-lead">${escapeHtml(COPY.UI.readyLead(ready))}</p>`;
+
+  const fewest = Math.min(
+    ...recipes.map((r) => missingIngredients({ ingredients: r.ingredients }, pantryNames).length)
+  );
+  if (!Number.isFinite(fewest) || fewest <= 0) return "";
+  return `<p class="result-lead">${escapeHtml(COPY.UI.almostLead(fewest))}</p>`;
+}
+
 function recipeCardHtml(r, pantryNames = [], index = 0) {
+  const readyBadge = isReadyToCook(r, pantryNames)
+    ? `<p class="recipe-ready">${escapeHtml(COPY.UI.readyBadge)}</p>`
+    : "";
   return `
     <article class="recipe-card" data-recipe-index="${index}">
+      ${readyBadge}
       <div class="recipe-card-head">
         <h3>${escapeHtml(r.name)}</h3>
         ${favoriteToggleHtml(r.name, `data-recipe-index="${index}"`)}
@@ -299,7 +328,7 @@ function renderHistory() {
     <div class="history-entry">
       <button type="button" class="history-item" data-index="${index}">
         <span class="history-item-name">${escapeHtml(r.name)}</span>
-        <span class="history-item-time">⏱ ${escapeHtml(r.time || "")}</span>
+        <span class="history-item-time">⏱ ${escapeHtml(spacedRange(r.time || ""))}</span>
       </button>
       ${favoriteToggleHtml(r.name, `data-history-index="${index}"`)}
       <button type="button" class="history-remove" data-index="${index}"
