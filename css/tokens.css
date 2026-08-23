@@ -54,6 +54,13 @@
   --accent-strong: var(--persimmon-600);  /* 흰 글씨 CTA는 이걸 쓴다 */
   --accent-tint:   var(--persimmon-50);
 
+  /* ---- 앱 크롬: 상·하단 내비게이션을 중앙 콘텐츠와 다른 기능 계층으로 분리 ---- */
+  --chrome-bg:            var(--green-100);
+  --chrome-border:        #7F9B89;
+  --chrome-active-bg:     var(--persimmon-50);
+  --chrome-shadow-top:    0 4px 16px rgba(47, 92, 68, .14);
+  --chrome-shadow-bottom: 0 -4px 18px rgba(47, 92, 68, .16);
+
   /* ---- 하단 냉장고 시트: 라이트 팔레트의 포레스트 그린으로 본문과 분리 ---- */
   --pantry-sheet-bg:     var(--green-700);
   --pantry-sheet-border: var(--green-600);
@@ -214,6 +221,13 @@
   --accent:        #F08256;  /* 7.2:1 */
   --accent-strong: #F5A183;
   --accent-tint:   #32211A;
+
+  /* 다크 모드의 떠 있는 표면은 페이지 배경보다 밝게 해 깊이를 드러낸다. */
+  --chrome-bg:            #242E28;
+  --chrome-border:        #53675A;
+  --chrome-active-bg:     #493126;
+  --chrome-shadow-top:    0 5px 18px rgba(0, 0, 0, .58);
+  --chrome-shadow-bottom: 0 -5px 20px rgba(0, 0, 0, .62);
 
   /* 다크 화면에서는 페이지보다 밝은 회색으로 시트의 층을 드러낸다. */
   --pantry-sheet-bg:     #3A3834;

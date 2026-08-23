@@ -142,8 +142,9 @@ a {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  background: var(--chrome-bg);
+  border-bottom: 1px solid var(--chrome-border);
+  box-shadow: var(--chrome-shadow-top);
 }
 
 /* space-between으로 두면 자식 4개(로고·테마토글·햄버거·메뉴)가 균등하게 벌어져
@@ -3211,14 +3212,14 @@ body[data-page="recipe"] .recipe-form-section > .result-grid {
     bottom: 0;
     left: 0;
     right: 0;
-    background: var(--surface);
-    border-top: 1px solid var(--border-strong);
+    background: var(--chrome-bg);
+    border-top: 1px solid var(--chrome-border);
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0;
     height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom));
     padding: 0 max(4px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(4px, env(safe-area-inset-left));
-    box-shadow: 0 -4px 18px rgba(24, 46, 35, .1);
+    box-shadow: var(--chrome-shadow-bottom);
   }
 
   .nav-menu a {
@@ -3239,7 +3240,7 @@ body[data-page="recipe"] .recipe-form-section > .result-grid {
   .nav-menu a:hover,
   .nav-menu a.active {
     border: 0;
-    background: var(--accent-soft);
+    background: var(--chrome-active-bg);
   }
 
   .nav-icon,
