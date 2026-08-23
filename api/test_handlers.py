@@ -369,16 +369,20 @@ def test_recipe_index_reads_both_snapshot_formats():
 
     bel = chr(7)
     신형 = "[재료] 돼지고기{b}250{b}g{b}| 김치{b}1/4{b}포기{b}".format(b=bel)
-    assert builder.ingredient_names(신형) == ["돼지고기", "김치"]
+    assert builder.ingredient_pairs(신형) == [("돼지고기", "250g"), ("김치", "1/4포기")]
 
     구형 = "[재료] 물 1C| 파 1뿌리| 돼지고기 1/3밥공기양| 소금 적당량| 간장(돼지고기양념용) 2T"
-    assert builder.ingredient_names(구형) == ["물", "파", "돼지고기", "소금", "간장"]
+    assert builder.ingredient_pairs(구형) == [
+        ("물", "1C"), ("파", "1뿌리"), ("돼지고기", "1/3밥공기양"),
+        ("소금", ""), ("간장", "2T"),
+    ]
 
     # 이름이 숫자로 시작하면 자를 머리가 없다. 버리지 말고 예전 경로로 되돌린다.
-    assert builder.ingredient_names("[재료] 2배 식초 2큰술") == ["배식초"]
+    # 어디까지가 수량인지 가릴 수 없으므로 수량은 비운다.
+    assert builder.ingredient_pairs("[재료] 2배 식초 2큰술") == [("배식초", "")]
 
     # 대괄호는 재료가 아니라 그룹 라벨이다. 라벨만 지우고 뒤에 붙은 재료는 살린다.
-    assert builder.ingredient_names("[주재료]두부 1모") == ["두부"]
+    assert builder.ingredient_pairs("[주재료]두부 1모") == [("두부", "1모")]
 
 
 def test_shopping_sums_across_meals():
@@ -529,7 +533,9 @@ def _fake_index(recipes):
         {
             "id": r.get("id", 0),
             "name": r.get("name", ""),
-            "ing": list(r.get("ing") or ()),
+            # 테스트는 이름만 적는다("김치"). 수량까지 쓰고 싶으면 쌍으로 적는다
+            # (("김치", "1/4포기")). 둘 다 받아서 빌더가 기대하는 모양으로 접는다.
+            "ing": [x if isinstance(x, tuple) else (x, "") for x in (r.get("ing") or ())],
             "time": r.get("time", ""),
             "inbun": r.get("inbun", ""),
             "cat": r.get("cat", ""),
@@ -759,6 +765,23 @@ def test_matched_recipe_reports_its_portion():
     ])
     out = recipe_match.match(["김치", "두부", "대파"])
     assert out[0]["portion"] == "4인분", out[0]
+
+
+def test_matched_recipe_carries_amounts():
+    """수량을 화면까지 실어 보낸다. 이름만 주던 동안에는 "4인분 기준"이라고 말해줘도
+    얼마를 넣어야 할지 알 수 없었고, 장보기 합산도 수량을 몰라 할 수 없었다.
+
+    모양은 AI가 만든 레시피와 같게 둔다 — 화면(splitIngredient)과 장보기(parse_line)가
+    이미 그 모양을 읽으므로 받는 쪽은 고칠 게 없다."""
+    _fake_index([
+        {"id": 1, "name": "김치찌개", "pop": 1,
+         "ing": [("돼지고기", "250g"), ("김치", "1/4포기"), ("소금", "")]},
+    ])
+    out = recipe_match.match(["돼지고기", "김치", "소금"])
+    assert out[0]["ingredients"] == ["돼지고기 250g", "김치 1/4포기", "소금"], out[0]
+
+    # 수량은 매칭에 끼어들지 않는다 — 이름만 본다.
+    assert out[0]["coverage"] == 1.0, out[0]
 
 
 def test_matched_recipe_never_carries_steps():

@@ -19,10 +19,10 @@ INDEX_PATH = os.path.join(os.path.dirname(__file__), "recipes_index.json")
 
 # scripts/build_recipe_index.py의 FORMAT_VERSION과 같아야 한다. 인덱스는 .gitignore라
 # 코드와 따로 움직이므로, 어긋난 파일을 그냥 읽으면 TypeError로 매 요청 500이 된다.
-INDEX_FORMAT = 2
+INDEX_FORMAT = 3
 
 # 빈 인덱스. 파일이 없거나 못 읽거나 버전이 안 맞으면 이걸 쓰고 AI 생성으로 넘어간다.
-EMPTY_INDEX = {"v": INDEX_FORMAT, "n": [], "p": [], "t": [], "b": [], "c": [], "r": []}
+EMPTY_INDEX = {"v": INDEX_FORMAT, "n": [], "p": [], "t": [], "b": [], "c": [], "a": [], "r": []}
 
 RECIPE_URL = "https://www.10000recipe.com/recipe/{}"
 
@@ -205,19 +205,26 @@ def match(pantry_keys, limit=3, category=None, portion=None):
     return out
 
 
+def _with_amount(name, amount):
+    return f"{name} {amount}" if amount else name
+
+
 def to_response(index, row, rate):
     """프론트가 받을 모양. steps가 빈 배열인 것이 이 응답의 핵심이다 — 원문을 재구성하지 않는다.
 
     파일에는 재료·시간·인분이 정수 id로 들어 있다. 이름으로 되돌리는 것은 화면에 나갈
     최대 3건뿐이라 값이 싸다 — 23만 건을 미리 풀어두는 것과는 비용이 다르다."""
-    names = index["n"]
+    names, amounts = index["n"], index["a"]
     return {
         "name": row[1],
         "source": "matched",
         "recipeUrl": RECIPE_URL.format(row[0]),
         "time": index["t"][row[2]],
         "portion": index["b"][row[3]],
-        "ingredients": [names[nid] for nid in row[6]],
+        # "돼지고기 250g" — AI가 만든 레시피와 같은 모양이다. 화면·장보기가 이미 그
+        # 모양을 파싱하므로(js/shared.js의 splitIngredient) 받는 쪽은 고칠 게 없다.
+        "ingredients": [_with_amount(names[nid], amounts[aid])
+                        for nid, aid in zip(row[6], row[7])],
         "steps": [],
         # 검색 링크 폴백용 — 원본이 삭제됐을 때 프론트가 쓸 수 있다.
         "searchKeyword": row[1],

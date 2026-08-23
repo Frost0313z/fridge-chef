@@ -32,7 +32,7 @@ OUT = os.path.join(ROOT, "api", "recipes_index.json")
 # 인덱스는 .gitignore에 있어서 코드와 따로 움직인다 — git으로 코드만 되돌리면 파일은
 # 옛것 그대로다. 그때 버전을 안 보면 TypeError가 나면서 매 요청 500이 되고 스스로
 # 낫지도 않는다. 버전이 다르면 파일이 깨진 것과 똑같이 취급해 AI 폴백으로 보낸다.
-FORMAT_VERSION = 2
+FORMAT_VERSION = 3
 
 # 네 스냅샷은 부분집합이 아니라 기간별 증분이다 — 251231은 231130과 한 건도 안 겹친다.
 # 두 개만 쓰면 코퍼스의 79%를 버리게 되므로 전부 병합한다(스펙 실측 ⓐ).
@@ -67,28 +67,42 @@ def head_of(piece):
     return PAREN_RE.sub(" ", piece[: m.start()] if m else piece)
 
 
-def ingredient_names(raw):
-    """CKG_MTRL_CN에서 재료 이름만 뽑는다.
+def tail_of(piece):
+    """이름을 뗀 나머지 = 수량. 자르는 자리는 head_of와 같은 첫 숫자다."""
+    m = AMOUNT_RE.search(piece)
+    return re.sub(r"\s+", " ", piece[m.start():]).strip() if m else ""
+
+
+def ingredient_pairs(raw):
+    """CKG_MTRL_CN에서 (재료 이름, 수량)을 뽑는다.
 
     원본이 \\x07(BEL)로 이름·수량·단위를 이미 나눠놨다. 이걸 모르고 통째로 parse_line()에
     넣으면 이름이 '소고기\\x07 \\x07g\\x07'로 나와 매칭이 어긋난다(스펙 실측 ⓑ).
     그래서 \\x07로 먼저 자르고, 그러고도 이름 쪽에 수량이 붙어 있는 경우가 있어
     ("양파 1/2개") 이름만 한 번 더 head_of + parse_line에 통과시킨다.
+
+    수량은 매칭에 쓰지 않는다 — 화면에 "돼지고기 250g"이라고 적어주기 위한 것이다.
+    수량 없이 이름만 보여주던 동안에는 "4인분 기준"이라고 말해줘도 얼마를 넣어야 할지
+    알 수 없었고, 장보기 합산도 수량을 몰라 할 수 없었다. 수량은 사실 데이터라
+    라이선스(ND)가 막는 조리 순서·소개글과 다르다.
     """
-    names = []
+    out = []
     for piece in GROUP_RE.sub("|", raw or "").split("|"):
         parts = [p.strip() for p in piece.split("\x07") if p.strip()]
         if not parts:
             continue
         name = normalize_name(parse_line(head_of(parts[0]))[0])
+        # 신형은 수량·단위가 이미 따로 와 있고, 구형은 이름 뒤에 붙어 있다.
+        amount = "".join(parts[1:]).strip() if len(parts) >= 2 else tail_of(parts[0])
         # 이름 자체가 숫자로 시작하면("2배 식초 2큰술") 잘라낸 머리가 빈다. 그 106건은
         # 버리는 것보다 예전처럼 두는 편이 낫다 — 고치는 3만여 건과 맞바꿀 이유가 없다.
+        # 이때는 어디까지가 수량인지 가릴 수 없으므로 수량을 비운다.
         if not name:
-            name = normalize_name(parse_line(parts[0])[0])
+            name, amount = normalize_name(parse_line(parts[0])[0]), ""
         # 닫히지 않은 대괄호가 남는 경우가 드물게 있다. 재료 이름에 괄호가 남을 일은 없다.
         if name and "[" not in name and "]" not in name:
-            names.append(name)
-    return names
+            out.append((name, re.sub(r"\s+", " ", amount).strip()))
+    return out
 
 
 def to_int(value):
@@ -120,6 +134,9 @@ def pack(recipes):
     실측: 콜드 1452ms -> 633ms.
     """
     names, times, inbuns, cats = {}, {}, {}, {}
+    # 수량도 이름처럼 반복된다("1큰술" 21,204회). 고유 1만8천여 종이 31만 칸에 들어가
+    # 평균 17.6번씩 겹치므로 정수화가 값싸다. 0번은 "수량 없음"(전체의 16%)이다.
+    amounts = {"": 0}
 
     def intern(table, value):
         if value not in table:
@@ -130,12 +147,13 @@ def pack(recipes):
     for recipe in recipes:
         # 같은 재료가 두 번 적힌 원본이 있다. 여기서 한 번만 남기면 읽는 쪽이 set()을
         # 다시 만들 필요가 없다 — 채점 루프가 후보 16만 건마다 그걸 하고 있었다(156ms).
-        seen, ing = set(), []
-        for name in recipe["ing"]:
+        seen, ing, amt = set(), [], []
+        for name, amount in recipe["ing"]:
             nid = intern(names, name)
             if nid not in seen:
                 seen.add(nid)
                 ing.append(nid)
+                amt.append(intern(amounts, amount))
         rows.append([
             recipe["id"],
             recipe["name"],
@@ -144,6 +162,7 @@ def pack(recipes):
             intern(cats, recipe["cat"]),
             recipe["pop"],
             ing,
+            amt,
         ])
 
     postings = collections.defaultdict(list)
@@ -158,6 +177,7 @@ def pack(recipes):
         "t": list(times),
         "b": list(inbuns),
         "c": list(cats),
+        "a": list(amounts),
         "r": rows,
     }
 
@@ -183,7 +203,7 @@ def main():
             name = (row.get("CKG_NM") or "").strip()
             if not sno or not name:
                 continue
-            ings = ingredient_names(row.get("CKG_MTRL_CN"))
+            ings = ingredient_pairs(row.get("CKG_MTRL_CN"))
             if not ings:
                 continue
 
@@ -223,6 +243,7 @@ def main():
     print(f"  읽은 행 합계  : {seen_rows:,}")
     print(f"  중복 제거 후  : {len(recipes):,}건")
     print(f"  고유 재료명   : {len(blob['n']):,}종  (역색인 함께 저장, 포맷 v{FORMAT_VERSION})")
+    print(f"  고유 수량     : {len(blob['a']):,}종")
     print(f"  출력          : {os.path.relpath(OUT, ROOT)}  ({size / 1024 / 1024:.1f}MB)")
 
 
