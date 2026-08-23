@@ -55,11 +55,12 @@
   --accent-tint:   var(--persimmon-50);
 
   /* ---- 앱 크롬: 상·하단 내비게이션을 중앙 콘텐츠와 다른 기능 계층으로 분리 ---- */
-  --chrome-bg:            var(--green-100);
-  --chrome-border:        #7F9B89;
-  --chrome-active-bg:     var(--persimmon-50);
-  --chrome-shadow-top:    0 4px 16px rgba(47, 92, 68, .14);
-  --chrome-shadow-bottom: 0 -4px 18px rgba(47, 92, 68, .16);
+  --chrome-bg:            #F4E7DF;
+  --chrome-border:        #CFAF9F;
+  --chrome-active-bg:     var(--green-50);
+  --chrome-active-text:   var(--green-700);
+  --chrome-shadow-top:    0 4px 16px rgba(91, 55, 40, .14);
+  --chrome-shadow-bottom: 0 -4px 18px rgba(91, 55, 40, .16);
 
   /* ---- 하단 냉장고 시트: 라이트 팔레트의 포레스트 그린으로 본문과 분리 ---- */
   --pantry-sheet-bg:     var(--green-700);
@@ -223,9 +224,10 @@
   --accent-tint:   #32211A;
 
   /* 다크 모드의 떠 있는 표면은 페이지 배경보다 밝게 해 깊이를 드러낸다. */
-  --chrome-bg:            #242E28;
-  --chrome-border:        #53675A;
-  --chrome-active-bg:     #493126;
+  --chrome-bg:            #352722;
+  --chrome-border:        #765548;
+  --chrome-active-bg:     #20352A;
+  --chrome-active-text:   #8FCBA6;
   --chrome-shadow-top:    0 5px 18px rgba(0, 0, 0, .58);
   --chrome-shadow-bottom: 0 -5px 20px rgba(0, 0, 0, .62);
 

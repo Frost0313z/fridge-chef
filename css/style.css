@@ -3241,6 +3241,7 @@ body[data-page="recipe"] .recipe-form-section > .result-grid {
   .nav-menu a.active {
     border: 0;
     background: var(--chrome-active-bg);
+    color: var(--chrome-active-text);
   }
 
   .nav-icon,
