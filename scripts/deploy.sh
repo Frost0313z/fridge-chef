@@ -35,10 +35,26 @@ vercel --prod "$@"
 # 여기서 한 번 물어본다. "배포했다"와 "동작한다"는 다른 확인이다.
 echo
 echo "배포된 서비스가 실제로 매칭하는지 확인합니다..."
-PROBE='{"ingredients":"돼지고기 300g, 김치 1/4포기, 두부 1모, 양파 1개, 계란 2개, 대파 1대, 마늘 5쪽"}'
-RESPONSE=$(curl -s --max-time 30 -X POST "$PROD_URL/api/recommend"   -H "Content-Type: application/json" --data-binary "$PROBE" || true)
+# 페이로드를 유니코드 escape로 두어 순수 ASCII로 만든다. Git Bash에서 한글이 든 셸
+# 변수를 curl에 넘기면 cp949로 깨져 서버가 400을 돌려준다 — 그러면 멀쩡한 배포도
+# 실패로 판정된다(이 검증을 처음 붙였을 때 실제로 그렇게 오탐이 났다). JSON은 escape를
+# 그대로 받으므로 셸이 한글을 만질 일이 없어진다.
+PROBE='{"ingredients":"\ub3fc\uc9c0\uace0\uae30 300g, \uae40\uce58 1/4\ud3ec\uae30, \ub450\ubd80 1\ubaa8, \uc591\ud30c 1\uac1c, \uacc4\ub780 2\uac1c, \ub300\ud30c 1\ub300, \ub9c8\ub298 5\ucabd"}'
 
-if printf '%s' "$RESPONSE" | grep -q '"source": *"matched"'; then
+# 배포 직후에는 별칭이 아직 새 배포로 안 넘어가 있을 수 있고 콜드 스타트도 몇 초 걸린다.
+# 한 번 찔러 보고 단정하지 않는다.
+MATCHED=""
+for attempt in 1 2 3 4 5; do
+  RESPONSE=$(curl -s --max-time 40 -X POST "$PROD_URL/api/recommend"     -H "Content-Type: application/json" --data-binary "$PROBE" || true)
+  if printf '%s' "$RESPONSE" | grep -q '"source": *"matched"'; then
+    MATCHED="yes"
+    echo "  ${attempt}번째 시도에서 확인됨."
+    break
+  fi
+  [ "$attempt" -lt 5 ] && sleep 6
+done
+
+if [ -n "$MATCHED" ]; then
   echo "✓ 매칭 동작 확인 — 실제 레시피가 나옵니다."
 else
   echo "" >&2
