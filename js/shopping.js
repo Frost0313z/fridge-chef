@@ -294,11 +294,16 @@ function whyHtml(item, filled, startDate) {
 
   const lines = [];
   if (item.need) lines.push(COPY.UI.shoppingWhyNeed(`<strong>${escapeHtml(item.need)}</strong>`));
-  if (item.have && item.subtracted) {
+  /* 있는데 못 뺀 경우를 말해주는 자리. 이 줄이 없으면 "있는데 왜 또 사라고 해?"로 끝난다.
+     haveState가 없는 것은 이 필드 이전에 저장된 목록이다. 그때는 예전 규칙대로 읽는다 —
+     "수량을 안 적어서"까지는 못 되살리지만, 적어도 예전만큼은 맞게 나온다. */
+  const state = item.haveState || (item.have ? (item.subtracted ? "subtracted" : "mismatch") : "none");
+  if (state === "subtracted") {
     lines.push(COPY.UI.shoppingWhySubtracted(escapeHtml(item.have)));
-  } else if (item.have) {
-    /* 있는데 못 뺀 경우. 이 한 줄이 없으면 "있는데 왜 또 사라고 해?"로 끝난다. */
+  } else if (state === "mismatch") {
     lines.push(COPY.UI.shoppingWhyHaveButMismatch(escapeHtml(item.have)));
+  } else if (state === "unknown") {
+    lines.push(COPY.UI.shoppingWhyHaveNoAmount);
   } else {
     lines.push(COPY.UI.shoppingWhyNone);
   }

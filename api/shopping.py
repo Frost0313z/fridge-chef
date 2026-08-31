@@ -19,6 +19,24 @@ import re
 # 소금·간장 같은 기본 재료는 실제로 없으면 사야 하므로 더 이상 여기서 자동 제외하지 않는다.
 NOT_WORTH_BUYING = {"물", "양념", "채소", "야채", "고기"}
 
+# 조미료·양념. 냉장고에 등록돼 있으면 수량을 못 맞춰도 있는 것으로 본다(build_shopping_list).
+# 이 목록은 **보유 판정을 느슨하게 할 대상**만 고른다 — 등록 안 된 조미료는 다른 재료와
+# 똑같이 사야 할 것으로 올라간다. 예전처럼 무조건 제외하지 않는다.
+# js/shared.js의 BASIC_INGREDIENTS와 같은 목록이어야 한다. 한쪽만 늘리면 냉장고 화면은
+# 기본 재료 칸에 넣어두고 장보기는 매번 사라고 하는, 설명할 수 없는 상태가 된다.
+PANTRY_STAPLES = {
+    "소금", "후추", "후춧가루", "후추가루", "설탕",
+    "식용유", "올리브유", "올리브오일", "참기름", "들기름",
+    "간장", "된장", "고추장", "고춧가루", "고추가루", "다진마늘",
+}
+
+# "냉장고에 얼마나 있는가"를 화면이 말하려면 네 가지를 구분해야 한다. have 문자열 하나로는
+# 앞의 둘이 똑같이 빈 문자열이 되어, 있는 재료를 "없어요"라고 말하게 된다.
+HAVE_NONE = "none"            # 냉장고에 없다
+HAVE_UNKNOWN = "unknown"      # 있는데 수량이 안 적혀 있다("소금")
+HAVE_MISMATCH = "mismatch"    # 있는데 단위가 달라 못 뺐다(150g 필요 / "1팩" 보유)
+HAVE_SUBTRACTED = "subtracted"  # 있는 만큼 뺐다
+
 # 7일치 21끼면 30종을 넘는 것이 정상이라 예전 상한(30)은 목록 끝을 조용히 잘라먹었다.
 # 응답 크기를 막기 위한 안전장치로만 남기고, 실제 계획이 닿지 않을 높이로 올린다.
 MAX_SHOPPING_ITEMS = 60
@@ -208,12 +226,38 @@ def find_owned(target, owned_keys):
     return None
 
 
+def _is_staple(need_key, owned_key):
+    """이 재료를 조미료로 볼 것인가. 냉장고에 등록돼 있을 때만 묻는 질문이다.
+
+    양쪽 이름을 다 본다 — 레시피는 "굵은소금"이라 쓰고 냉장고에는 "소금"이라 적혀 있어도
+    같은 조미료다. find_owned가 이미 같은 재료로 묶어준 뒤이므로 한쪽만 맞아도 충분하다."""
+    return need_key in PANTRY_STAPLES or owned_key in PANTRY_STAPLES
+
+
+def _have_state(owned_key, have, written, subtracted):
+    """"없다" / "있는데 수량을 모른다" / "있는데 단위가 다르다" / "뺐다"를 가른다.
+
+    화면이 근거를 적을 때 쓴다. 여기서 뭉치면 화면에서는 되살릴 수 없다 — have가 빈
+    문자열인 이유가 "없어서"인지 "수량을 안 적어서"인지 구분할 방법이 없기 때문이다.
+
+    written은 0까지 포함한, 냉장고에 실제로 적혀 있던 수량이다. "계산에 쓸 수 있는 양"
+    (have)과 나눠 받는 이유는 "계란 0개"를 가리기 위해서다 — 적혀 있긴 하지만 0이므로
+    없는 것과 같고, "수량을 안 적었다"로 뭉치면 화면이 "얼마나 있는지 몰라"라고 말한다."""
+    if subtracted:
+        return HAVE_SUBTRACTED
+    if not owned_key:
+        return HAVE_NONE
+    if have:
+        return HAVE_MISMATCH
+    return HAVE_NONE if written else HAVE_UNKNOWN
+
+
 def build_shopping_list(plan, pantry):
     """계획이 쓰는 재료를 전부 더하고 냉장고에 있는 만큼 빼서 살 것만 남긴다.
 
     plan: [{"day","meal","menu","ingredients": ["계란 2개", ...]}, ...]   pantry: ["계란 4개", ...]
     반환: [{"name": "계란", "amount": "6개", "need": "10개", "have": "4개", "subtracted": True,
-            "uses": [{"day","meal","menu","amount"}, ...]}, ...]
+            "haveState": "subtracted", "uses": [{"day","meal","menu","amount"}, ...]}, ...]
 
     amount 말고 나머지는 **왜 이 수량이 나왔는지**를 화면이 그대로 펼쳐 보이기 위한 것이다.
     숫자만 던지면 사용자는 맞는지 틀리는지 판단할 방법이 없다. 특히 "냉장고에 있는데 왜
@@ -239,10 +283,13 @@ def build_shopping_list(plan, pantry):
             continue
 
         owned_key = find_owned(key, owned_keys)
-        have = owned[owned_key]["amounts"] if owned_key else {}
+        written = owned[owned_key]["amounts"] if owned_key else {}
+        # 0개는 없는 것과 같다. 남겨두면 "냉장고에 0개 있는데 단위가 달라 못 뺐다"처럼
+        # 사실이 아닌 근거가 화면에 나간다.
+        have = {unit: total for unit, total in written.items() if total > 0}
         # 냉장고에 있긴 한데 뺄 수 없었던 경우를 화면이 구분해 말할 수 있어야 한다.
         # (수량을 안 적었거나 단위가 달라서 — 사용자 눈에는 "있는데 또 사라네"로만 보인다)
-        have_text = _format_amounts(have) if owned_key else ""
+        have_text = _format_amounts(have)
 
         if not need["amounts"]:
             # 얼마나 필요한지를 모르는 재료(수량 없이 저장된 옛 계획). 부족한 양을 계산할
@@ -250,8 +297,15 @@ def build_shopping_list(plan, pantry):
             if owned_key is None:
                 shopping_list.append(
                     {"name": need["label"], "amount": "", "need": "", "have": "",
-                     "subtracted": False, "uses": need["uses"]}
+                     "subtracted": False, "haveState": HAVE_NONE, "uses": need["uses"]}
                 )
+            continue
+
+        # 조미료는 한 번 사면 몇 달을 쓴다. 냉장고에 있다고 적혀 있으면 수량이나 단위를
+        # 못 맞춰도 없는 것으로 보지 않는다 — 소금 500g을 두고 매주 "소금 1큰술"을 사라고
+        # 하는 쪽이, 어쩌다 한 번 떨어진 소금을 못 사는 쪽보다 훨씬 자주 틀린다.
+        # 같은 단위로 적혀 있어 뺄 수 있으면 아래에서 평소대로 계산한다.
+        if owned_key and _is_staple(key, owned_key) and not any(u in have for u in need["amounts"]):
             continue
 
         parts = []
@@ -275,6 +329,7 @@ def build_shopping_list(plan, pantry):
                     "need": _format_amounts(need["amounts"]),
                     "have": have_text,
                     "subtracted": subtracted,
+                    "haveState": _have_state(owned_key, have, written, subtracted),
                     "uses": need["uses"],
                 }
             )

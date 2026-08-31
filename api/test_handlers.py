@@ -340,6 +340,51 @@ def test_shopping_says_it_could_not_subtract():
     assert pork["amount"] == "150g", pork
     assert pork["have"] == "1팩", "냉장고에 있다는 사실 자체는 알려야 한다"
     assert pork["subtracted"] is False, "뺀 것처럼 보이면 안 된다"
+    assert pork["haveState"] == "mismatch", pork
+
+
+def test_shopping_tells_missing_from_unwritten_amount():
+    """"없다"와 "있는데 수량을 안 적었다"는 다른 사실이다. have가 양쪽 다 빈 문자열이라
+    예전에는 냉장고에 있는 재료를 화면이 "냉장고에는 없어요"라고 말했다."""
+    plan = [{"ingredients": ["계란 6개"]}]
+    [none] = shopping.build_shopping_list(plan, [])
+    [unknown] = shopping.build_shopping_list(plan, ["계란"])
+    assert none["haveState"] == "none", none
+    assert unknown["haveState"] == "unknown", unknown
+    assert unknown["amount"] == "6개", "조미료가 아니면 수량을 모를 때 사는 쪽이 안전하다"
+
+
+def test_shopping_treats_zero_as_none():
+    """"계란 0개"는 없는 것이다. 0을 보유로 세면 "냉장고에 0개 있는데 단위가 달라
+    못 뺐다"는, 사실이 아닌 근거가 화면에 나간다."""
+    [egg] = shopping.build_shopping_list([{"ingredients": ["계란 6개"]}], ["계란 0개"])
+    assert egg["have"] == "", egg
+    assert egg["haveState"] == "none", egg
+
+
+def test_shopping_keeps_registered_staples():
+    """조미료는 한 번 사면 몇 달을 쓴다. 냉장고에 있다고 적혀 있으면 수량을 안 적었거나
+    단위가 달라도(500g 보유 / 1큰술 필요) 또 사라고 하지 않는다."""
+    plan = [{"ingredients": ["소금 1큰술", "간장 2T", "계란 2개"]}]
+    assert brief(shopping.build_shopping_list(plan, ["소금", "간장 500ml", "계란 4개"])) == []
+
+
+def test_shopping_buys_unregistered_staples():
+    """등록 안 된 조미료는 다른 재료와 똑같이 사야 한다. 예전처럼 이름만 보고 빼면
+    소금이 정말 없는 사람은 요리를 시작할 수 없다."""
+    plan = [{"ingredients": ["소금 1큰술"]}]
+    assert brief(shopping.build_shopping_list(plan, ["계란 4개"])) == [
+        {"name": "소금", "amount": "1큰술"}
+    ]
+
+
+def test_shopping_still_subtracts_staples():
+    """뺄 수 있으면(같은 단위) 조미료도 평소대로 계산한다 — 느슨한 판정은 단위를 못 맞출
+    때만 쓰는 마지막 수단이지, 조미료를 계산에서 빼버리는 규칙이 아니다."""
+    plan = [{"ingredients": ["소금 5큰술"]}]
+    assert brief(shopping.build_shopping_list(plan, ["소금 3큰술"])) == [
+        {"name": "소금", "amount": "2큰술"}
+    ]
 
 
 def test_parse_line():

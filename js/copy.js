@@ -306,6 +306,10 @@ const COPY = {
     shoppingWhyNeed: (amount) => `계획 전체에 ${amount} 필요해요.`,
     shoppingWhySubtracted: (have) => `냉장고에 ${have} 있어서 뺐어요.`,
     shoppingWhyHaveButMismatch: (have) => `냉장고에 ${have} 있지만 단위가 달라 빼지 못했어요.`,
+    /* 수량을 안 적어둔 재료. 예전에는 이 경우가 "냉장고에는 없어요"로 나갔다 —
+       눈앞의 냉장고에 있는 재료를 없다고 하니 계산이 통째로 고장 난 것처럼 보였다. */
+    shoppingWhyHaveNoAmount:
+      "냉장고에 있지만 수량이 안 적혀 있어 빼지 못했어요. 냉장고에 수량을 적어두면 그만큼 빼드려요.",
     shoppingWhyNone: "냉장고에는 없어요.",
     shoppingWhyFilled: (filled) => `그 뒤로 ${filled}를 채웠어요.`,
   },
